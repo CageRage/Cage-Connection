@@ -1441,7 +1441,9 @@ function renderNode(nodeObj) {
 updateScoreDisplay();
     function clearFocus() {
       focusedNodeId = null;
-      applyFocusStyles();
+    applyFocusStyles();
+updateScoreDisplay();
+}
       saveBoard();
     }
 
