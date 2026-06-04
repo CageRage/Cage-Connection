@@ -414,46 +414,35 @@
 </head>
 <body>
   <div id="toolbar">
-    <span style="font-size:22px;font-weight:bold;color:#ffd54a;margin-right:12px;">🎬 Cage Connection</span>
+  <div id="toolbar">
+  <span style="font-size:22px;font-weight:bold;color:#ffd54a;margin-right:12px;">
+    🎬 Cage Connection
+  </span>
 
-<input type="text" id="movieSearchBox" placeholder="Find movie..." style="padding:8px 10px;border-radius:6px;border:1px solid #555;background:#182234;color:white;width:180px;">
+  <input
+    type="text"
+    id="movieSearchBox"
+    placeholder="Find movie..."
+    style="padding:8px 10px;border-radius:6px;border:1px solid #555;background:#182234;color:white;width:180px;"
+  >
 
-<button onclick="findMovie()">Find</button>
-    
+  <button onclick="findMovie()">Find</button>
 
-<input
-  type="text"
-  id="movieSearchBox"
-  <span style="font-size:22px;font-weight:bold;color:#ffd54a;margin-right:12px;">🎬 Cage Connection</span>
+  <button onclick="openMoviePicker()">+ Add Movie</button>
+  <button onclick="connectMode()">Connect Movies</button>
+  <button onclick="clearSelection()">Clear Selection</button>
+  <button onclick="clearFocus()">Clear Focus</button>
+  <button onclick="showIndex()">Show Index</button>
+  <button onclick="openPathFinder()">Find Path</button>
+  <button onclick="autoArrangeAllComponents()">Auto Arrange</button>
+  <button onclick="exportBoard()">Export Backup</button>
+  <button onclick="document.getElementById('importFile').click()">Import Backup</button>
+  <button class="danger-button" onclick="resetBoard()">Reset Board</button>
 
-<input type="text" id="movieSearchBox" placeholder="Find movie..." style="padding:8px 10px;border-radius:6px;border:1px solid #555;background:#182234;color:white;width:180px;">
+  <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
-<button onclick="findMovie()">Find</button>
-  placeholder="Find movie..."
-  style="
-    padding:8px 10px;
-    border-radius:6px;
-    border:1px solid #555;
-    background:#182234;
-    color:white;
-    width:180px;
-  "
->
-
-<button onclick="findMovie()">Find</button>
-    <button onclick="openMoviePicker()">+ Add Movie</button>
-    <button onclick="connectMode()">Connect Movies</button>
-    <button onclick="clearSelection()">Clear Selection</button>
-    <button onclick="clearFocus()">Clear Focus</button>
-    <button onclick="showIndex()">Show Index</button>
-    <button onclick="openPathFinder()">Find Path</button>
-    <button onclick="autoArrangeAllComponents()">Auto Arrange</button>
-    <button onclick="exportBoard()">Export Backup</button>
-    <button onclick="document.getElementById('importFile').click()">Import Backup</button>
-    <button class="danger-button" onclick="resetBoard()">Reset Board</button>
-    <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
-    <span id="statusText">Ready.</span>
-  </div>
+  <span id="statusText">Ready.</span>
+</div>
 
   <div id="board">
     <div id="surface">
