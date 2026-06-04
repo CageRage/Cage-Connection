@@ -956,7 +956,6 @@ function renderNode(nodeObj) {
   nodeObj.el.innerHTML = `
     <div class="node-title">${escapeHtml(nodeObj.name)}</div>
     <div class="node-usage">${degree}/2</div>
-    <button class="cast-button" onclick="openCastPage(event, '${nodeObj.id}')">View Cast (-5)</button>
   `;
   nodeObj.el.classList.toggle("full", degree >= 2);
 }
