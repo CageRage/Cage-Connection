@@ -661,7 +661,19 @@
     function setStatus(text) {
       statusText.textContent = text;
     }
+function calculateScore() {
+  return connections.reduce((total, c) => {
+    if (c.type === "bridge") return total + 2;
+    if (c.type === "shared") return total + 1;
+    return total;
+  }, 0);
+}
 
+function updateScoreDisplay() {
+  const scoreDisplay = document.getElementById("scoreDisplay");
+  if (!scoreDisplay) return;
+  scoreDisplay.textContent = `Score: ${calculateScore()}`;
+}
     function normalizeTitle(title) {
       return String(title).trim().toLowerCase();
     }
@@ -1426,7 +1438,7 @@ function renderNode(nodeObj) {
       connectFirstNode = null;
       setStatus("Ready.");
     }
-
+updateScoreDisplay();
     function clearFocus() {
       focusedNodeId = null;
       applyFocusStyles();
