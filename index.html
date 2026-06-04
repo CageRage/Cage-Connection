@@ -947,14 +947,32 @@ function findMovie() {
       return obj;
     }
 
-    function renderNode(nodeObj) {
-      const degree = getDegree(nodeObj.id);
-      nodeObj.el.innerHTML = `
-        <div class="node-title">${escapeHtml(nodeObj.name)}</div>
-        <div class="node-usage">${degree}/2</div>
-      `;
-      nodeObj.el.classList.toggle("full", degree >= 2);
-    }
+function renderNode(nodeObj) {
+  const degree = getDegree(nodeObj.id);
+  nodeObj.el.innerHTML = `
+    <div class="node-title">${escapeHtml(nodeObj.name)}</div>
+    <div class="node-usage">${degree}/2</div>
+    <button class="cast-button" onclick="openCastPage(event, '${nodeObj.id}')">View Cast (-5)</button>
+  `;
+  nodeObj.el.classList.toggle("full", degree >= 2);
+}
+    function openCastPage(event, nodeId) {
+  event.stopPropagation();
+
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node) return;
+
+  const ok = confirm(
+    `View cast for "${node.name}"?\n\nThis will cost 5 points.`
+  );
+
+  if (!ok) return;
+
+  const wikiTitle = node.name.trim().replaceAll(" ", "_");
+  const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`;
+
+  window.open(url, "_blank");
+}
 
     function redrawNodes() {
       nodes.forEach(renderNode);
