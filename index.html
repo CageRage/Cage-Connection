@@ -414,6 +414,25 @@
 </head>
 <body>
   <div id="toolbar">
+    <span style="font-size:22px;font-weight:bold;color:#ffd54a;margin-right:12px;">
+🎬 Cage Connection
+</span>
+
+<input
+  type="text"
+  id="movieSearchBox"
+  placeholder="Find movie..."
+  style="
+    padding:8px 10px;
+    border-radius:6px;
+    border:1px solid #555;
+    background:#182234;
+    color:white;
+    width:180px;
+  "
+>
+
+<button onclick="findMovie()">Find</button>
     <button onclick="openMoviePicker()">+ Add Movie</button>
     <button onclick="connectMode()">Connect Movies</button>
     <button onclick="clearSelection()">Clear Selection</button>
@@ -736,7 +755,36 @@
         focusedNodeId
       };
     }
+function findMovie() {
+  const box = document.getElementById("movieSearchBox");
+  if (!box) return;
 
+  const search = box.value.trim().toLowerCase();
+
+  if (!search) {
+    alert("Type a movie title first.");
+    return;
+  }
+
+  const matches = nodes.filter(n =>
+    n.name.toLowerCase().includes(search)
+  );
+
+  if (!matches.length) {
+    alert("No matching movie found.");
+    return;
+  }
+
+  const movie = matches[0];
+
+  focusedNodeId = movie.id;
+  bringToFront(movie.el);
+  centerOnNode(movie);
+  applyFocusStyles();
+  saveBoard();
+
+  setStatus(`Found: ${movie.name}`);
+}
     function exportBoard() {
       const exportData = {
         app: "Cage Universe",
