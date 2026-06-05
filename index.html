@@ -1433,20 +1433,20 @@ function renderNode(nodeObj) {
       setStatus("Connect mode ON. Click the first movie.");
     }
 
-    function clearSelection() {
-      clearNodeStates();
-      connectModeActive = false;
-      connectFirstNode = null;
-      setStatus("Ready.");
-    }
-updateScoreDisplay();
-    function clearFocus() {
-      focusedNodeId = null;
-    applyFocusStyles();
-updateScoreDisplay();
+ function clearSelection() {
+  clearNodeStates();
+  connectModeActive = false;
+  connectFirstNode = null;
+  setStatus("Ready.");
+  updateScoreDisplay();
 }
-      saveBoard();
-    }
+
+function clearFocus() {
+  focusedNodeId = null;
+  applyFocusStyles();
+  updateScoreDisplay();
+  saveBoard();
+}
 
     function clearNodeStates() {
       nodes.forEach(n => n.el.classList.remove("connecting"));
