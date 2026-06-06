@@ -995,15 +995,8 @@ function findMovie() {
 
 function renderNode(nodeObj) {
   const degree = getDegree(nodeObj.id);
-  const posterSrc = `posters/${posterFileName(nodeObj.name)}.jpeg`;
 
   nodeObj.el.innerHTML = `
-    <img
-      class="node-poster"
-      src="${posterSrc}"
-      alt=""
-      onerror="this.remove();"
-    >
     <div class="node-title">${escapeHtml(nodeObj.name)}</div>
     <div class="node-usage">${degree}/2</div>
   `;
