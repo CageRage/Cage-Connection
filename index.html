@@ -805,42 +805,37 @@ function startCastLookup() {
   setStatus("Cast lookup mode ON. Click a movie to view its Wikipedia cast page for -5 points.");
 }
 
-function wikiTitleForMovie(title) {
+function movieWikiUrl(title) {
   const overrides = {
-    "Birdy": "Birdy_(film)",
-    "Pig": "Pig_(2021_film)",
-    "Joe": "Joe_(2013_film)",
-    "Next": "Next_(2007_film)",
-    "Mandy": "Mandy_(2018_film)",
-    "Knowing": "Knowing_(film)",
-    "Longlegs": "Longlegs_(film)",
-    "Renfield": "Renfield_(film)",
-    "The Rock": "The_Rock_(film)",
-    "Kick-Ass": "Kick-Ass_(film)",
-    "The Croods": "The_Croods",
-    "The Croods: A New Age": "The_Croods:_A_New_Age",
-    "The Wicker Man": "The_Wicker_Man_(2006_film)",
-    "The Weather Man": "The_Weather_Man",
-    "The Family Man": "The_Family_Man",
-    "The Runner": "The_Runner_(2015_film)",
-    "The Old Way": "The_Old_Way",
-    "The Surfer": "The_Surfer_(film)",
-    "Stolen": "Stolen_(2012_film)",
-    "Drive Angry": "Drive_Angry",
-    "Primal": "Primal_(2019_film)",
-    "Outcast": "Outcast_(2014_film)",
-    "Left Behind": "Left_Behind_(2014_film)",
-    "Mom and Dad": "Mom_and_Dad_(2017_film)",
-    "Color Out of Space": "Color_Out_of_Space_(film)",
-    "Dream Scenario": "Dream_Scenario",
-    "Arcadian": "Arcadian_(film)",
-    "Jiu Jitsu": "Jiu_Jitsu_(film)",
-    "Willy's Wonderland": "Willy's_Wonderland",
-    "Face/Off": "Face/Off",
-    "8MM": "8mm_(film)"
+    "Birdy": "https://en.wikipedia.org/wiki/Birdy_(film)#Cast",
+    "Ghost Rider": "https://en.wikipedia.org/wiki/Ghost_Rider_(2007_film)#Cast",
+    "Ghost Rider: Spirit of Vengeance": "https://en.wikipedia.org/wiki/Ghost_Rider:_Spirit_of_Vengeance#Cast",
+    "Pig": "https://en.wikipedia.org/wiki/Pig_(2021_film)#Cast",
+    "Joe": "https://en.wikipedia.org/wiki/Joe_(2013_film)#Cast",
+    "Next": "https://en.wikipedia.org/wiki/Next_(2007_film)#Cast",
+    "Mandy": "https://en.wikipedia.org/wiki/Mandy_(2018_film)#Cast",
+    "Knowing": "https://en.wikipedia.org/wiki/Knowing_(film)#Cast",
+    "Longlegs": "https://en.wikipedia.org/wiki/Longlegs_(film)#Cast",
+    "Renfield": "https://en.wikipedia.org/wiki/Renfield_(film)#Cast",
+    "The Rock": "https://en.wikipedia.org/wiki/The_Rock_(film)#Cast",
+    "The Wicker Man": "https://en.wikipedia.org/wiki/The_Wicker_Man_(2006_film)#Cast",
+    "The Runner": "https://en.wikipedia.org/wiki/The_Runner_(2015_film)#Cast",
+    "Stolen": "https://en.wikipedia.org/wiki/Stolen_(2012_film)#Cast",
+    "Primal": "https://en.wikipedia.org/wiki/Primal_(2019_film)#Cast",
+    "Outcast": "https://en.wikipedia.org/wiki/Outcast_(2014_film)#Cast",
+    "Left Behind": "https://en.wikipedia.org/wiki/Left_Behind_(2014_film)#Cast",
+    "Mom and Dad": "https://en.wikipedia.org/wiki/Mom_and_Dad_(2017_film)#Cast",
+    "Color Out of Space": "https://en.wikipedia.org/wiki/Color_Out_of_Space_(film)#Cast",
+    "Jiu Jitsu": "https://en.wikipedia.org/wiki/Jiu_Jitsu_(film)#Cast",
+    "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast"
   };
 
-  return overrides[title] || String(title).trim().replace(/\s+/g, "_");
+  if (overrides[title]) {
+    return overrides[title];
+  }
+
+  const searchQuery = `${title} Nicolas Cage film cast`;
+  return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchQuery)}`;
 }
 
 function handleCastLookup(nodeObj) {
@@ -858,8 +853,7 @@ function handleCastLookup(nodeObj) {
   localStorage.setItem(CAST_PENALTY_KEY, String(castPenalty));
   updateScoreDisplay();
 
-  const wikiTitle = wikiTitleForMovie(nodeObj.name);
-  const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}#Cast`;
+  const url = movieWikiUrl(nodeObj.name);
 
   castLookupMode = false;
   setStatus(`Cast lookup used for ${nodeObj.name}. Score -5.`);
