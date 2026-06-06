@@ -88,15 +88,6 @@
     }
 
     .node-poster {
-  width: 100%;
-  height: 115px;
-  object-fit: cover;
-  border-radius: 7px;
-  margin-bottom: 7px;
-  background: #111;
-  display: block;
-}
-    .node-poster {
       width: 100%;
       height: 115px;
       object-fit: cover;
@@ -104,25 +95,9 @@
       margin-bottom: 7px;
       background: #111;
       display: block;
-}
+    }
 
-    
     .node-usage {
-      .cast-button {
-  display: block;
-  margin: 8px auto 0;
-  padding: 5px 8px;
-  font-size: 11px;
-  border-radius: 6px;
-  background: #3a2d12;
-  border: 1px solid #ffd54a;
-  color: #ffd54a;
-  cursor: pointer;
-}
-
-.cast-button:hover {
-  background: #514019;
-}
       display: inline-block;
       font-size: 11px;
       font-weight: 700;
@@ -449,42 +424,34 @@
 </head>
 <body>
   <div id="toolbar">
-  <div id="toolbar">
-  <span style="font-size:22px;font-weight:bold;color:#ffd54a;margin-right:12px;">
-    🎬 Cage Connection
-  </span>
+    <span style="font-size:22px;font-weight:bold;color:#ffd54a;margin-right:12px;">
+      🎬 Cage Connection
+    </span>
 
-  <input
-    type="text"
-    id="movieSearchBox"
-    placeholder="Find movie..."
-    style="padding:8px 10px;border-radius:6px;border:1px solid #555;background:#182234;color:white;width:180px;"
-  >
+    <input
+      type="text"
+      id="movieSearchBox"
+      placeholder="Find movie..."
+      style="padding:8px 10px;border-radius:6px;border:1px solid #555;background:#182234;color:white;width:180px;"
+    >
 
-  <button onclick="findMovie()">Find</button>
+    <button onclick="findMovie()">Find</button>
+    <button onclick="openMoviePicker()">+ Add Movie</button>
+    <button onclick="connectMode()">Connect Movies</button>
+    <button onclick="clearSelection()">Clear Selection</button>
+    <button onclick="clearFocus()">Clear Focus</button>
+    <button onclick="showIndex()">Show Index</button>
+    <button onclick="openPathFinder()">Find Path</button>
+    <button onclick="autoArrangeAllComponents()">Auto Arrange</button>
+    <button onclick="exportBoard()">Export Backup</button>
+    <button onclick="document.getElementById('importFile').click()">Import Backup</button>
+    <button class="danger-button" onclick="resetBoard()">Reset Board</button>
 
-  <button onclick="openMoviePicker()">+ Add Movie</button>
-  <button onclick="connectMode()">Connect Movies</button>
-  <button onclick="clearSelection()">Clear Selection</button>
-  <button onclick="clearFocus()">Clear Focus</button>
-  <button onclick="showIndex()">Show Index</button>
-  <button onclick="openPathFinder()">Find Path</button>
-  <button onclick="autoArrangeAllComponents()">Auto Arrange</button>
-  <button onclick="exportBoard()">Export Backup</button>
-  <button onclick="document.getElementById('importFile').click()">Import Backup</button>
-  <button class="danger-button" onclick="resetBoard()">Reset Board</button>
+    <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
-  <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
-
-<span id="statusText">Ready.</span>
-
-<span id="scoreDisplay"
-      style="margin-left:15px;
-             font-weight:bold;
-             color:#ffd54a;
-             font-size:18px;">
-  Score: 0
-</span></div>
+    <span id="statusText">Ready.</span>
+    <span id="scoreDisplay" style="margin-left:15px;font-weight:bold;color:#ffd54a;font-size:18px;">Score: 0</span>
+  </div>
 
   <div id="board">
     <div id="surface">
@@ -544,7 +511,7 @@
   <div id="modalOverlay" class="hidden" onclick="closeIndex(event)">
     <div id="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h2>Cage Universe Index</h2>
+        <h2>Cage Connection Index</h2>
         <button onclick="closeIndex()">Close</button>
       </div>
       <div id="indexContent"></div>
@@ -677,38 +644,43 @@
 
     loadBoard();
     setStatus("Ready.");
+    updateScoreDisplay();
 
     function setStatus(text) {
       statusText.textContent = text;
+      updateScoreDisplay();
     }
-function calculateScore() {
-  return connections.reduce((total, c) => {
-    if (c.type === "bridge") return total + 2;
-    if (c.type === "shared") return total + 1;
-    return total;
-  }, 0);
-}
 
-function updateScoreDisplay() {
-  const scoreDisplay = document.getElementById("scoreDisplay");
-  if (!scoreDisplay) return;
-  scoreDisplay.textContent = `Score: ${calculateScore()}`;
-}
+    function calculateScore() {
+      return connections.reduce((total, c) => {
+        if (c.type === "bridge") return total + 2;
+        if (c.type === "shared") return total + 1;
+        return total;
+      }, 0);
+    }
+
+    function updateScoreDisplay() {
+      const scoreDisplay = document.getElementById("scoreDisplay");
+      if (!scoreDisplay) return;
+      scoreDisplay.textContent = `Score: ${calculateScore()}`;
+    }
+
     function normalizeTitle(title) {
-     function posterFileName(title) {
-  return String(title)
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/'/g, "")
-    .replace(/:/g, "")
-    .replace(/\//g, "-")
-    .replace(/!/g, "")
-    .replace(/\./g, "")
-    .replace(/\?/g, "")
-    .replace(/\s+/g, "-");
-}
       return String(title).trim().toLowerCase();
+    }
+
+    function posterFileName(title) {
+      return String(title)
+        .trim()
+        .toLowerCase()
+        .replace(/&/g, "and")
+        .replace(/'/g, "")
+        .replace(/:/g, "")
+        .replace(/\//g, "-")
+        .replace(/!/g, "")
+        .replace(/\./g, "")
+        .replace(/\?/g, "")
+        .replace(/\s+/g, "-");
     }
 
     function loadCustomTitles() {
@@ -851,7 +823,7 @@ function findMovie() {
 }
     function exportBoard() {
       const exportData = {
-        app: "Cage Universe",
+        app: "Cage Connection",
         storageKey: STORAGE_KEY,
         exportedAt: new Date().toISOString(),
         board: getBoardData(),
@@ -863,7 +835,7 @@ function findMovie() {
       const a = document.createElement("a");
       const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       a.href = url;
-      a.download = `cage-universe-backup-${stamp}.json`;
+      a.download = `cage-connection-backup-${stamp}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -882,12 +854,12 @@ function findMovie() {
           const boardData = parsed.board || parsed;
 
           if (!boardData || !Array.isArray(boardData.nodes) || !Array.isArray(boardData.connections)) {
-            alert("That file does not look like a Cage Universe backup.");
+            alert("That file does not look like a Cage Connection backup.");
             return;
           }
 
           const ok = confirm(
-            "Import this backup?\n\nThis will replace the Cage Universe board currently saved in this browser. Export the current board first if you want to keep it."
+            "Import this backup?\n\nThis will replace the Cage Connection board currently saved in this browser. Export the current board first if you want to keep it."
           );
           if (!ok) return;
 
@@ -912,7 +884,7 @@ function findMovie() {
 
     function resetBoard() {
       const firstConfirm = confirm(
-        "Are you sure you want to reset the entire Cage Universe board?\n\nThis will delete all movies, connections, actors, and layout work saved in this browser."
+        "Are you sure you want to reset the entire Cage Connection board?\n\nThis will delete all movies, connections, actors, and layout work saved in this browser."
       );
 
       if (!firstConfirm) return;
@@ -1005,84 +977,33 @@ function findMovie() {
     }
 
 function renderNode(nodeObj) {
-  const degree = getDegree(nodeObj.id);
+      const degree = getDegree(nodeObj.id);
+      const posterSrc = `posters/${posterFileName(nodeObj.name)}.jpeg`;
 
-  nodeObj.el.innerHTML = "";
+      nodeObj.el.innerHTML = "";
 
-function renderNode(nodeObj) {
-  const degree = getDegree(nodeObj.id);
-  const posterSrc = `posters/${posterFileName(nodeObj.name)}.jpeg`;
+      const title = document.createElement("div");
+      title.className = "node-title";
+      title.textContent = nodeObj.name;
 
-  nodeObj.el.innerHTML = "";
+      const usage = document.createElement("div");
+      usage.className = "node-usage";
+      usage.textContent = `${degree}/2`;
 
-  const img = document.createElement("img");
-  img.className = "node-poster";
-  img.src = posterSrc;
-  img.alt = "";
-  img.onerror = function () {
-    img.remove();
-  };
+      nodeObj.el.appendChild(title);
+      nodeObj.el.appendChild(usage);
 
-  const title = document.createElement("div");
-  title.className = "node-title";
-  title.textContent = nodeObj.name;
+      const img = new Image();
+      img.className = "node-poster";
+      img.alt = "";
+      img.onload = function () {
+        nodeObj.el.insertBefore(img, title);
+        draw();
+      };
+      img.src = posterSrc;
 
-  const usage = document.createElement("div");
-  usage.className = "node-usage";
-  usage.textContent = `${degree}/2`;
-
-  nodeObj.el.appendChild(img);
-  nodeObj.el.appendChild(title);
-  nodeObj.el.appendChild(usage);
-
-  nodeObj.el.classList.toggle("full", degree >= 2);
-}
-
-  const title = document.createElement("div");
-  title.className = "node-title";
-  title.textContent = nodeObj.name;
-
-  const usage = document.createElement("div");
-  usage.className = "node-usage";
-  usage.textContent = `${degree}/2`;
-
-  nodeObj.el.appendChild(img);
-  nodeObj.el.appendChild(title);
-  nodeObj.el.appendChild(usage);
-
-  nodeObj.el.classList.toggle("full", degree >= 2);
-}
-
-  const title = document.createElement("div");
-  title.className = "node-title";
-  title.textContent = nodeObj.name;
-
-  const usage = document.createElement("div");
-  usage.className = "node-usage";
-  usage.textContent = `${degree}/2`;
-
-  nodeObj.el.appendChild(title);
-  nodeObj.el.appendChild(usage);
-
-  nodeObj.el.classList.toggle("full", degree >= 2);
-}
-    function openCastPage(event, nodeId) {
-  event.stopPropagation();
-
-  const node = nodes.find(n => n.id === nodeId);
-  if (!node) return;
-
-  const ok = confirm(
-    `View cast for "${node.name}"?\n\nThis will cost 5 points.`
-  );
-
-  if (!ok) return;
-
-  const wikiTitle = node.name.trim().replaceAll(" ", "_");
-  const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`;
-
-  window.open(url, "_blank");
-}
+      nodeObj.el.classList.toggle("full", degree >= 2);
+    }
 
     function redrawNodes() {
       nodes.forEach(renderNode);
@@ -1262,13 +1183,6 @@ function renderNode(nodeObj) {
         focusedNodeId = obj.id;
         applyFocusStyles();
         saveBoard();
-      });
-
-      node.addEventListener("dblclick", function (e) {
-        e.stopPropagation();
-        if (confirm(`Delete "${obj.name}"?`)) {
-          deleteNode(obj.id);
-        }
       });
     }
 
@@ -1821,6 +1735,7 @@ function clearFocus() {
       }
 
       applyFocusStyles();
+      updateScoreDisplay();
     }
 
     function snapToGrid(value, gridSize) {
