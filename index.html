@@ -988,43 +988,44 @@ castPenalty = 0;
       setStatus("Board reset.");
     }
 
-    function getNextGridPosition() {
-      const cols = 6;
-      const xStart = 60;
-      const yStart = 70;
-      const xGap = 180;
-      const yGap = 90;
+function getNextGridPosition() {
+  const cols = 5;
+  const xStart = 60;
+  const yStart = 70;
+  const xGap = 245;
+  const yGap = 245;
 
-      const index = nodes.length;
-      const col = index % cols;
-      const row = Math.floor(index / cols);
+  const index = nodes.length;
+  const col = index % cols;
+  const row = Math.floor(index / cols);
 
-      return {
-        x: xStart + (col * xGap),
-        y: yStart + (row * yGap)
-      };
-    }
+  return {
+    x: xStart + (col * xGap),
+    y: yStart + (row * yGap)
+  };
+}
 
-    function getNextGridPositions(count) {
-      const positions = [];
-      for (let i = 0; i < count; i++) {
-        const cols = 6;
-        const xStart = 60;
-        const yStart = 70;
-        const xGap = 180;
-        const yGap = 90;
+function getNextGridPositions(count) {
+  const positions = [];
+  const cols = 5;
+  const xStart = 60;
+  const yStart = 70;
+  const xGap = 245;
+  const yGap = 245;
 
-        const index = nodes.length + i;
-        const col = index % cols;
-        const row = Math.floor(index / cols);
+  for (let i = 0; i < count; i++) {
+    const index = nodes.length + i;
+    const col = index % cols;
+    const row = Math.floor(index / cols);
 
-        positions.push({
-          x: xStart + (col * xGap),
-          y: yStart + (row * yGap)
-        });
-      }
-      return positions;
-    }
+    positions.push({
+      x: xStart + (col * xGap),
+      y: yStart + (row * yGap)
+    });
+  }
+
+  return positions;
+}
 
     function createNodeFromData(data) {
       const node = document.createElement("div");
@@ -1830,19 +1831,19 @@ function isSpotOccupied(x, y, currentId) {
 }
 
 function findOpenGridSpot(x, y, currentId) {
-  const gridX = 430;
-  const gridY = 220;
+  const gridX = 245;
+  const gridY = 245;
 
-  let snappedX = Math.max(20, snapToGrid(x, gridX));
-  let snappedY = Math.max(20, snapToGrid(y, gridY));
+  let snappedX = Math.max(60, snapToGrid(x - 60, gridX) + 60);
+  let snappedY = Math.max(70, snapToGrid(y - 70, gridY) + 70);
 
   let attempts = 0;
 
-  while (isSpotOccupied(snappedX, snappedY, currentId) && attempts < 100) {
+  while (isSpotOccupied(snappedX, snappedY, currentId) && attempts < 200) {
     snappedX += gridX;
 
     if (snappedX > 5600) {
-      snappedX = 20;
+      snappedX = 60;
       snappedY += gridY;
     }
 
@@ -2132,9 +2133,9 @@ function makeDraggable(obj) {
       components.sort((a, b) => b.length - a.length);
 
       const startX = 60;
-      const startY = 60;
-      const xGap = 240;
-      const yGap = 145;
+      const startY = 70;
+      const xGap = 245;
+      const yGap = 245;
 
       components.forEach((component, rowIndex) => {
         component.forEach((node, index) => {
