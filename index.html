@@ -442,6 +442,7 @@
     <button onclick="clearFocus()">Clear Focus</button>
     <button onclick="showIndex()">Show Index</button>
     <button onclick="openPathFinder()">Find Path</button>
+    <button onclick="startCastLookup()">Cast Lookup (-5)</button>
     <button onclick="autoArrangeAllComponents()">Auto Arrange</button>
     <button onclick="exportBoard()">Export Backup</button>
     <button onclick="document.getElementById('importFile').click()">Import Backup</button>
@@ -633,6 +634,7 @@
 
     const STORAGE_KEY = "cage-universe-v12";
     const CUSTOM_TITLES_KEY = "cage-universe-custom-titles-v4";
+    const CAST_PENALTY_KEY = "cage-connection-cast-penalty-v1";
 
     let nodes = [];
     let connections = [];
@@ -641,6 +643,8 @@
     let highestZ = 2;
     let focusedNodeId = null;
     let customTitles = loadCustomTitles();
+    let castLookupMode = false;
+let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
 
     loadBoard();
     setStatus("Ready.");
@@ -652,12 +656,14 @@
     }
 
     function calculateScore() {
-      return connections.reduce((total, c) => {
-        if (c.type === "bridge") return total + 2;
-        if (c.type === "shared") return total + 1;
-        return total;
-      }, 0);
-    }
+  const connectionScore = connections.reduce((total, c) => {
+    if (c.type === "bridge") return total + 2;
+    if (c.type === "shared") return total + 1;
+    return total;
+  }, 0);
+
+  return connectionScore - castPenalty;
+}
 
     function updateScoreDisplay() {
       const scoreDisplay = document.getElementById("scoreDisplay");
@@ -791,7 +797,41 @@
         focusedNodeId
       };
     }
-function findMovie() {
+function startCastLookup() {
+  castLookupMode = true;
+  connectModeActive = false;
+  connectFirstNode = null;
+  clearNodeStates();
+  setStatus("Cast lookup mode ON. Click a movie to view its Wikipedia cast page for -5 points.");
+}
+
+function wikiTitleForMovie(title) {
+  return String(title).trim().replace(/\s+/g, "_");
+}
+
+function handleCastLookup(nodeObj) {
+  const ok = confirm(
+    `View cast for "${nodeObj.name}"?\n\nThis will deduct 5 points from your score.`
+  );
+
+  if (!ok) {
+    castLookupMode = false;
+    setStatus("Cast lookup cancelled.");
+    return;
+  }
+
+  castPenalty += 5;
+  localStorage.setItem(CAST_PENALTY_KEY, String(castPenalty));
+  updateScoreDisplay();
+
+  const wikiTitle = wikiTitleForMovie(nodeObj.name);
+  const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}#Cast`;
+
+  castLookupMode = false;
+  setStatus(`Cast lookup used for ${nodeObj.name}. Score -5.`);
+  window.open(url, "_blank");
+}
+    function findMovie() {
   const box = document.getElementById("movieSearchBox");
   if (!box) return;
 
@@ -906,6 +946,8 @@ function findMovie() {
       connectFirstNode = null;
       svg.innerHTML = "";
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(CAST_PENALTY_KEY);
+castPenalty = 0;
       closeIndex();
       closeMoviePicker();
       closePathFinder();
@@ -1171,14 +1213,19 @@ function renderNode(nodeObj) {
     function attachNodeEvents(obj) {
       const node = obj.el;
 
-      node.addEventListener("click", function (e) {
-        e.stopPropagation();
-        bringToFront(node);
+    node.addEventListener("click", function (e) {
+  e.stopPropagation();
+  bringToFront(node);
 
-        if (connectModeActive) {
-          handleConnectClick(obj);
-          return;
-        }
+  if (castLookupMode) {
+    handleCastLookup(obj);
+    return;
+  }
+
+  if (connectModeActive) {
+    handleConnectClick(obj);
+    return;
+  }
 
         focusedNodeId = obj.id;
         applyFocusStyles();
