@@ -695,7 +695,7 @@ function updateScoreDisplay() {
   scoreDisplay.textContent = `Score: ${calculateScore()}`;
 }
     function normalizeTitle(title) {
-      function posterFileName(title) {
+     function posterFileName(title) {
   return String(title)
     .trim()
     .toLowerCase()
@@ -705,6 +705,7 @@ function updateScoreDisplay() {
     .replace(/\//g, "-")
     .replace(/!/g, "")
     .replace(/\./g, "")
+    .replace(/\?/g, "")
     .replace(/\s+/g, "-");
 }
       return String(title).trim().toLowerCase();
@@ -1021,6 +1022,21 @@ function renderNode(nodeObj) {
   img.onerror = function () {
     img.remove();
   };
+
+  const title = document.createElement("div");
+  title.className = "node-title";
+  title.textContent = nodeObj.name;
+
+  const usage = document.createElement("div");
+  usage.className = "node-usage";
+  usage.textContent = `${degree}/2`;
+
+  nodeObj.el.appendChild(img);
+  nodeObj.el.appendChild(title);
+  nodeObj.el.appendChild(usage);
+
+  nodeObj.el.classList.toggle("full", degree >= 2);
+}
 
   const title = document.createElement("div");
   title.className = "node-title";
