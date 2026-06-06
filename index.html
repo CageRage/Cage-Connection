@@ -69,9 +69,10 @@
       border-radius: 9px;
       cursor: move;
       border: 2px solid #5c6f8a;
-     width: 210px;
-     min-height: 210px;
-     box-sizing: border-box;
+      width: 230px;
+      height: 255px;
+      box-sizing: border-box;
+      overflow: hidden;
       text-align: center;
       user-select: none;
       z-index: 2;
@@ -88,15 +89,15 @@
       word-break: break-word;
     }
 
-    .node-poster {
-      width: 100%;
-      height: 135px;
-      object-fit: cover;
-      border-radius: 7px;
-      margin-bottom: 7px;
-      background: #111;
-      display: block;
-    }
+.node-poster {
+  width: 100%;
+  height: 155px;
+  object-fit: cover;
+  border-radius: 7px;
+  margin-bottom: 8px;
+  background: #111;
+  display: block;
+}
 
     .node-usage {
       display: inline-block;
@@ -990,11 +991,11 @@ castPenalty = 0;
     }
 
 function getNextGridPosition() {
-  const cols = 6;
+  const cols = 4;
   const xStart = 60;
   const yStart = 70;
-  const xGap = 260;
-  const yGap = 260;
+  const xGap = 320;
+  const yGap = 320;
 
   const index = nodes.length;
   const col = index % cols;
@@ -1008,11 +1009,11 @@ function getNextGridPosition() {
 
 function getNextGridPositions(count) {
   const positions = [];
-  const cols = 6;
+  const cols = 4;
   const xStart = 60;
   const yStart = 70;
-  const xGap = 260;
-  const yGap = 260;
+  const xGap = 320;
+  const yGap = 320;
 
   for (let i = 0; i < count; i++) {
     const index = nodes.length + i;
@@ -1200,6 +1201,7 @@ function renderNode(nodeObj) {
       clearMovieChecks();
       closeMoviePicker();
       updateWinStatus();
+      autoArrangeAllComponents();
       setStatus(`${checked.length} movie${checked.length === 1 ? "" : "s"} added.`);
     }
 
@@ -2119,11 +2121,11 @@ function makeDraggable(obj) {
 
 
 function autoArrangeAllComponents() {
-  const cols = 6;
+  const cols = 4;
   const startX = 60;
   const startY = 70;
-  const xGap = 260;
-  const yGap = 260;
+  const xGap = 320;
+  const yGap = 320;
 
   const sortedNodes = [...nodes].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -2138,11 +2140,14 @@ function autoArrangeAllComponents() {
     node.el.style.top = node.y + "px";
   });
 
+  focusedNodeId = null;
+  clearNodeStates();
   redrawNodes();
   draw();
+  applyFocusStyles();
   saveBoard();
   updateWinStatus();
-  setStatus("Board arranged in a grid.");
+  setStatus("Board arranged in a wide poster grid.");
 }
   </script>
 </body>
