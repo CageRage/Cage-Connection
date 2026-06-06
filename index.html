@@ -1008,16 +1008,34 @@ function renderNode(nodeObj) {
 
   nodeObj.el.innerHTML = "";
 
-  if (nodeObj.name === "Birdy") {
-    const img = document.createElement("img");
-    img.className = "node-poster";
-    img.src = "posters/birdy.jpeg";
-    img.alt = "";
-    img.onerror = function () {
-      img.remove();
-    };
-    nodeObj.el.appendChild(img);
-  }
+function renderNode(nodeObj) {
+  const degree = getDegree(nodeObj.id);
+  const posterSrc = `posters/${posterFileName(nodeObj.name)}.jpeg`;
+
+  nodeObj.el.innerHTML = "";
+
+  const img = document.createElement("img");
+  img.className = "node-poster";
+  img.src = posterSrc;
+  img.alt = "";
+  img.onerror = function () {
+    img.remove();
+  };
+
+  const title = document.createElement("div");
+  title.className = "node-title";
+  title.textContent = nodeObj.name;
+
+  const usage = document.createElement("div");
+  usage.className = "node-usage";
+  usage.textContent = `${degree}/2`;
+
+  nodeObj.el.appendChild(img);
+  nodeObj.el.appendChild(title);
+  nodeObj.el.appendChild(usage);
+
+  nodeObj.el.classList.toggle("full", degree >= 2);
+}
 
   const title = document.createElement("div");
   title.className = "node-title";
