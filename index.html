@@ -806,7 +806,41 @@ function startCastLookup() {
 }
 
 function wikiTitleForMovie(title) {
-  return String(title).trim().replace(/\s+/g, "_");
+  const overrides = {
+    "Birdy": "Birdy_(film)",
+    "Pig": "Pig_(2021_film)",
+    "Joe": "Joe_(2013_film)",
+    "Next": "Next_(2007_film)",
+    "Mandy": "Mandy_(2018_film)",
+    "Knowing": "Knowing_(film)",
+    "Longlegs": "Longlegs_(film)",
+    "Renfield": "Renfield_(film)",
+    "The Rock": "The_Rock_(film)",
+    "Kick-Ass": "Kick-Ass_(film)",
+    "The Croods": "The_Croods",
+    "The Croods: A New Age": "The_Croods:_A_New_Age",
+    "The Wicker Man": "The_Wicker_Man_(2006_film)",
+    "The Weather Man": "The_Weather_Man",
+    "The Family Man": "The_Family_Man",
+    "The Runner": "The_Runner_(2015_film)",
+    "The Old Way": "The_Old_Way",
+    "The Surfer": "The_Surfer_(film)",
+    "Stolen": "Stolen_(2012_film)",
+    "Drive Angry": "Drive_Angry",
+    "Primal": "Primal_(2019_film)",
+    "Outcast": "Outcast_(2014_film)",
+    "Left Behind": "Left_Behind_(2014_film)",
+    "Mom and Dad": "Mom_and_Dad_(2017_film)",
+    "Color Out of Space": "Color_Out_of_Space_(film)",
+    "Dream Scenario": "Dream_Scenario",
+    "Arcadian": "Arcadian_(film)",
+    "Jiu Jitsu": "Jiu_Jitsu_(film)",
+    "Willy's Wonderland": "Willy's_Wonderland",
+    "Face/Off": "Face/Off",
+    "8MM": "8mm_(film)"
+  };
+
+  return overrides[title] || String(title).trim().replace(/\s+/g, "_");
 }
 
 function handleCastLookup(nodeObj) {
