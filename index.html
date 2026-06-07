@@ -1632,121 +1632,138 @@ if (posterEditMode) {
       });
     }
 
-    function handleConnectClick(obj) {
-      if (!connectFirstNode) {
-        if (getDegree(obj.id) >= 2) {
-          const keepExisting = offerBreakExistingConnection(obj);
-          if (keepExisting) {
-            setStatus("Connect mode ON. Click a movie with an open slot.");
-            return;
-          }
-        }
-
-        clearNodeStates();
-        connectFirstNode = obj;
-        obj.el.classList.add("connecting");
-        setStatus(`Connecting from: ${obj.name}`);
+   function handleConnectClick(obj) {
+  if (!connectFirstNode) {
+    if (getDegree(obj.id) >= 2) {
+      const keepExisting = offerBreakExistingConnection(obj);
+      if (keepExisting) {
+        setStatus("Connect mode ON. Click a movie with an open slot.");
         return;
       }
-
-      if (connectFirstNode.id === obj.id) {
-        clearNodeStates();
-        connectFirstNode = null;
-        setStatus("Connect mode is on. Select the first movie.");
-        return;
-      }
-
-      if (connectionExists(connectFirstNode.id, obj.id)) {
-        alert(`${connectFirstNode.name} is already connected to ${obj.name}.`);
-        return;
-      }
-
-      if (getDegree(connectFirstNode.id) >= 2) {
-        const keepExisting = offerBreakExistingConnection(connectFirstNode);
-        if (keepExisting) {
-          clearNodeStates();
-          connectFirstNode = null;
-          setStatus("Connect mode is on. Select the first movie.");
-          return;
-        }
-        clearNodeStates();
-        connectFirstNode.el.classList.add("connecting");
-        setStatus(`Connecting from: ${connectFirstNode.name}`);
-      }
-
-      if (getDegree(obj.id) >= 2) {
-        const keepExisting = offerBreakExistingConnection(obj);
-        if (keepExisting) {
-          setStatus(`Connecting from: ${connectFirstNode.name}`);
-          return;
-        }
-      }
-
-      if (getDegree(connectFirstNode.id) >= 2 || getDegree(obj.id) >= 2) {
-        setStatus("Try the connection again after freeing a slot.");
-        return;
-      }
-
-      const typeChoice = prompt(
-        `Connection type:\nType BRIDGE for a third movie/show connection\nType SHARED for the same actor in both movies`,
-        "BRIDGE"
-      );
-
-      if (!typeChoice) return;
-      const normalized = typeChoice.trim().toUpperCase();
-
-      if (normalized === "BRIDGE") {
-        const bridgeTitle = prompt("Bridge movie/show:");
-        if (!bridgeTitle || !bridgeTitle.trim()) return;
-
-        const leftActor = prompt(`Actor from "${connectFirstNode.name}":`);
-        if (!leftActor || !leftActor.trim()) return;
-
-        const rightActor = prompt(`Actor from "${obj.name}":`);
-        if (!rightActor || !rightActor.trim()) return;
-
-        connections.push({
-          id: crypto.randomUUID(),
-          type: "bridge",
-          a: connectFirstNode,
-          b: obj,
-          bridgeTitle: bridgeTitle.trim(),
-          leftActor: leftActor.trim(),
-          rightActor: rightActor.trim(),
-          sharedActor: ""
-        });
-      } else if (normalized === "SHARED") {
-        const sharedActor = prompt(`Actor in BOTH "${connectFirstNode.name}" and "${obj.name}":`);
-        if (!sharedActor || !sharedActor.trim()) return;
-
-        connections.push({
-          id: crypto.randomUUID(),
-          type: "shared",
-          a: connectFirstNode,
-          b: obj,
-          bridgeTitle: "",
-          leftActor: "",
-          rightActor: "",
-          sharedActor: sharedActor.trim()
-        });
-      } else {
-        alert("Please enter BRIDGE or SHARED.");
-        return;
-      }
-
-      const firstName = connectFirstNode.name;
-      const startId = connectFirstNode.id;
-      clearNodeStates();
-      connectFirstNode = null;
-      autoArrangeAllComponents();
-      redrawNodes();
-      draw();
-      saveBoard();
-      updateWinStatus();
-      renderMovieList();
-      setStatus(`Connected ${firstName} to ${obj.name}. Connect mode still on.`);
     }
 
+    clearNodeStates();
+    connectFirstNode = obj;
+    obj.el.classList.add("connecting");
+    setStatus(`Connecting from: ${obj.name}`);
+    return;
+  }
+
+  if (connectFirstNode.id === obj.id) {
+    clearNodeStates();
+    connectFirstNode = null;
+    setStatus("Connect mode is on. Select the first movie.");
+    return;
+  }
+
+  if (connectionExists(connectFirstNode.id, obj.id)) {
+    alert(`${connectFirstNode.name} is already connected to ${obj.name}.`);
+    return;
+  }
+
+  if (getDegree(connectFirstNode.id) >= 2) {
+    const keepExisting = offerBreakExistingConnection(connectFirstNode);
+    if (keepExisting) {
+      clearNodeStates();
+      connectFirstNode = null;
+      setStatus("Connect mode is on. Select the first movie.");
+      return;
+    }
+
+    clearNodeStates();
+    connectFirstNode.el.classList.add("connecting");
+    setStatus(`Connecting from: ${connectFirstNode.name}`);
+  }
+
+  if (getDegree(obj.id) >= 2) {
+    const keepExisting = offerBreakExistingConnection(obj);
+    if (keepExisting) {
+      setStatus(`Connecting from: ${connectFirstNode.name}`);
+      return;
+    }
+  }
+
+  if (getDegree(connectFirstNode.id) >= 2 || getDegree(obj.id) >= 2) {
+    setStatus("Try the connection again after freeing a slot.");
+    return;
+  }
+
+  const typeChoice = prompt(
+    `Connection type:\nType BRIDGE for a third movie/show connection\nType SHARED for the same actor in both movies`,
+    "BRIDGE"
+  );
+
+  if (!typeChoice) return;
+
+  const normalized = typeChoice.trim().toUpperCase();
+
+  if (normalized === "BRIDGE") {
+    const bridgeTitle = prompt("Bridge movie/show:");
+    if (!bridgeTitle || !bridgeTitle.trim()) return;
+
+    const leftActor = prompt(`Actor from "${connectFirstNode.name}":`);
+    if (!leftActor || !leftActor.trim()) return;
+
+    const rightActor = prompt(`Actor from "${obj.name}":`);
+    if (!rightActor || !rightActor.trim()) return;
+
+    connections.push({
+      id: crypto.randomUUID(),
+      type: "bridge",
+      a: connectFirstNode,
+      b: obj,
+      bridgeTitle: bridgeTitle.trim(),
+      leftActor: leftActor.trim(),
+      rightActor: rightActor.trim(),
+      sharedActor: ""
+    });
+
+  } else if (normalized === "SHARED") {
+    const sharedActor = prompt(`Actor in BOTH "${connectFirstNode.name}" and "${obj.name}":`);
+    if (!sharedActor || !sharedActor.trim()) return;
+
+    const validation = validateSharedActor(
+      connectFirstNode.name,
+      obj.name,
+      sharedActor.trim()
+    );
+
+    if (validation.status === "invalid") {
+      alert(`Incorrect connection:\n\n${validation.message}`);
+      return;
+    }
+
+    if (validation.status === "unknown") {
+      alert(validation.message);
+    }
+
+    connections.push({
+      id: crypto.randomUUID(),
+      type: "shared",
+      a: connectFirstNode,
+      b: obj,
+      bridgeTitle: "",
+      leftActor: "",
+      rightActor: "",
+      sharedActor: sharedActor.trim()
+    });
+
+  } else {
+    alert("Please enter BRIDGE or SHARED.");
+    return;
+  }
+
+  const firstName = connectFirstNode.name;
+  clearNodeStates();
+  connectFirstNode = null;
+  autoArrangeAllComponents();
+  redrawNodes();
+  draw();
+  saveBoard();
+  updateWinStatus();
+  renderMovieList();
+  setStatus(`Connected ${firstName} to ${obj.name}. Connect mode still on.`);
+}
     function connectMode() {
       connectModeActive = true;
       connectFirstNode = null;
