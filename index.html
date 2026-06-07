@@ -654,6 +654,7 @@
     const CUSTOM_TITLES_KEY = "cage-universe-custom-titles-v4";
     const CAST_PENALTY_KEY = "cage-connection-cast-penalty-v1";
     const SHARED_WRONG_PENALTY_KEY = "cage-connection-shared-wrong-penalty-v1";
+    const WRONG_BRIDGE_PENALTY_KEY = "cage-connection-wrong-bridge-penalty-v1";
     const POSTER_OVERRIDES_KEY = "cage-connection-poster-overrides-v1";
 
     let nodes = [];
@@ -669,6 +670,7 @@
 let posterOverrides = loadPosterOverrides();
     let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
     let sharedWrongPenalty = Number(localStorage.getItem(SHARED_WRONG_PENALTY_KEY) || 0);
+    let wrongBridgePenalty = Number(localStorage.getItem(WRONG_BRIDGE_PENALTY_KEY) || 0);
 
     loadBoard();
     setStatus("Ready.");
@@ -679,21 +681,15 @@ let posterOverrides = loadPosterOverrides();
       updateScoreDisplay();
     }
 
-    function calculateScore() {
+function calculateScore() {
   const connectionScore = connections.reduce((total, c) => {
     if (c.type === "bridge") return total + 2;
     if (c.type === "shared") return total + 1;
     return total;
   }, 0);
 
-  return connectionScore - castPenalty - sharedWrongPenalty;
+  return connectionScore - castPenalty - sharedWrongPenalty - wrongBridgePenalty;
 }
-    function updateScoreDisplay() {
-      const scoreDisplay = document.getElementById("scoreDisplay");
-      if (!scoreDisplay) return;
-      scoreDisplay.textContent = `Score: ${calculateScore()}`;
-    }
-
     function normalizeTitle(title) {
       return String(title).trim().toLowerCase();
     }
@@ -2172,70 +2168,107 @@ function clearFocus() {
       if (!silent) setStatus("Connection removed.");
     }
 
-    function editConnection(connectionId) {
-      const c = connections.find(x => x.id === connectionId);
-      if (!c) return;
+   function editConnection(connectionId) {
+  const c = connections.find(x => x.id === connectionId);
+  if (!c) return;
 
-      const action = prompt(
-        `Type EDIT to change this connection, or DELETE to remove it:`,
-        "EDIT"
-      );
-      if (action === null) return;
+  const action = prompt(
+    `Type EDIT to change this connection, DELETE to remove it, or WRONG to mark it incorrect and lose 3 points:`,
+    "EDIT"
+  );
 
-      if (action.trim().toUpperCase() === "DELETE") {
-        deleteConnection(connectionId);
-        return;
-      }
+  if (action === null) return;
 
-      if (action.trim().toUpperCase() !== "EDIT") return;
+  const actionText = action.trim().toUpperCase();
 
-      const typeChoice = prompt(
-        `Connection type:\nType BRIDGE or SHARED`,
-        c.type === "shared" ? "SHARED" : "BRIDGE"
-      );
-      if (!typeChoice) return;
+  if (actionText === "DELETE") {
+    deleteConnection(connectionId);
+    return;
+  }
 
-      const normalized = typeChoice.trim().toUpperCase();
+  if (actionText === "WRONG") {
+    const ok = confirm(
+      "Mark this connection as wrong?\n\nThis will remove the connection and deduct 3 points."
+    );
 
-      if (normalized === "BRIDGE") {
-        const bridgeTitle = prompt("Bridge movie/show:", c.bridgeTitle || "");
-        if (!bridgeTitle || !bridgeTitle.trim()) return;
+    if (!ok) return;
 
-        const leftActor = prompt(`Actor from "${c.a.name}":`, c.leftActor || "");
-        if (!leftActor || !leftActor.trim()) return;
+    wrongBridgePenalty += 3;
+    localStorage.setItem(WRONG_BRIDGE_PENALTY_KEY, String(wrongBridgePenalty));
+    updateScoreDisplay();
 
-        const rightActor = prompt(`Actor from "${c.b.name}":`, c.rightActor || "");
-        if (!rightActor || !rightActor.trim()) return;
+    deleteConnection(connectionId, true);
+    setStatus("Wrong connection removed. Score -3.");
+    return;
+  }
 
-        c.type = "bridge";
-        c.bridgeTitle = bridgeTitle.trim();
-        c.leftActor = leftActor.trim();
-        c.rightActor = rightActor.trim();
-        c.sharedActor = "";
-      } else if (normalized === "SHARED") {
-        const sharedActor = prompt(
-          `Actor in BOTH "${c.a.name}" and "${c.b.name}":`,
-          c.sharedActor || ""
-        );
-        if (!sharedActor || !sharedActor.trim()) return;
+  if (actionText !== "EDIT") return;
 
-        c.type = "shared";
-        c.sharedActor = sharedActor.trim();
-        c.bridgeTitle = "";
-        c.leftActor = "";
-        c.rightActor = "";
-      } else {
-        alert("Please enter BRIDGE or SHARED.");
-        return;
-      }
+  const typeChoice = prompt(
+    `Connection type:\nType BRIDGE or SHARED`,
+    c.type === "shared" ? "SHARED" : "BRIDGE"
+  );
 
-      draw();
-      applyFocusStyles();
-      saveBoard();
-      updateWinStatus();
-      setStatus("Connection updated.");
+  if (!typeChoice) return;
+
+  const normalized = typeChoice.trim().toUpperCase();
+
+  if (normalized === "BRIDGE") {
+    const bridgeTitle = prompt("Bridge movie/show:", c.bridgeTitle || "");
+    if (!bridgeTitle || !bridgeTitle.trim()) return;
+
+    const leftActor = prompt(`Actor from "${c.a.name}":`, c.leftActor || "");
+    if (!leftActor || !leftActor.trim()) return;
+
+    const rightActor = prompt(`Actor from "${c.b.name}":`, c.rightActor || "");
+    if (!rightActor || !rightActor.trim()) return;
+
+    c.type = "bridge";
+    c.bridgeTitle = bridgeTitle.trim();
+    c.leftActor = leftActor.trim();
+    c.rightActor = rightActor.trim();
+    c.sharedActor = "";
+
+  } else if (normalized === "SHARED") {
+    const sharedActor = prompt(
+      `Actor in BOTH "${c.a.name}" and "${c.b.name}":`,
+      c.sharedActor || ""
+    );
+
+    if (!sharedActor || !sharedActor.trim()) return;
+
+    const validation = validateSharedActor(
+      c.a.name,
+      c.b.name,
+      sharedActor.trim()
+    );
+
+    if (validation.status === "invalid") {
+      sharedWrongPenalty += 1;
+      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+      updateScoreDisplay();
+
+      alert(`Incorrect shared connection:\n\n${validation.message}\n\nScore -1.`);
+      return;
     }
 
+    c.type = "shared";
+    c.sharedActor = sharedActor.trim();
+    c.bridgeTitle = "";
+    c.leftActor = "";
+    c.rightActor = "";
+
+  } else {
+    alert("Please enter BRIDGE or SHARED.");
+    return;
+  }
+
+  draw();
+  applyFocusStyles();
+  saveBoard();
+  updateWinStatus();
+  setStatus("Connection updated.");
+}
     function getConnectedNodeIds(startId) {
       if (!startId) return new Set();
 
