@@ -705,13 +705,8 @@ function posterFileName(title) {
 }
 
 function posterSrcForMovie(title) {
-  const posterOverrides = {
-    "Mandy": "mandy.jpeg"
-  };
-
-  if (posterOverrides[title]) {
-    return `posters/${posterOverrides[title]}?v=5`;
-  }
+  return `posters/${posterFileName(title)}.jpeg?v=6`;
+}
 
   return `posters/${posterFileName(title)}.jpeg?v=5`;
 }
