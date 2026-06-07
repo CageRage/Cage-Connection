@@ -1087,32 +1087,35 @@ function getNextGridPositions(count) {
     }
 
 function renderNode(nodeObj) {
-      const degree = getDegree(nodeObj.id);
-const posterSrc = posterSrcForMovie(nodeObj.name);
-      nodeObj.el.innerHTML = "";
+  const degree = getDegree(nodeObj.id);
+  const posterSrc = posterSrcForMovie(nodeObj.name) + "?v=2";
 
-      const title = document.createElement("div");
-      title.className = "node-title";
-      title.textContent = nodeObj.name;
+  nodeObj.el.innerHTML = "";
 
-      const usage = document.createElement("div");
-      usage.className = "node-usage";
-      usage.textContent = `${degree}/2`;
+  const title = document.createElement("div");
+  title.className = "node-title";
+  title.textContent = nodeObj.name;
 
-      nodeObj.el.appendChild(title);
-      nodeObj.el.appendChild(usage);
+  const usage = document.createElement("div");
+  usage.className = "node-usage";
+  usage.textContent = `${degree}/2`;
 
-      const img = new Image();
-      img.className = "node-poster";
-      img.alt = "";
-      img.onload = function () {
-        nodeObj.el.insertBefore(img, title);
-        draw();
-      };
-      img.src = posterSrc;
+  nodeObj.el.appendChild(title);
+  nodeObj.el.appendChild(usage);
 
-      nodeObj.el.classList.toggle("full", degree >= 2);
-    }
+  const img = new Image();
+  img.className = "node-poster";
+  img.alt = "";
+  img.onload = function () {
+    nodeObj.el.insertBefore(img, title);
+  };
+  img.onerror = function () {
+    console.log("Poster not found:", posterSrc);
+  };
+  img.src = posterSrc;
+
+  nodeObj.el.classList.toggle("full", degree >= 2);
+}
 
     function redrawNodes() {
       nodes.forEach(renderNode);
