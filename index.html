@@ -687,19 +687,8 @@ let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
     }
 
     function normalizeTitle(title) {
-      return String(title).trim().toLowerCase();
-    }
-const POSTER_FILES = {
-  "Con Air": "con-air.jpeg",
-  "Face/Off": "face-off.jpeg",
-  "Birdy": "birdy.jpeg",
-  "Vampire's Kiss": "vampires-kiss.jpeg",
-  "Bad Lieutenant: Port of Call New Orleans": "bad-lieutenant.jpeg",
-        "USS Indianapolis: Men of Courage":       "USS Indianapolis",
-  "Mandy": "mandy"
-
-
-};
+  return String(title).trim().toLowerCase();
+}
 
 function posterFileName(title) {
   return String(title)
@@ -716,15 +705,8 @@ function posterFileName(title) {
 }
 
 function posterSrcForMovie(title) {
-  const forcedFile = POSTER_FILES[title];
-
-  if (forcedFile) {
-    return `posters/${forcedFile}`;
-  }
-
-  return `posters/${posterFileName(title)}.jpeg`;
+  return `posters/${posterFileName(title)}.jpeg?v=3`;
 }
-    function loadCustomTitles() {
       const raw = localStorage.getItem(CUSTOM_TITLES_KEY);
       if (!raw) return [];
       try {
@@ -1088,7 +1070,7 @@ function getNextGridPositions(count) {
 
 function renderNode(nodeObj) {
   const degree = getDegree(nodeObj.id);
-  const posterSrc = posterSrcForMovie(nodeObj.name) + "?v=2";
+  const posterSrc = posterSrcForMovie(nodeObj.name);
 
   nodeObj.el.innerHTML = "";
 
@@ -1106,17 +1088,20 @@ function renderNode(nodeObj) {
   const img = new Image();
   img.className = "node-poster";
   img.alt = "";
+
   img.onload = function () {
     nodeObj.el.insertBefore(img, title);
+    draw();
   };
+
   img.onerror = function () {
     console.log("Poster not found:", posterSrc);
   };
+
   img.src = posterSrc;
 
   nodeObj.el.classList.toggle("full", degree >= 2);
 }
-
     function redrawNodes() {
       nodes.forEach(renderNode);
     }
