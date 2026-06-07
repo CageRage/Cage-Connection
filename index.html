@@ -1377,23 +1377,24 @@ function renderNode(nodeObj) {
       return componentNodes.sort((a, b) => a.x - b.x);
     }
 
-    function arrangeConnectedComponent(startId) {
-      const componentIds = getConnectedComponentNodeIds(startId);
-      const ordered = getOrderedComponent(componentIds);
+function arrangeConnectedComponent(startId) {
+  const componentIds = getConnectedComponentNodeIds(startId);
+  const ordered = getOrderedComponent(componentIds);
 
-      if (!ordered.length) return;
+  if (!ordered.length) return;
 
-      const xGap = 210;
-      const anchorX = Math.max(60, Math.min(...ordered.map(n => n.x)));
-      const anchorY = Math.max(70, Math.min(...ordered.map(n => n.y)));
+  const startX = 60;
+  const startY = 70;
+  const xGap = 320;
 
-      ordered.forEach((node, index) => {
-        node.x = anchorX + (index * xGap);
-        node.y = anchorY;
-        node.el.style.left = node.x + "px";
-        node.el.style.top = node.y + "px";
-      });
-    }
+  ordered.forEach((node, index) => {
+    node.x = startX + (index * xGap);
+    node.y = startY;
+
+    node.el.style.left = node.x + "px";
+    node.el.style.top = node.y + "px";
+  });
+}
 
     function handleConnectClick(obj) {
       if (!connectFirstNode) {
@@ -2121,23 +2122,34 @@ function makeDraggable(obj) {
 
 
 function autoArrangeAllComponents() {
-  const cols = 4;
+  const visited = new Set();
+  const components = [];
+
+  nodes.forEach(node => {
+    if (visited.has(node.id)) return;
+
+    const componentIds = getConnectedComponentNodeIds(node.id);
+    componentIds.forEach(id => visited.add(id));
+
+    const ordered = getOrderedComponent(componentIds);
+    components.push(ordered);
+  });
+
+  components.sort((a, b) => b.length - a.length);
+
   const startX = 60;
   const startY = 70;
   const xGap = 320;
   const yGap = 320;
 
-  const sortedNodes = [...nodes].sort((a, b) => a.name.localeCompare(b.name));
+  components.forEach((component, rowIndex) => {
+    component.forEach((node, index) => {
+      node.x = startX + (index * xGap);
+      node.y = startY + (rowIndex * yGap);
 
-  sortedNodes.forEach((node, index) => {
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-
-    node.x = startX + (col * xGap);
-    node.y = startY + (row * yGap);
-
-    node.el.style.left = node.x + "px";
-    node.el.style.top = node.y + "px";
+      node.el.style.left = node.x + "px";
+      node.el.style.top = node.y + "px";
+    });
   });
 
   focusedNodeId = null;
@@ -2147,7 +2159,7 @@ function autoArrangeAllComponents() {
   applyFocusStyles();
   saveBoard();
   updateWinStatus();
-  setStatus("Board arranged in a wide poster grid.");
+  setStatus("Connected groups arranged in rows.");
 }
   </script>
 </body>
