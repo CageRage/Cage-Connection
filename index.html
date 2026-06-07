@@ -1502,7 +1502,7 @@ function arrangeConnectedComponent(startId) {
       const startId = connectFirstNode.id;
       clearNodeStates();
       connectFirstNode = null;
-      arrangeConnectedComponent(startId);
+autoArrangeAllComponents();
       redrawNodes();
       draw();
       saveBoard();
@@ -2136,20 +2136,56 @@ function makeDraggable(obj) {
 
 
 function autoArrangeAllComponents() {
-  const cols = 7;
   const startX = 60;
   const startY = 70;
   const xGap = 245;
   const yGap = 300;
+  const singleCols = 7;
 
-  const sortedNodes = [...nodes].sort((a, b) => a.name.localeCompare(b.name));
+  const visited = new Set();
+  const connectedComponents = [];
+  const singleNodes = [];
 
-  sortedNodes.forEach((node, index) => {
-    const col = index % cols;
-    const row = Math.floor(index / cols);
+  nodes.forEach(node => {
+    if (visited.has(node.id)) return;
+
+    const componentIds = getConnectedComponentNodeIds(node.id);
+    componentIds.forEach(id => visited.add(id));
+
+    const ordered = getOrderedComponent(componentIds);
+
+    if (ordered.length > 1) {
+      connectedComponents.push(ordered);
+    } else {
+      singleNodes.push(node);
+    }
+  });
+
+  connectedComponents.sort((a, b) => b.length - a.length);
+  singleNodes.sort((a, b) => a.name.localeCompare(b.name));
+
+  let currentRow = 0;
+
+  // Connected groups each get their own horizontal row.
+  connectedComponents.forEach(component => {
+    component.forEach((node, index) => {
+      node.x = startX + (index * xGap);
+      node.y = startY + (currentRow * yGap);
+
+      node.el.style.left = node.x + "px";
+      node.el.style.top = node.y + "px";
+    });
+
+    currentRow++;
+  });
+
+  // Singles go below connected rows in a 7-across grid.
+  singleNodes.forEach((node, index) => {
+    const col = index % singleCols;
+    const row = Math.floor(index / singleCols);
 
     node.x = startX + (col * xGap);
-    node.y = startY + (row * yGap);
+    node.y = startY + ((currentRow + row) * yGap);
 
     node.el.style.left = node.x + "px";
     node.el.style.top = node.y + "px";
@@ -2162,7 +2198,7 @@ function autoArrangeAllComponents() {
   applyFocusStyles();
   saveBoard();
   updateWinStatus();
-  setStatus("Board arranged in a 7-column grid.");
+  setStatus("Connected movies arranged in rows; singles arranged in grid.");
 }
   </script>
 </body>
