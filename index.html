@@ -928,8 +928,13 @@ function movieWikiUrl(title) {
     return WIKI_URLS[title];
   }
 
-  const searchQuery = `${title} Nicolas Cage film cast`;
-  return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchQuery)}`;
+  const pageTitle = String(title)
+    .trim()
+    .replace(/&/g, "%26")
+    .replace(/'/g, "%27")
+    .replace(/\s+/g, "_");
+
+  return `https://en.wikipedia.org/wiki/${pageTitle}#Cast`;
 }
 function loadPosterOverrides() {
   const raw = localStorage.getItem(POSTER_OVERRIDES_KEY);
