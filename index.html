@@ -705,7 +705,15 @@ function posterFileName(title) {
 }
 
 function posterSrcForMovie(title) {
-  return `posters/${posterFileName(title)}.jpeg?v=3`;
+  const posterOverrides = {
+    "Mandy": "mandy.jpeg"
+  };
+
+  if (posterOverrides[title]) {
+    return `posters/${posterOverrides[title]}?v=5`;
+  }
+
+  return `posters/${posterFileName(title)}.jpeg?v=5`;
 }
       const raw = localStorage.getItem(CUSTOM_TITLES_KEY);
       if (!raw) return [];
