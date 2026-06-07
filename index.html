@@ -459,6 +459,7 @@
     <button onclick="showIndex()">Show Index</button>
     <button onclick="openPathFinder()">Find Path</button>
     <button onclick="startCastLookup()">Cast Lookup (-5)</button>
+    <button onclick="startPosterEdit()">Set Poster</button>
     <button onclick="autoArrangeAllComponents()">Auto Arrange</button>
     <button onclick="exportBoard()">Export Backup</button>
     <button onclick="document.getElementById('importFile').click()">Import Backup</button>
@@ -651,6 +652,7 @@
     const STORAGE_KEY = "cage-universe-v12";
     const CUSTOM_TITLES_KEY = "cage-universe-custom-titles-v4";
     const CAST_PENALTY_KEY = "cage-connection-cast-penalty-v1";
+    const POSTER_OVERRIDES_KEY = "cage-connection-poster-overrides-v1";
 
     let nodes = [];
     let connections = [];
@@ -660,6 +662,8 @@
     let focusedNodeId = null;
     let customTitles = loadCustomTitles();
     let castLookupMode = false;
+    let posterEditMode = false;
+let posterOverrides = loadPosterOverrides();
     let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
 
     loadBoard();
@@ -704,10 +708,15 @@
         .replace(/\s+/g, "-");
     }
 
-    function posterSrcForMovie(title) {
-      return `posters/${posterFileName(title)}.jpeg?v=11`;
-    }
+function posterSrcForMovie(title) {
+  const forcedFile = posterOverrides[title];
 
+  if (forcedFile) {
+    return `posters/${forcedFile}?v=manual1`;
+  }
+
+  return `posters/${posterFileName(title)}.jpeg?v=manual1`;
+}
     function loadCustomTitles() {
       const raw = localStorage.getItem(CUSTOM_TITLES_KEY);
       if (!raw) return [];
@@ -840,7 +849,65 @@
       const searchQuery = `${title} Nicolas Cage film cast`;
       return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchQuery)}`;
     }
+function loadPosterOverrides() {
+  const raw = localStorage.getItem(POSTER_OVERRIDES_KEY);
+  if (!raw) return {};
 
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePosterOverrides() {
+  localStorage.setItem(POSTER_OVERRIDES_KEY, JSON.stringify(posterOverrides));
+}
+
+function startPosterEdit() {
+  posterEditMode = true;
+  castLookupMode = false;
+  connectModeActive = false;
+  connectFirstNode = null;
+  clearNodeStates();
+  setStatus("Poster edit mode ON. Click a movie, then enter the exact poster filename.");
+}
+
+function handlePosterEdit(nodeObj) {
+  const current = posterOverrides[nodeObj.name] || `${posterFileName(nodeObj.name)}.jpeg`;
+
+  const filename = prompt(
+    `Poster filename for "${nodeObj.name}":\n\nEnter the exact file name from the posters folder.\nExample: mandy.jpeg\n\nLeave blank to remove a manual override.`,
+    current
+  );
+
+  if (filename === null) {
+    posterEditMode = false;
+    setStatus("Poster edit cancelled.");
+    return;
+  }
+
+  const cleaned = filename.trim();
+
+  if (!cleaned) {
+    delete posterOverrides[nodeObj.name];
+    savePosterOverrides();
+    posterEditMode = false;
+    redrawNodes();
+    draw();
+    setStatus(`Poster override removed for ${nodeObj.name}.`);
+    return;
+  }
+
+  posterOverrides[nodeObj.name] = cleaned;
+  savePosterOverrides();
+
+  posterEditMode = false;
+  redrawNodes();
+  draw();
+  setStatus(`Poster updated for ${nodeObj.name}.`);
+}
     function startCastLookup() {
       castLookupMode = true;
       connectModeActive = false;
@@ -1242,7 +1309,10 @@ function renderNode(nodeObj) {
       node.addEventListener("click", function (e) {
         e.stopPropagation();
         bringToFront(node);
-
+if (posterEditMode) {
+  handlePosterEdit(obj);
+  return;
+}
         if (castLookupMode) {
           handleCastLookup(obj);
           return;
