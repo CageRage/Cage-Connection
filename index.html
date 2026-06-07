@@ -1042,6 +1042,50 @@ function validateSharedActor(movieA, movieB, actorName) {
     message: `${actor} does not appear in both ${movieA} and ${movieB} based on the cast data.`
   };
 }
+    function validateBridgeConnection(movieA, bridgeMovie, movieB, leftActor, rightActor) {
+  const bridgeTitle = bridgeMovie.trim();
+  const left = leftActor.trim();
+  const right = rightActor.trim();
+
+  if (normalizeActorName(left) === "nicolas cage" || normalizeActorName(right) === "nicolas cage") {
+    return {
+      status: "invalid",
+      message: "Nicolas Cage cannot be used as a bridge actor."
+    };
+  }
+
+  const leftInMovieA = movieHasActor(movieA, left);
+  const leftInBridge = movieHasActor(bridgeTitle, left);
+  const rightInBridge = movieHasActor(bridgeTitle, right);
+  const rightInMovieB = movieHasActor(movieB, right);
+
+  if (
+    leftInMovieA === null ||
+    leftInBridge === null ||
+    rightInBridge === null ||
+    rightInMovieB === null
+  ) {
+    return {
+      status: "unknown",
+      message: "Cast data is not available for one or more of these movies. Bridge connection saved as unvalidated."
+    };
+  }
+
+  if (leftInMovieA && leftInBridge && rightInBridge && rightInMovieB) {
+    return {
+      status: "valid",
+      message: `${left} connects ${movieA} to ${bridgeTitle}, and ${right} connects ${bridgeTitle} to ${movieB}.`
+    };
+  }
+
+  return {
+    status: "invalid",
+    message:
+      `This bridge does not validate based on the cast data.\n\n` +
+      `${left} must appear in both ${movieA} and ${bridgeTitle}.\n` +
+      `${right} must appear in both ${bridgeTitle} and ${movieB}.`
+  };
+}
 function startPosterEdit() {
   posterEditMode = true;
   castLookupMode = false;
@@ -1697,26 +1741,43 @@ if (posterEditMode) {
 
   const normalized = typeChoice.trim().toUpperCase();
 
-  if (normalized === "BRIDGE") {
-    const bridgeTitle = prompt("Bridge movie/show:");
-    if (!bridgeTitle || !bridgeTitle.trim()) return;
+ if (normalized === "BRIDGE") {
+  const bridgeTitle = prompt("Bridge movie/show:");
+  if (!bridgeTitle || !bridgeTitle.trim()) return;
 
-    const leftActor = prompt(`Actor from "${connectFirstNode.name}":`);
-    if (!leftActor || !leftActor.trim()) return;
+  const leftActor = prompt(`Actor from "${connectFirstNode.name}":`);
+  if (!leftActor || !leftActor.trim()) return;
 
-    const rightActor = prompt(`Actor from "${obj.name}":`);
-    if (!rightActor || !rightActor.trim()) return;
+  const rightActor = prompt(`Actor from "${obj.name}":`);
+  if (!rightActor || !rightActor.trim()) return;
 
-    connections.push({
-      id: crypto.randomUUID(),
-      type: "bridge",
-      a: connectFirstNode,
-      b: obj,
-      bridgeTitle: bridgeTitle.trim(),
-      leftActor: leftActor.trim(),
-      rightActor: rightActor.trim(),
-      sharedActor: ""
-    });
+  const validation = validateBridgeConnection(
+    connectFirstNode.name,
+    bridgeTitle.trim(),
+    obj.name,
+    leftActor.trim(),
+    rightActor.trim()
+  );
+
+  if (validation.status === "invalid") {
+    alert(`Incorrect bridge connection:\n\n${validation.message}`);
+    return;
+  }
+
+  if (validation.status === "unknown") {
+    alert(validation.message);
+  }
+
+  connections.push({
+    id: crypto.randomUUID(),
+    type: "bridge",
+    a: connectFirstNode,
+    b: obj,
+    bridgeTitle: bridgeTitle.trim(),
+    leftActor: leftActor.trim(),
+    rightActor: rightActor.trim(),
+    sharedActor: ""
+  });
 
   } else if (normalized === "SHARED") {
     const sharedActor = prompt(`Actor in BOTH "${connectFirstNode.name}" and "${obj.name}":`);
