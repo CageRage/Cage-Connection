@@ -652,6 +652,7 @@
     const STORAGE_KEY = "cage-universe-v12";
     const CUSTOM_TITLES_KEY = "cage-universe-custom-titles-v4";
     const CAST_PENALTY_KEY = "cage-connection-cast-penalty-v1";
+    const SHARED_WRONG_PENALTY_KEY = "cage-connection-shared-wrong-penalty-v1";
     const POSTER_OVERRIDES_KEY = "cage-connection-poster-overrides-v1";
 
     let nodes = [];
@@ -665,6 +666,7 @@
     let posterEditMode = false;
 let posterOverrides = loadPosterOverrides();
     let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
+    let sharedWrongPenalty = Number(localStorage.getItem(SHARED_WRONG_PENALTY_KEY) || 0);
 
     loadBoard();
     setStatus("Ready.");
@@ -676,14 +678,14 @@ let posterOverrides = loadPosterOverrides();
     }
 
     function calculateScore() {
-      const connectionScore = connections.reduce((total, c) => {
-        if (c.type === "bridge") return total + 2;
-        if (c.type === "shared") return total + 1;
-        return total;
-      }, 0);
-      return connectionScore - castPenalty;
-    }
+  const connectionScore = connections.reduce((total, c) => {
+    if (c.type === "bridge") return total + 2;
+    if (c.type === "shared") return total + 1;
+    return total;
+  }, 0);
 
+  return connectionScore - castPenalty - sharedWrongPenalty;
+}
     function updateScoreDisplay() {
       const scoreDisplay = document.getElementById("scoreDisplay");
       if (!scoreDisplay) return;
