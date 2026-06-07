@@ -1743,43 +1743,26 @@ if (posterEditMode) {
 
   const normalized = typeChoice.trim().toUpperCase();
 
- if (normalized === "BRIDGE") {
-  const bridgeTitle = prompt("Bridge movie/show:");
-  if (!bridgeTitle || !bridgeTitle.trim()) return;
+  if (normalized === "BRIDGE") {
+    const bridgeTitle = prompt("Bridge movie/show:");
+    if (!bridgeTitle || !bridgeTitle.trim()) return;
 
-  const leftActor = prompt(`Actor from "${connectFirstNode.name}":`);
-  if (!leftActor || !leftActor.trim()) return;
+    const leftActor = prompt(`Actor from "${connectFirstNode.name}":`);
+    if (!leftActor || !leftActor.trim()) return;
 
-  const rightActor = prompt(`Actor from "${obj.name}":`);
-  if (!rightActor || !rightActor.trim()) return;
+    const rightActor = prompt(`Actor from "${obj.name}":`);
+    if (!rightActor || !rightActor.trim()) return;
 
-  const validation = validateBridgeConnection(
-    connectFirstNode.name,
-    bridgeTitle.trim(),
-    obj.name,
-    leftActor.trim(),
-    rightActor.trim()
-  );
-
-  if (validation.status === "invalid") {
-    alert(`Incorrect bridge connection:\n\n${validation.message}`);
-    return;
-  }
-
-  if (validation.status === "unknown") {
-    alert(validation.message);
-  }
-
-  connections.push({
-    id: crypto.randomUUID(),
-    type: "bridge",
-    a: connectFirstNode,
-    b: obj,
-    bridgeTitle: bridgeTitle.trim(),
-    leftActor: leftActor.trim(),
-    rightActor: rightActor.trim(),
-    sharedActor: ""
-  });
+    connections.push({
+      id: crypto.randomUUID(),
+      type: "bridge",
+      a: connectFirstNode,
+      b: obj,
+      bridgeTitle: bridgeTitle.trim(),
+      leftActor: leftActor.trim(),
+      rightActor: rightActor.trim(),
+      sharedActor: ""
+    });
 
   } else if (normalized === "SHARED") {
     const sharedActor = prompt(`Actor in BOTH "${connectFirstNode.name}" and "${obj.name}":`);
@@ -1792,13 +1775,17 @@ if (posterEditMode) {
     );
 
     if (validation.status === "invalid") {
-      alert(`Incorrect connection:\n\n${validation.message}`);
+      sharedWrongPenalty += 1;
+      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+      updateScoreDisplay();
+
+      alert(`Incorrect shared connection:\n\n${validation.message}\n\nScore -1.`);
       return;
     }
 
-    if (validation.status === "unknown") {
-      alert(validation.message);
-    }
+    // If validation is "unknown", do nothing special.
+    // That means one or both movies do not have cast data yet.
+    // The connection is allowed without warning.
 
     connections.push({
       id: crypto.randomUUID(),
