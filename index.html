@@ -925,7 +925,14 @@ function posterSrcForMovie(title) {
   "Zandalee": "https://en.wikipedia.org/wiki/Zandalee#Cast"
 };
       };
+function movieWikiUrl(title) {
+  if (WIKI_URLS[title]) {
+    return WIKI_URLS[title];
+  }
 
+  const searchQuery = `${title} Nicolas Cage film cast`;
+  return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchQuery)}`;
+}
       if (WIKI_URLS[title]) return WIKI_URLS[title];
       const searchQuery = `${title} Nicolas Cage film cast`;
       return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchQuery)}`;
