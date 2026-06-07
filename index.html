@@ -689,7 +689,16 @@ let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
     function normalizeTitle(title) {
       return String(title).trim().toLowerCase();
     }
-
+const POSTER_FILES = {
+  "Birdy": "birdy.jpeg",
+  "Face/Off": "face-off.jpeg",
+  "Vampire's Kiss": "vampires-kiss.jpeg",
+  "Bad Lieutenant: Port of Call New Orleans": "bad-lieutenant-port-of-call-new-orleans.jpeg",
+  "Ghost Rider: Spirit of Vengeance": "ghost-rider-spirit-of-vengeance.jpeg",
+  "Teen Titans Go! To the Movies": "teen-titans-go-to-the-movies.jpeg",
+  "Spider-Man: Into the Spider-Verse": "spider-man-into-the-spider-verse.jpeg",
+  "The Unbearable Weight of Massive Talent": "the-unbearable-weight-of-massive-talent.jpeg"
+};
     function posterFileName(title) {
       return String(title)
         .trim()
@@ -703,7 +712,15 @@ let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
         .replace(/\?/g, "")
         .replace(/\s+/g, "-");
     }
+function posterSrcForMovie(title) {
+  const forcedFile = POSTER_FILES[title];
 
+  if (forcedFile) {
+    return `posters/${forcedFile}`;
+  }
+
+  return `posters/${posterFileName(title)}.jpeg`;
+}
     function loadCustomTitles() {
       const raw = localStorage.getItem(CUSTOM_TITLES_KEY);
       if (!raw) return [];
@@ -1068,8 +1085,7 @@ function getNextGridPositions(count) {
 
 function renderNode(nodeObj) {
       const degree = getDegree(nodeObj.id);
-      const posterSrc = `posters/${posterFileName(nodeObj.name)}.jpeg`;
-
+const posterSrc = posterSrcForMovie(nodeObj.name);
       nodeObj.el.innerHTML = "";
 
       const title = document.createElement("div");
