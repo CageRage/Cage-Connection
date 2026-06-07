@@ -459,6 +459,7 @@
     <button onclick="showIndex()">Show Index</button>
     <button onclick="openPathFinder()">Find Path</button>
     <button onclick="startCastLookup()">Cast Lookup (-5)</button>
+    <button onclick="startChallengeMode()">Challenge</button>
     <button onclick="startPosterEdit()">Set Poster</button>
     <button onclick="autoArrangeAllComponents()">Auto Arrange</button>
     <button onclick="exportBoard()">Export Backup</button>
@@ -664,6 +665,7 @@
     let customTitles = loadCustomTitles();
     let castLookupMode = false;
     let posterEditMode = false;
+    let challengeMode = false;
 let posterOverrides = loadPosterOverrides();
     let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
     let sharedWrongPenalty = Number(localStorage.getItem(SHARED_WRONG_PENALTY_KEY) || 0);
@@ -1376,6 +1378,7 @@ function handlePosterEdit(nodeObj) {
   draw();
   setStatus(`Poster updated for ${nodeObj.name}.`);
 }
+    
     function startCastLookup() {
       castLookupMode = true;
       connectModeActive = false;
@@ -2320,8 +2323,14 @@ function clearFocus() {
         hitbox.setAttribute("class", "connection-hitbox");
         hitbox.addEventListener("click", (e) => {
           e.stopPropagation();
-          editConnection(c.id);
-        });
+if (challengeMode) {
+  challengeConnection(c.id);
+} else {
+if (challengeMode) {
+  challengeConnection(c.id);
+} else {
+  editConnection(c.id);
+}}        });
         svg.appendChild(hitbox);
 
         const midX = (x1 + x2) / 2;
@@ -2337,8 +2346,11 @@ function clearFocus() {
         bg.setAttribute("class", "connection-label-bg");
         bg.addEventListener("click", (e) => {
           e.stopPropagation();
-          editConnection(c.id);
-        });
+if (challengeMode) {
+  challengeConnection(c.id);
+} else {
+  editConnection(c.id);
+}        });
         svg.appendChild(bg);
 
         const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -2348,8 +2360,11 @@ function clearFocus() {
         title.textContent = c.type === "shared" ? c.sharedActor : c.bridgeTitle;
         title.addEventListener("click", (e) => {
           e.stopPropagation();
-          editConnection(c.id);
-        });
+if (challengeMode) {
+  challengeConnection(c.id);
+} else {
+  editConnection(c.id);
+}        });
         svg.appendChild(title);
 
         const actors = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -2361,8 +2376,11 @@ function clearFocus() {
           : `${c.leftActor} ↔ ${c.rightActor}`;
         actors.addEventListener("click", (e) => {
           e.stopPropagation();
-          editConnection(c.id);
-        });
+if (challengeMode) {
+  challengeConnection(c.id);
+} else {
+  editConnection(c.id);
+}        });
         svg.appendChild(actors);
       }
 
