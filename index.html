@@ -69,8 +69,8 @@
       border-radius: 9px;
       cursor: move;
       border: 2px solid #5c6f8a;
-      width: 230px;
-      height: 255px;
+      width: 210px;
+      height: 260px;
       box-sizing: border-box;
       overflow: hidden;
       text-align: center;
@@ -1009,11 +1009,11 @@ function getNextGridPosition() {
 
 function getNextGridPositions(count) {
   const positions = [];
-  const cols = 4;
+  const cols = 7;
   const xStart = 60;
   const yStart = 70;
-  const xGap = 320;
-  const yGap = 320;
+  const xGap = 245;
+  const yGap = 300;
 
   for (let i = 0; i < count; i++) {
     const index = nodes.length + i;
@@ -1829,34 +1829,48 @@ function clearFocus() {
 function isSpotOccupied(x, y, currentId) {
   return nodes.some(n =>
     n.id !== currentId &&
-    Math.abs(n.x - x) < 120 &&
-    Math.abs(n.y - y) < 120
+    Math.abs(n.x - x) < 180 &&
+    Math.abs(n.y - y) < 220
   );
 }
 
 function findOpenGridSpot(x, y, currentId) {
-  const gridX = 260;
-  const gridY = 260;
+  const cols = 7;
+  const gridX = 245;
+  const gridY = 300;
   const startX = 60;
   const startY = 70;
 
-  let snappedX = Math.max(startX, snapToGrid(x - startX, gridX) + startX);
-  let snappedY = Math.max(startY, snapToGrid(y - startY, gridY) + startY);
+  let col = Math.round((x - startX) / gridX);
+  let row = Math.round((y - startY) / gridY);
+
+  col = Math.max(0, Math.min(cols - 1, col));
+  row = Math.max(0, row);
 
   let attempts = 0;
 
-  while (isSpotOccupied(snappedX, snappedY, currentId) && attempts < 300) {
-    snappedX += gridX;
+  while (attempts < 300) {
+    const snappedX = startX + (col * gridX);
+    const snappedY = startY + (row * gridY);
 
-    if (snappedX > 5600) {
-      snappedX = startX;
-      snappedY += gridY;
+    if (!isSpotOccupied(snappedX, snappedY, currentId)) {
+      return { x: snappedX, y: snappedY };
+    }
+
+    col++;
+
+    if (col >= cols) {
+      col = 0;
+      row++;
     }
 
     attempts++;
   }
 
-  return { x: snappedX, y: snappedY };
+  return {
+    x: startX,
+    y: startY + ((nodes.length + 1) * gridY)
+  };
 }
 
 function makeDraggable(obj) {
@@ -2122,34 +2136,23 @@ function makeDraggable(obj) {
 
 
 function autoArrangeAllComponents() {
-  const visited = new Set();
-  const components = [];
-
-  nodes.forEach(node => {
-    if (visited.has(node.id)) return;
-
-    const componentIds = getConnectedComponentNodeIds(node.id);
-    componentIds.forEach(id => visited.add(id));
-
-    const ordered = getOrderedComponent(componentIds);
-    components.push(ordered);
-  });
-
-  components.sort((a, b) => b.length - a.length);
-
+  const cols = 7;
   const startX = 60;
   const startY = 70;
-  const xGap = 320;
-  const yGap = 320;
+  const xGap = 245;
+  const yGap = 300;
 
-  components.forEach((component, rowIndex) => {
-    component.forEach((node, index) => {
-      node.x = startX + (index * xGap);
-      node.y = startY + (rowIndex * yGap);
+  const sortedNodes = [...nodes].sort((a, b) => a.name.localeCompare(b.name));
 
-      node.el.style.left = node.x + "px";
-      node.el.style.top = node.y + "px";
-    });
+  sortedNodes.forEach((node, index) => {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+
+    node.x = startX + (col * xGap);
+    node.y = startY + (row * yGap);
+
+    node.el.style.left = node.x + "px";
+    node.el.style.top = node.y + "px";
   });
 
   focusedNodeId = null;
@@ -2159,7 +2162,7 @@ function autoArrangeAllComponents() {
   applyFocusStyles();
   saveBoard();
   updateWinStatus();
-  setStatus("Connected groups arranged in rows.");
+  setStatus("Board arranged in a 7-column grid.");
 }
   </script>
 </body>
