@@ -825,9 +825,7 @@ function posterSrcForMovie(title) {
         focusedNodeId
       };
     }
-    function movieWikiUrl(title) {
-      const WIKI_URLS = {
-   const WIKI_URLS = {
+const WIKI_URLS = {
   "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast",
   "Amos & Andrew": "https://en.wikipedia.org/wiki/Amos_%26_Andrew#Cast",
   "Arcadian": "https://en.wikipedia.org/wiki/Arcadian_(film)#Cast",
@@ -924,7 +922,7 @@ function posterSrcForMovie(title) {
   "World Trade Center": "https://en.wikipedia.org/wiki/World_Trade_Center_(film)#Cast",
   "Zandalee": "https://en.wikipedia.org/wiki/Zandalee#Cast"
 };
-      };
+
 function movieWikiUrl(title) {
   if (WIKI_URLS[title]) {
     return WIKI_URLS[title];
@@ -933,10 +931,6 @@ function movieWikiUrl(title) {
   const searchQuery = `${title} Nicolas Cage film cast`;
   return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchQuery)}`;
 }
-      if (WIKI_URLS[title]) return WIKI_URLS[title];
-      const searchQuery = `${title} Nicolas Cage film cast`;
-      return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchQuery)}`;
-    }
 function loadPosterOverrides() {
   const raw = localStorage.getItem(POSTER_OVERRIDES_KEY);
   if (!raw) return {};
