@@ -141,12 +141,17 @@
       stroke-width: 3;
       transition: opacity 0.2s ease, stroke 0.2s ease, stroke-width 0.2s ease;
     }
+    .connection-line.shared {
+  stroke: #35d07f;
+}
 
-    .connection-line.active {
-      stroke: #ffd54a;
-      stroke-width: 4;
-    }
+.connection-line.bridge {
+  stroke: #ff9f2a;
+}
 
+.connection-line.active {
+  stroke-width: 5;
+}
     .connection-line.dimmed {
       opacity: 0.15;
     }
@@ -162,10 +167,18 @@
       stroke: #4a607f;
       stroke-width: 1;
     }
+.connection-label-bg.shared {
+  fill: rgba(53, 208, 127, 0.18);
+  stroke: #35d07f;
+}
 
-    .connection-label-bg.active {
-      stroke: #ffd54a;
-    }
+.connection-label-bg.bridge {
+  fill: rgba(255, 159, 42, 0.18);
+  stroke: #ff9f2a;
+}
+ .connection-label-bg.active {
+  stroke-width: 2;
+}
 
     .connection-label-bg.dimmed {
       opacity: 0.15;
@@ -1761,7 +1774,7 @@ function clearFocus() {
         line.setAttribute("y1", y1);
         line.setAttribute("x2", x2);
         line.setAttribute("y2", y2);
-        line.setAttribute("class", "connection-line");
+line.setAttribute("class", `connection-line ${c.type}`);
         svg.appendChild(line);
 
         const hitbox = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -1786,8 +1799,7 @@ function clearFocus() {
         bg.setAttribute("height", 48);
         bg.setAttribute("rx", 8);
         bg.setAttribute("ry", 8);
-        bg.setAttribute("class", "connection-label-bg");
-        bg.addEventListener("click", (e) => {
+bg.setAttribute("class", `connection-label-bg ${c.type}`);        bg.addEventListener("click", (e) => {
           e.stopPropagation();
           editConnection(c.id);
         });
