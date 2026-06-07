@@ -1378,7 +1378,50 @@ function handlePosterEdit(nodeObj) {
   draw();
   setStatus(`Poster updated for ${nodeObj.name}.`);
 }
-    
+    function startChallengeMode() {
+  challengeMode = true;
+  castLookupMode = false;
+  posterEditMode = false;
+  connectModeActive = false;
+  connectFirstNode = null;
+  clearNodeStates();
+  setStatus("Challenge mode ON. Click a bridge connection to check it with ChatGPT.");
+}
+
+function challengeConnection(connectionId) {
+  const c = connections.find(x => x.id === connectionId);
+  if (!c) return;
+
+  challengeMode = false;
+
+  if (c.type !== "bridge") {
+    alert("Only bridge connections can be challenged. Shared connections are checked by the app when cast data is available.");
+    setStatus("Challenge cancelled.");
+    return;
+  }
+
+  const promptText =
+    `Please check this movie connection for a two-player game.\n\n` +
+    `Claim:\n` +
+    `${c.a.name} connects to ${c.b.name} through the bridge movie/show "${c.bridgeTitle}".\n\n` +
+    `The claimed actor connecting ${c.a.name} to ${c.bridgeTitle} is: ${c.leftActor}\n` +
+    `The claimed actor connecting ${c.bridgeTitle} to ${c.b.name} is: ${c.rightActor}\n\n` +
+    `Please verify whether:\n` +
+    `1. ${c.leftActor} appears in both ${c.a.name} and ${c.bridgeTitle}; and\n` +
+    `2. ${c.rightActor} appears in both ${c.bridgeTitle} and ${c.b.name}.\n\n` +
+    `Answer clearly: VALID or INVALID. If invalid, explain which part is wrong.`;
+
+  const url = `https://chatgpt.com/?q=${encodeURIComponent(promptText)}`;
+
+  try {
+    navigator.clipboard.writeText(promptText);
+    setStatus("Challenge prompt copied. Opening ChatGPT.");
+  } catch {
+    setStatus("Opening ChatGPT challenge.");
+  }
+
+  window.open(url, "_blank");
+}
     function startCastLookup() {
       castLookupMode = true;
       connectModeActive = false;
