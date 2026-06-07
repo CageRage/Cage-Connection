@@ -69,10 +69,8 @@
       border-radius: 9px;
       cursor: move;
       border: 2px solid #5c6f8a;
-      width: 210px;
-      height: 260px;
-      box-sizing: border-box;
-      overflow: hidden;
+      min-width: 130px;
+      max-width: 180px;
       text-align: center;
       user-select: none;
       z-index: 2;
@@ -89,15 +87,15 @@
       word-break: break-word;
     }
 
-.node-poster {
-  width: 100%;
-  height: 155px;
-  object-fit: cover;
-  border-radius: 7px;
-  margin-bottom: 8px;
-  background: #111;
-  display: block;
-}
+    .node-poster {
+      width: 100%;
+      height: 115px;
+      object-fit: cover;
+      border-radius: 7px;
+      margin-bottom: 7px;
+      background: #111;
+      display: block;
+    }
 
     .node-usage {
       display: inline-block;
@@ -141,17 +139,12 @@
       stroke-width: 3;
       transition: opacity 0.2s ease, stroke 0.2s ease, stroke-width 0.2s ease;
     }
-    .connection-line.shared {
-  stroke: #35d07f;
-}
 
-.connection-line.bridge {
-  stroke: #ff9f2a;
-}
+    .connection-line.active {
+      stroke: #ffd54a;
+      stroke-width: 4;
+    }
 
-.connection-line.active {
-  stroke-width: 5;
-}
     .connection-line.dimmed {
       opacity: 0.15;
     }
@@ -167,18 +160,10 @@
       stroke: #4a607f;
       stroke-width: 1;
     }
-.connection-label-bg.shared {
-  fill: rgba(53, 208, 127, 0.18);
-  stroke: #35d07f;
-}
 
-.connection-label-bg.bridge {
-  fill: rgba(255, 159, 42, 0.18);
-  stroke: #ff9f2a;
-}
- .connection-label-bg.active {
-  stroke-width: 2;
-}
+    .connection-label-bg.active {
+      stroke: #ffd54a;
+    }
 
     .connection-label-bg.dimmed {
       opacity: 0.15;
@@ -659,7 +644,7 @@
     let focusedNodeId = null;
     let customTitles = loadCustomTitles();
     let castLookupMode = false;
-let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
+    let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
 
     loadBoard();
     setStatus("Ready.");
@@ -671,14 +656,13 @@ let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
     }
 
     function calculateScore() {
-  const connectionScore = connections.reduce((total, c) => {
-    if (c.type === "bridge") return total + 2;
-    if (c.type === "shared") return total + 1;
-    return total;
-  }, 0);
-
-  return connectionScore - castPenalty;
-}
+      const connectionScore = connections.reduce((total, c) => {
+        if (c.type === "bridge") return total + 2;
+        if (c.type === "shared") return total + 1;
+        return total;
+      }, 0);
+      return connectionScore - castPenalty;
+    }
 
     function updateScoreDisplay() {
       const scoreDisplay = document.getElementById("scoreDisplay");
@@ -687,29 +671,28 @@ let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
     }
 
     function normalizeTitle(title) {
-  return String(title).trim().toLowerCase();
-}
+      return String(title).trim().toLowerCase();
+    }
 
-function posterFileName(title) {
-  return String(title)
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/'/g, "")
-    .replace(/:/g, "")
-    .replace(/\//g, "-")
-    .replace(/!/g, "")
-    .replace(/\./g, "")
-    .replace(/\?/g, "")
-    .replace(/\s+/g, "-");
-}
+    function posterFileName(title) {
+      return String(title)
+        .trim()
+        .toLowerCase()
+        .replace(/&/g, "and")
+        .replace(/'/g, "")
+        .replace(/:/g, "")
+        .replace(/\//g, "-")
+        .replace(/!/g, "")
+        .replace(/\./g, "")
+        .replace(/\?/g, "")
+        .replace(/\s+/g, "-");
+    }
 
-function posterSrcForMovie(title) {
-  return `posters/${posterFileName(title)}.jpeg?v=6`;
-}
+    function posterSrcForMovie(title) {
+      return `posters/${posterFileName(title)}.jpeg?v=11`;
+    }
 
-  return `posters/${posterFileName(title)}.jpeg?v=5`;
-}
+    function loadCustomTitles() {
       const raw = localStorage.getItem(CUSTOM_TITLES_KEY);
       if (!raw) return [];
       try {
@@ -817,73 +800,58 @@ function posterSrcForMovie(title) {
         focusedNodeId
       };
     }
-function startCastLookup() {
-  castLookupMode = true;
-  connectModeActive = false;
-  connectFirstNode = null;
-  clearNodeStates();
-  setStatus("Cast lookup mode ON. Click a movie to view its Wikipedia cast page for -5 points.");
-}
+    function movieWikiUrl(title) {
+      const WIKI_URLS = {
+        "Birdy": "https://en.wikipedia.org/wiki/Birdy_(film)#Cast",
+        "Ghost Rider": "https://en.wikipedia.org/wiki/Ghost_Rider_(2007_film)#Cast",
+        "Ghost Rider: Spirit of Vengeance": "https://en.wikipedia.org/wiki/Ghost_Rider:_Spirit_of_Vengeance#Cast",
+        "Face/Off": "https://en.wikipedia.org/wiki/Face/Off#Cast",
+        "The Rock": "https://en.wikipedia.org/wiki/The_Rock_(film)#Cast",
+        "Con Air": "https://en.wikipedia.org/wiki/Con_Air#Cast",
+        "Leaving Las Vegas": "https://en.wikipedia.org/wiki/Leaving_Las_Vegas#Cast",
+        "Pig": "https://en.wikipedia.org/wiki/Pig_(2021_film)#Cast",
+        "Joe": "https://en.wikipedia.org/wiki/Joe_(2013_film)#Cast",
+        "Next": "https://en.wikipedia.org/wiki/Next_(2007_film)#Cast",
+        "Mandy": "https://en.wikipedia.org/wiki/Mandy_(2018_film)#Cast",
+        "Knowing": "https://en.wikipedia.org/wiki/Knowing_(film)#Cast",
+        "Longlegs": "https://en.wikipedia.org/wiki/Longlegs_(film)#Cast",
+        "Renfield": "https://en.wikipedia.org/wiki/Renfield_(film)#Cast",
+        "The Wicker Man": "https://en.wikipedia.org/wiki/The_Wicker_Man_(2006_film)#Cast",
+        "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast"
+      };
 
-const WIKI_URLS = {
-  "Birdy": "https://en.wikipedia.org/wiki/Birdy_(film)#Cast",
-  "Ghost Rider": "https://en.wikipedia.org/wiki/Ghost_Rider_(2007_film)#Cast",
-  "Ghost Rider: Spirit of Vengeance": "https://en.wikipedia.org/wiki/Ghost_Rider:_Spirit_of_Vengeance#Cast",
+      if (WIKI_URLS[title]) return WIKI_URLS[title];
+      const searchQuery = `${title} Nicolas Cage film cast`;
+      return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchQuery)}`;
+    }
 
-  "Face/Off": "https://en.wikipedia.org/wiki/Face/Off#Cast",
-  "The Rock": "https://en.wikipedia.org/wiki/The_Rock_(film)#Cast",
-  "Con Air": "https://en.wikipedia.org/wiki/Con_Air#Cast",
-  "Pig": "https://en.wikipedia.org/wiki/Pig_(2021_film)#Cast",
-  "Joe": "https://en.wikipedia.org/wiki/Joe_(2013_film)#Cast",
-  "Next": "https://en.wikipedia.org/wiki/Next_(2007_film)#Cast",
-  "Mandy": "https://en.wikipedia.org/wiki/Mandy_(2018_film)#Cast",
-  "Knowing": "https://en.wikipedia.org/wiki/Knowing_(film)#Cast",
-  "Longlegs": "https://en.wikipedia.org/wiki/Longlegs_(film)#Cast",
-  "Renfield": "https://en.wikipedia.org/wiki/Renfield_(film)#Cast",
-  "The Wicker Man": "https://en.wikipedia.org/wiki/The_Wicker_Man_(2006_film)#Cast",
-  "The Runner": "https://en.wikipedia.org/wiki/The_Runner_(2015_film)#Cast",
-  "Stolen": "https://en.wikipedia.org/wiki/Stolen_(2012_film)#Cast",
-  "Primal": "https://en.wikipedia.org/wiki/Primal_(2019_film)#Cast",
-  "Outcast": "https://en.wikipedia.org/wiki/Outcast_(2014_film)#Cast",
-  "Left Behind": "https://en.wikipedia.org/wiki/Left_Behind_(2014_film)#Cast",
-  "Mom and Dad": "https://en.wikipedia.org/wiki/Mom_and_Dad_(2017_film)#Cast",
-  "Color Out of Space": "https://en.wikipedia.org/wiki/Color_Out_of_Space_(film)#Cast",
-  "Jiu Jitsu": "https://en.wikipedia.org/wiki/Jiu_Jitsu_(film)#Cast",
-  "Leaving Las Vegas": "https://en.wikipedia.org/wiki/Leaving_Las_Vegas#Cast",
-  "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast"
-};
+    function startCastLookup() {
+      castLookupMode = true;
+      connectModeActive = false;
+      connectFirstNode = null;
+      clearNodeStates();
+      setStatus("Cast lookup mode ON. Click a movie to view its Wikipedia cast page for -5 points.");
+    }
 
-function movieWikiUrl(title) {
-  if (WIKI_URLS[title]) {
-    return WIKI_URLS[title];
-  }
+    function handleCastLookup(nodeObj) {
+      const ok = confirm(`View cast for "${nodeObj.name}"?
 
-  const searchQuery = `${title} Nicolas Cage film cast`;
-  return `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchQuery)}`;
-}
+This will deduct 5 points from your score.`);
+      if (!ok) {
+        castLookupMode = false;
+        setStatus("Cast lookup cancelled.");
+        return;
+      }
+      castPenalty += 5;
+      localStorage.setItem(CAST_PENALTY_KEY, String(castPenalty));
+      updateScoreDisplay();
+      const url = movieWikiUrl(nodeObj.name);
+      castLookupMode = false;
+      setStatus(`Cast lookup used for ${nodeObj.name}. Score -5.`);
+      window.open(url, "_blank");
+    }
 
-function handleCastLookup(nodeObj) {
-  const ok = confirm(
-    `View cast for "${nodeObj.name}"?\n\nThis will deduct 5 points from your score.`
-  );
-
-  if (!ok) {
-    castLookupMode = false;
-    setStatus("Cast lookup cancelled.");
-    return;
-  }
-
-  castPenalty += 5;
-  localStorage.setItem(CAST_PENALTY_KEY, String(castPenalty));
-  updateScoreDisplay();
-
-  const url = movieWikiUrl(nodeObj.name);
-
-  castLookupMode = false;
-  setStatus(`Cast lookup used for ${nodeObj.name}. Score -5.`);
-  window.open(url, "_blank");
-}
-    function findMovie() {
+function findMovie() {
   const box = document.getElementById("movieSearchBox");
   if (!box) return;
 
@@ -999,7 +967,7 @@ function handleCastLookup(nodeObj) {
       svg.innerHTML = "";
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(CAST_PENALTY_KEY);
-castPenalty = 0;
+      castPenalty = 0;
       closeIndex();
       closeMoviePicker();
       closePathFinder();
@@ -1008,44 +976,33 @@ castPenalty = 0;
       setStatus("Board reset.");
     }
 
-function getNextGridPosition() {
-  const cols = 4;
-  const xStart = 60;
-  const yStart = 70;
-  const xGap = 320;
-  const yGap = 320;
+    function getNextGridPosition() {
+      const cols = 7;
+      const xStart = 60;
+      const yStart = 70;
+      const xGap = 245;
+      const yGap = 300;
+      const index = nodes.length;
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      return { x: xStart + (col * xGap), y: yStart + (row * yGap) };
+    }
 
-  const index = nodes.length;
-  const col = index % cols;
-  const row = Math.floor(index / cols);
-
-  return {
-    x: xStart + (col * xGap),
-    y: yStart + (row * yGap)
-  };
-}
-
-function getNextGridPositions(count) {
-  const positions = [];
-  const cols = 7;
-  const xStart = 60;
-  const yStart = 70;
-  const xGap = 245;
-  const yGap = 300;
-
-  for (let i = 0; i < count; i++) {
-    const index = nodes.length + i;
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-
-    positions.push({
-      x: xStart + (col * xGap),
-      y: yStart + (row * yGap)
-    });
-  }
-
-  return positions;
-}
+    function getNextGridPositions(count) {
+      const positions = [];
+      const cols = 7;
+      const xStart = 60;
+      const yStart = 70;
+      const xGap = 245;
+      const yGap = 300;
+      for (let i = 0; i < count; i++) {
+        const index = nodes.length + i;
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        positions.push({ x: xStart + (col * xGap), y: yStart + (row * yGap) });
+      }
+      return positions;
+    }
 
     function createNodeFromData(data) {
       const node = document.createElement("div");
@@ -1072,39 +1029,34 @@ function getNextGridPositions(count) {
     }
 
 function renderNode(nodeObj) {
-  const degree = getDegree(nodeObj.id);
-  const posterSrc = posterSrcForMovie(nodeObj.name);
+      const degree = getDegree(nodeObj.id);
+      const posterSrc = posterSrcForMovie(nodeObj.name);
 
-  nodeObj.el.innerHTML = "";
+      nodeObj.el.innerHTML = "";
 
-  const title = document.createElement("div");
-  title.className = "node-title";
-  title.textContent = nodeObj.name;
+      const title = document.createElement("div");
+      title.className = "node-title";
+      title.textContent = nodeObj.name;
 
-  const usage = document.createElement("div");
-  usage.className = "node-usage";
-  usage.textContent = `${degree}/2`;
+      const usage = document.createElement("div");
+      usage.className = "node-usage";
+      usage.textContent = `${degree}/2`;
 
-  nodeObj.el.appendChild(title);
-  nodeObj.el.appendChild(usage);
+      nodeObj.el.appendChild(title);
+      nodeObj.el.appendChild(usage);
 
-  const img = new Image();
-  img.className = "node-poster";
-  img.alt = "";
+      const img = new Image();
+      img.className = "node-poster";
+      img.alt = "";
+      img.onload = function () {
+        nodeObj.el.insertBefore(img, title);
+        draw();
+      };
+      img.src = posterSrc;
 
-  img.onload = function () {
-    nodeObj.el.insertBefore(img, title);
-    draw();
-  };
+      nodeObj.el.classList.toggle("full", degree >= 2);
+    }
 
-  img.onerror = function () {
-    console.log("Poster not found:", posterSrc);
-  };
-
-  img.src = posterSrc;
-
-  nodeObj.el.classList.toggle("full", degree >= 2);
-}
     function redrawNodes() {
       nodes.forEach(renderNode);
     }
@@ -1224,7 +1176,6 @@ function renderNode(nodeObj) {
       clearMovieChecks();
       closeMoviePicker();
       updateWinStatus();
-      autoArrangeAllComponents();
       setStatus(`${checked.length} movie${checked.length === 1 ? "" : "s"} added.`);
     }
 
@@ -1272,19 +1223,19 @@ function renderNode(nodeObj) {
     function attachNodeEvents(obj) {
       const node = obj.el;
 
-    node.addEventListener("click", function (e) {
-  e.stopPropagation();
-  bringToFront(node);
+      node.addEventListener("click", function (e) {
+        e.stopPropagation();
+        bringToFront(node);
 
-  if (castLookupMode) {
-    handleCastLookup(obj);
-    return;
-  }
+        if (castLookupMode) {
+          handleCastLookup(obj);
+          return;
+        }
 
-  if (connectModeActive) {
-    handleConnectClick(obj);
-    return;
-  }
+        if (connectModeActive) {
+          handleConnectClick(obj);
+          return;
+        }
 
         focusedNodeId = obj.id;
         applyFocusStyles();
@@ -1400,24 +1351,23 @@ function renderNode(nodeObj) {
       return componentNodes.sort((a, b) => a.x - b.x);
     }
 
-function arrangeConnectedComponent(startId) {
-  const componentIds = getConnectedComponentNodeIds(startId);
-  const ordered = getOrderedComponent(componentIds);
+    function arrangeConnectedComponent(startId) {
+      const componentIds = getConnectedComponentNodeIds(startId);
+      const ordered = getOrderedComponent(componentIds);
 
-  if (!ordered.length) return;
+      if (!ordered.length) return;
 
-  const startX = 60;
-  const startY = 70;
-  const xGap = 320;
+      const xGap = 210;
+      const anchorX = Math.max(60, Math.min(...ordered.map(n => n.x)));
+      const anchorY = Math.max(70, Math.min(...ordered.map(n => n.y)));
 
-  ordered.forEach((node, index) => {
-    node.x = startX + (index * xGap);
-    node.y = startY;
-
-    node.el.style.left = node.x + "px";
-    node.el.style.top = node.y + "px";
-  });
-}
+      ordered.forEach((node, index) => {
+        node.x = anchorX + (index * xGap);
+        node.y = anchorY;
+        node.el.style.left = node.x + "px";
+        node.el.style.top = node.y + "px";
+      });
+    }
 
     function handleConnectClick(obj) {
       if (!connectFirstNode) {
@@ -1525,7 +1475,7 @@ function arrangeConnectedComponent(startId) {
       const startId = connectFirstNode.id;
       clearNodeStates();
       connectFirstNode = null;
-autoArrangeAllComponents();
+      autoArrangeAllComponents();
       redrawNodes();
       draw();
       saveBoard();
@@ -1784,7 +1734,7 @@ function clearFocus() {
         line.setAttribute("y1", y1);
         line.setAttribute("x2", x2);
         line.setAttribute("y2", y2);
-line.setAttribute("class", `connection-line ${c.type}`);
+        line.setAttribute("class", "connection-line");
         svg.appendChild(line);
 
         const hitbox = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -1809,7 +1759,8 @@ line.setAttribute("class", `connection-line ${c.type}`);
         bg.setAttribute("height", 48);
         bg.setAttribute("rx", 8);
         bg.setAttribute("ry", 8);
-bg.setAttribute("class", `connection-label-bg ${c.type}`);        bg.addEventListener("click", (e) => {
+        bg.setAttribute("class", "connection-label-bg");
+        bg.addEventListener("click", (e) => {
           e.stopPropagation();
           editConnection(c.id);
         });
@@ -1851,48 +1802,32 @@ bg.setAttribute("class", `connection-label-bg ${c.type}`);        bg.addEventLis
 function isSpotOccupied(x, y, currentId) {
   return nodes.some(n =>
     n.id !== currentId &&
-    Math.abs(n.x - x) < 180 &&
-    Math.abs(n.y - y) < 220
+    Math.abs(n.x - x) < 20 &&
+    Math.abs(n.y - y) < 20
   );
 }
 
 function findOpenGridSpot(x, y, currentId) {
-  const cols = 7;
-  const gridX = 245;
-  const gridY = 300;
-  const startX = 60;
-  const startY = 70;
+  const gridX = 430;
+  const gridY = 220;
 
-  let col = Math.round((x - startX) / gridX);
-  let row = Math.round((y - startY) / gridY);
-
-  col = Math.max(0, Math.min(cols - 1, col));
-  row = Math.max(0, row);
+  let snappedX = Math.max(20, snapToGrid(x, gridX));
+  let snappedY = Math.max(20, snapToGrid(y, gridY));
 
   let attempts = 0;
 
-  while (attempts < 300) {
-    const snappedX = startX + (col * gridX);
-    const snappedY = startY + (row * gridY);
+  while (isSpotOccupied(snappedX, snappedY, currentId) && attempts < 100) {
+    snappedX += gridX;
 
-    if (!isSpotOccupied(snappedX, snappedY, currentId)) {
-      return { x: snappedX, y: snappedY };
-    }
-
-    col++;
-
-    if (col >= cols) {
-      col = 0;
-      row++;
+    if (snappedX > 5600) {
+      snappedX = 20;
+      snappedY += gridY;
     }
 
     attempts++;
   }
 
-  return {
-    x: startX,
-    y: startY + ((nodes.length + 1) * gridY)
-  };
+  return { x: snappedX, y: snappedY };
 }
 
 function makeDraggable(obj) {
@@ -2157,71 +2092,58 @@ function makeDraggable(obj) {
     board.addEventListener("scroll", draw);
 
 
-function autoArrangeAllComponents() {
-  const startX = 60;
-  const startY = 70;
-  const xGap = 245;
-  const yGap = 300;
-  const singleCols = 7;
+    function autoArrangeAllComponents() {
+      const startX = 60;
+      const startY = 70;
+      const xGap = 245;
+      const yGap = 300;
+      const singleCols = 7;
 
-  const visited = new Set();
-  const connectedComponents = [];
-  const singleNodes = [];
+      const visited = new Set();
+      const connectedComponents = [];
+      const singleNodes = [];
 
-  nodes.forEach(node => {
-    if (visited.has(node.id)) return;
+      nodes.forEach(node => {
+        if (visited.has(node.id)) return;
+        const componentIds = getConnectedComponentNodeIds(node.id);
+        componentIds.forEach(id => visited.add(id));
+        const ordered = getOrderedComponent(componentIds);
+        if (ordered.length > 1) connectedComponents.push(ordered);
+        else singleNodes.push(node);
+      });
 
-    const componentIds = getConnectedComponentNodeIds(node.id);
-    componentIds.forEach(id => visited.add(id));
+      connectedComponents.sort((a, b) => b.length - a.length);
+      singleNodes.sort((a, b) => a.name.localeCompare(b.name));
 
-    const ordered = getOrderedComponent(componentIds);
+      let currentRow = 0;
+      connectedComponents.forEach(component => {
+        component.forEach((node, index) => {
+          node.x = startX + (index * xGap);
+          node.y = startY + (currentRow * yGap);
+          node.el.style.left = node.x + "px";
+          node.el.style.top = node.y + "px";
+        });
+        currentRow++;
+      });
 
-    if (ordered.length > 1) {
-      connectedComponents.push(ordered);
-    } else {
-      singleNodes.push(node);
+      singleNodes.forEach((node, index) => {
+        const col = index % singleCols;
+        const row = Math.floor(index / singleCols);
+        node.x = startX + (col * xGap);
+        node.y = startY + ((currentRow + row) * yGap);
+        node.el.style.left = node.x + "px";
+        node.el.style.top = node.y + "px";
+      });
+
+      focusedNodeId = null;
+      clearNodeStates();
+      redrawNodes();
+      draw();
+      applyFocusStyles();
+      saveBoard();
+      updateWinStatus();
+      setStatus("Connected movies arranged in rows; singles arranged in grid.");
     }
-  });
-
-  connectedComponents.sort((a, b) => b.length - a.length);
-  singleNodes.sort((a, b) => a.name.localeCompare(b.name));
-
-  let currentRow = 0;
-
-  // Connected groups each get their own horizontal row.
-  connectedComponents.forEach(component => {
-    component.forEach((node, index) => {
-      node.x = startX + (index * xGap);
-      node.y = startY + (currentRow * yGap);
-
-      node.el.style.left = node.x + "px";
-      node.el.style.top = node.y + "px";
-    });
-
-    currentRow++;
-  });
-
-  // Singles go below connected rows in a 7-across grid.
-  singleNodes.forEach((node, index) => {
-    const col = index % singleCols;
-    const row = Math.floor(index / singleCols);
-
-    node.x = startX + (col * xGap);
-    node.y = startY + ((currentRow + row) * yGap);
-
-    node.el.style.left = node.x + "px";
-    node.el.style.top = node.y + "px";
-  });
-
-  focusedNodeId = null;
-  clearNodeStates();
-  redrawNodes();
-  draw();
-  applyFocusStyles();
-  saveBoard();
-  updateWinStatus();
-  setStatus("Connected movies arranged in rows; singles arranged in grid.");
-}
   </script>
 </body>
 </html> 
