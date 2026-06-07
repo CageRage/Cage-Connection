@@ -951,7 +951,97 @@ function loadPosterOverrides() {
 function savePosterOverrides() {
   localStorage.setItem(POSTER_OVERRIDES_KEY, JSON.stringify(posterOverrides));
 }
+const CAST_DATA = {
+  "Adaptation": [
+    "Nicolas Cage",
+    "Meryl Streep",
+    "Chris Cooper",
+    "Tilda Swinton",
+    "Cara Seymour",
+    "Brian Cox",
+    "Judy Greer",
+    "Maggie Gyllenhaal",
+    "Ron Livingston",
+    "Jay Tavare",
+    "G. Paul Davis",
+    "Jim Beaver",
+    "Doug Jones",
+    "Gary Farmer",
+    "Peter Jason",
+    "Bob Yerkes"
+  ],
 
+  "Guarding Tess": [
+    "Shirley MacLaine",
+    "Nicolas Cage",
+    "Austin Pendleton",
+    "Edward Albert",
+    "James Rebhorn",
+    "Richard Griffiths",
+    "John Roselius",
+    "David Graf",
+    "Don Yesso",
+    "James Lally",
+    "Brant von Hoffman",
+    "Harry J. Lennix",
+    "Susan Blommaert",
+    "Dale Dye",
+    "James Handy",
+    "Hugh Wilson"
+  ]
+};
+
+function normalizeActorName(name) {
+  return String(name)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function movieHasActor(movieTitle, actorName) {
+  const cast = CAST_DATA[movieTitle];
+
+  if (!cast) {
+    return null;
+  }
+
+  const target = normalizeActorName(actorName);
+
+  return cast.some(actor => normalizeActorName(actor) === target);
+}
+
+function validateSharedActor(movieA, movieB, actorName) {
+  const actor = actorName.trim();
+
+  if (normalizeActorName(actor) === "nicolas cage") {
+    return {
+      status: "invalid",
+      message: "Nicolas Cage cannot be used as the shared actor."
+    };
+  }
+
+  const inA = movieHasActor(movieA, actor);
+  const inB = movieHasActor(movieB, actor);
+
+  if (inA === null || inB === null) {
+    return {
+      status: "unknown",
+      message: "Cast data is not available for one or both movies yet. Connection saved as unvalidated."
+    };
+  }
+
+  if (inA && inB) {
+    return {
+      status: "valid",
+      message: `${actor} appears in both ${movieA} and ${movieB}.`
+    };
+  }
+
+  return {
+    status: "invalid",
+    message: `${actor} does not appear in both ${movieA} and ${movieB} based on the cast data.`
+  };
+}
 function startPosterEdit() {
   posterEditMode = true;
   castLookupMode = false;
