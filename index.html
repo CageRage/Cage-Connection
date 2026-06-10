@@ -465,7 +465,7 @@
  <!-- <button onclick="exportBoard()">Export Backup</button> -->
 <!-- <button onclick="document.getElementById('importFile').click()">Import Backup</button> -->
     <button class="danger-button" onclick="resetBoard()">Reset Board</button>
-
+<button onclick="startRemoveMovie()">Remove Movie</button>
     <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
     <span id="statusText">Ready.</span>
@@ -1660,6 +1660,45 @@ function startPosterEdit() {
   clearNodeStates();
   setStatus("Poster edit mode ON. Click a movie, then enter the exact poster filename.");
 }
+    let removeMovieMode = false;
+
+function startRemoveMovie() {
+  removeMovieMode = true;
+  castLookupMode = false;
+  posterEditMode = false;
+  connectModeActive = false;
+  connectFirstNode = null;
+  clearNodeStates();
+  setStatus("Remove movie mode ON. Click a movie to remove it.");
+}
+
+function removeMovie(nodeObj) {
+  const ok = confirm(`Remove "${nodeObj.name}" from the board?
+
+This will also remove any connections attached to it.`);
+  if (!ok) {
+    removeMovieMode = false;
+    setStatus("Remove movie cancelled.");
+    return;
+  }
+
+  connections = connections.filter(c => c.a.id !== nodeObj.id && c.b.id !== nodeObj.id);
+
+  nodeObj.el.remove();
+  nodes = nodes.filter(n => n.id !== nodeObj.id);
+
+  if (focusedNodeId === nodeObj.id) {
+    focusedNodeId = null;
+  }
+
+  removeMovieMode = false;
+  saveBoard();
+  redrawNodes();
+  draw();
+  renderMovieList();
+  updateWinStatus();
+  setStatus(`Removed: ${nodeObj.name}`);
+}
 
 function handlePosterEdit(nodeObj) {
   const current = posterOverrides[nodeObj.name] || `${posterFileName(nodeObj.name)}.jpeg`;
@@ -2151,11 +2190,14 @@ function renderNode(nodeObj) {
 
       node.addEventListener("click", function (e) {
         e.stopPropagation();
-        bringToFront(node);
-if (posterEditMode) {
-  handlePosterEdit(obj);
+       bringToFront(node);
+
+if (removeMovieMode) {
+  removeMovie(obj);
   return;
 }
+
+if (posterEditMode) {
         if (castLookupMode) {
           handleCastLookup(obj);
           return;
