@@ -827,7 +827,7 @@ function posterSrcForMovie(title) {
     }
 const WIKI_URLS = {
   "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast",
-  "Amos & Andrew": "https://en.wikipedia.org/wiki/Amos_%26_Andrew#Cast",
+  "Amos and Andrew": "https://en.wikipedia.org/wiki/Amos_%26_Andrew#Cast",
   "Arcadian": "https://en.wikipedia.org/wiki/Arcadian_(film)#Cast",
   "Army of One": "https://en.wikipedia.org/wiki/Army_of_One_(2016_film)#Cast",
   "Bad Lieutenant: Port of Call New Orleans": "https://en.wikipedia.org/wiki/Bad_Lieutenant:_Port_of_Call_New_Orleans#Cast",
@@ -1748,23 +1748,35 @@ function challengeConnection(connectionId) {
     }
 
     function handleCastLookup(nodeObj) {
-      const ok = confirm(`View cast for "${nodeObj.name}"?
+  const url = movieWikiUrl(nodeObj.name);
+
+  // Open immediately so the browser treats it as user-initiated.
+  const castWindow = window.open("about:blank", "_blank");
+
+  const ok = confirm(`View cast for "${nodeObj.name}"?
 
 This will deduct 5 points from your score.`);
-      if (!ok) {
-        castLookupMode = false;
-        setStatus("Cast lookup cancelled.");
-        return;
-      }
-      castPenalty += 5;
-      localStorage.setItem(CAST_PENALTY_KEY, String(castPenalty));
-      updateScoreDisplay();
-      const url = movieWikiUrl(nodeObj.name);
-      castLookupMode = false;
-      setStatus(`Cast lookup used for ${nodeObj.name}. Score -5.`);
-      window.open(url, "_blank");
-    }
 
+  if (!ok) {
+    if (castWindow) castWindow.close();
+    castLookupMode = false;
+    setStatus("Cast lookup cancelled.");
+    return;
+  }
+
+  castPenalty += 5;
+  localStorage.setItem(CAST_PENALTY_KEY, String(castPenalty));
+  updateScoreDisplay();
+
+  castLookupMode = false;
+  setStatus(`Cast lookup used for ${nodeObj.name}. Score -5.`);
+
+  if (castWindow) {
+    castWindow.location.href = url;
+  } else {
+    alert(`Popup was blocked. Copy/paste this URL:\n\n${url}`);
+  }
+}
 function findMovie() {
   const box = document.getElementById("movieSearchBox");
   if (!box) return;
