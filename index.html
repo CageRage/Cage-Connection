@@ -487,12 +487,10 @@
       </div>
 
       <input id="movieSearch" type="text" placeholder="Search titles..." oninput="renderMovieList()" />
+      <div style="color:#d9e7ff;font-size:13px;margin:-4px 0 12px 0;line-height:1.35;">Filter the list, then click <strong>Add Shown Movies</strong>. The popup will close after adding.</div>
 
       <div class="picker-actions">
-        <button onclick="selectAllVisibleMovies()">Select All Visible</button>
-        <button onclick="clearMovieChecks()">Clear Checks</button>
-        <button onclick="addSelectedMovies()">Add Selected</button>
-        <button onclick="addAllVisibleMovies()">Add All Visible</button>
+        <button onclick="addAllVisibleMovies()">Add Shown Movies</button>
         <button onclick="addCustomMovie()">Add Custom Title</button>
       </div>
 
