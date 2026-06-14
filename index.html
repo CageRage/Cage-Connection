@@ -9,6 +9,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cage Connection</title>
+  <!-- Clean add-movies version: 2026-06-14 -->
   <style>
     body {
       margin: 0;
@@ -650,7 +651,7 @@
       "Zandalee"
     ];
 
-    const STORAGE_KEY = "cage-universe-v12";
+    const STORAGE_KEY = "cage-universe-v13-clean";
     const CUSTOM_TITLES_KEY = "cage-universe-custom-titles-v4";
     const CAST_PENALTY_KEY = "cage-connection-cast-penalty-v1";
     const SHARED_WRONG_PENALTY_KEY = "cage-connection-shared-wrong-penalty-v1";
@@ -1917,17 +1918,24 @@ function findMovie() {
     function getNextGridPositions(count) {
       const positions = [];
       const cols = 7;
-      const xStart = 60;
-      const yStart = 70;
+      const xStart = board.scrollLeft + 70;
+      const yStart = board.scrollTop + 80;
       const xGap = 245;
       const yGap = 300;
       for (let i = 0; i < count; i++) {
-        const index = nodes.length + i;
-        const col = index % cols;
-        const row = Math.floor(index / cols);
+        const col = i % cols;
+        const row = Math.floor(i / cols);
         positions.push({ x: xStart + (col * xGap), y: yStart + (row * yGap) });
       }
       return positions;
+    }
+
+
+    function makeNodeId() {
+      if (window.crypto && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+      }
+      return "node-" + Date.now() + "-" + Math.random().toString(16).slice(2);
     }
 
     function createNodeFromData(data) {
@@ -2005,7 +2013,7 @@ function renderNode(nodeObj) {
       const point = position || getNextGridPosition();
 
       const created = createNodeFromData({
-        id: crypto.randomUUID(),
+        id: makeNodeId(),
         name: cleaned,
         x: point.x,
         y: point.y
@@ -2083,48 +2091,78 @@ function renderNode(nodeObj) {
     }
 
     function addSelectedMovies() {
-      const checked = Array.from(document.querySelectorAll(".movie-check:checked")).map(cb => cb.value);
+      const checked = Array.from(document.querySelectorAll(".movie-check:checked"))
+        .map(cb => cb.value)
+        .filter(Boolean);
 
       if (!checked.length) {
         alert("Select at least one movie.");
         return;
       }
 
-      const positions = getNextGridPositions(checked.length);
-
-      checked.forEach((title, index) => {
-        addMovieByName(title, positions[index]);
-      });
-
-      saveBoard();
-      draw();
-      renderMovieList();
-      clearMovieChecks();
+      const added = addMovieTitlesToBoard(checked);
       closeMoviePicker();
-      updateWinStatus();
-      setStatus(`${checked.length} movie${checked.length === 1 ? "" : "s"} added.`);
+      setStatus(`Added ${added.length} movie${added.length === 1 ? "" : "s"}: ${added.map(n => n.name).join(", ")}.`);
     }
 
     function addAllVisibleMovies() {
-      const visible = Array.from(document.querySelectorAll(".movie-check")).map(cb => cb.value);
+      const visible = Array.from(document.querySelectorAll(".movie-check"))
+        .map(cb => cb.value)
+        .filter(Boolean);
 
       if (!visible.length) {
         alert("No visible movies to add.");
         return;
       }
 
-      const positions = getNextGridPositions(visible.length);
+      const added = addMovieTitlesToBoard(visible);
+      closeMoviePicker();
+      setStatus(`Added ${added.length} visible movie${added.length === 1 ? "" : "s"}.`);
+    }
 
-      visible.forEach((title, index) => {
-        addMovieByName(title, positions[index]);
+    function addMovieTitlesToBoard(titles) {
+      const uniqueTitles = [];
+      const seen = new Set();
+
+      titles.forEach(title => {
+        const key = normalizeTitle(title);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        uniqueTitles.push(title);
       });
 
+      const positions = getNextGridPositions(uniqueTitles.length);
+      const added = [];
+
+      uniqueTitles.forEach((title, index) => {
+        const existing = nodes.find(n => normalizeTitle(n.name) === normalizeTitle(title));
+        if (existing) {
+          added.push(existing);
+          return;
+        }
+
+        const created = createNodeFromData({
+          id: makeNodeId(),
+          name: title,
+          x: positions[index].x,
+          y: positions[index].y
+        });
+
+        added.push(created);
+      });
+
+      focusedNodeId = null;
       saveBoard();
       draw();
       renderMovieList();
-      closeMoviePicker();
+      clearMovieChecks();
       updateWinStatus();
-      setStatus(`${visible.length} visible movie${visible.length === 1 ? "" : "s"} added.`);
+
+      if (added.length > 0) {
+        centerOnNode(added[0]);
+      }
+
+      return added;
     }
 
     function addCustomMovie() {
@@ -2374,7 +2412,7 @@ if (posterEditMode) {
     if (!rightActor || !rightActor.trim()) return;
 
     connections.push({
-      id: crypto.randomUUID(),
+      id: makeNodeId(),
       type: "bridge",
       a: connectFirstNode,
       b: obj,
@@ -2408,7 +2446,7 @@ if (posterEditMode) {
     // The connection is allowed without warning.
 
     connections.push({
-      id: crypto.randomUUID(),
+      id: makeNodeId(),
       type: "shared",
       a: connectFirstNode,
       b: obj,
