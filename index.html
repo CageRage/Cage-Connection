@@ -649,7 +649,7 @@
       "Zandalee"
     ];
 
-    const STORAGE_KEY = "cage-universe-v13-clean";
+    const STORAGE_KEY = "cage-universe-v14-stable-add";
     const CUSTOM_TITLES_KEY = "cage-universe-custom-titles-v4";
     const CAST_PENALTY_KEY = "cage-connection-cast-penalty-v1";
     const SHARED_WRONG_PENALTY_KEY = "cage-connection-shared-wrong-penalty-v1";
@@ -2072,16 +2072,15 @@ function renderNode(nodeObj) {
         checkbox.value = title;
         checkbox.dataset.title = title;
         checkbox.className = "movie-check";
+        checkbox.id = "movie-check-" + index;
 
-        checkbox.addEventListener("click", function(e) {
-          e.stopPropagation();
-        });
-
-        const label = document.createElement("span");
+        const label = document.createElement("label");
         label.textContent = title;
+        label.setAttribute("for", checkbox.id);
         label.style.flex = "1";
 
-        item.addEventListener("click", function() {
+        item.addEventListener("click", function(e) {
+          if (e.target === checkbox) return;
           checkbox.checked = !checkbox.checked;
         });
 
@@ -2102,18 +2101,24 @@ function renderNode(nodeObj) {
     function addSelectedMovies() {
       const checked = Array.from(movieList.querySelectorAll(".movie-check"))
         .filter(cb => cb.checked)
-        .map(cb => cb.dataset.title || cb.value);
+        .map(cb => cb.dataset.title || cb.value)
+        .filter(Boolean);
 
       if (!checked.length) {
         alert("Check at least one movie first.");
         return;
       }
 
+      const seen = new Set();
       const alreadyOnBoard = [];
       const toAdd = [];
 
       checked.forEach(title => {
-        const exists = nodes.some(n => normalizeTitle(n.name) === normalizeTitle(title));
+        const key = normalizeTitle(title);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+
+        const exists = nodes.some(n => normalizeTitle(n.name) === key);
         if (exists) {
           alreadyOnBoard.push(title);
         } else {
@@ -2124,20 +2129,27 @@ function renderNode(nodeObj) {
       const startX = board.scrollLeft + 80;
       const startY = board.scrollTop + 90;
       const xGap = 245;
-      const yGap = 300;
+      const yGap = 310;
       const cols = 4;
       const addedNodes = [];
 
       toAdd.forEach((title, index) => {
         const col = index % cols;
         const row = Math.floor(index / cols);
-        const created = addMovieByName(title, {
+
+        const created = createNodeFromData({
+          id: makeNodeId(),
+          name: title,
           x: startX + col * xGap,
           y: startY + row * yGap
         });
-        if (created) addedNodes.push(created);
+
+        addedNodes.push(created);
       });
 
+      focusedNodeId = null;
+      connectModeActive = false;
+      connectFirstNode = null;
       saveBoard();
       draw();
       renderMovieList();
@@ -2146,31 +2158,21 @@ function renderNode(nodeObj) {
       updateWinStatus();
 
       if (addedNodes.length > 0) {
-        focusedNodeId = null;
         clearNodeStates();
         centerOnNode(addedNodes[0]);
       }
 
       let message = `Added ${addedNodes.length} checked movie${addedNodes.length === 1 ? "" : "s"}.`;
+
       if (alreadyOnBoard.length > 0) {
         message += ` Already on board: ${alreadyOnBoard.join(", ")}.`;
       }
+
       setStatus(message);
     }
 
     function addAllVisibleMovies() {
-      const visible = Array.from(document.querySelectorAll(".movie-check"))
-        .map(cb => cb.value)
-        .filter(Boolean);
-
-      if (!visible.length) {
-        alert("No visible movies to add.");
-        return;
-      }
-
-      const added = addMovieTitlesToBoard(visible);
-      closeMoviePicker();
-      setStatus(`Added ${added.length} visible movie${added.length === 1 ? "" : "s"}.`);
+      alert("Use Add Checked Movies instead.");
     }
 
     function addMovieTitlesToBoard(titles) {
