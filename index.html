@@ -465,6 +465,7 @@
  <!-- <button onclick="exportBoard()">Export Backup</button> -->
 <!-- <button onclick="document.getElementById('importFile').click()">Import Backup</button> -->
     <button class="danger-button" onclick="resetBoard()">Reset Board</button>
+
     <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
     <span id="statusText">Ready.</span>
@@ -1659,7 +1660,7 @@ function startPosterEdit() {
   clearNodeStates();
   setStatus("Poster edit mode ON. Click a movie, then enter the exact poster filename.");
 }
-   
+
 function handlePosterEdit(nodeObj) {
   const current = posterOverrides[nodeObj.name] || `${posterFileName(nodeObj.name)}.jpeg`;
 
@@ -2067,17 +2068,6 @@ function renderNode(nodeObj) {
         const label = document.createElement("label");
         label.textContent = title;
 
-        // Make the whole movie row clickable, not just the tiny checkbox.
-        item.addEventListener("click", function (e) {
-          if (e.target !== checkbox) {
-            checkbox.checked = !checkbox.checked;
-          }
-        });
-
-        checkbox.addEventListener("click", function (e) {
-          e.stopPropagation();
-        });
-
         item.appendChild(checkbox);
         item.appendChild(label);
         movieList.appendChild(item);
@@ -2092,74 +2082,28 @@ function renderNode(nodeObj) {
       document.querySelectorAll(".movie-check").forEach(cb => cb.checked = false);
     }
 
-  function addSelectedMovies() {
-  const checked = Array.from(document.querySelectorAll(".movie-check:checked"))
-    .map(cb => cb.value);
+    function addSelectedMovies() {
+      const checked = Array.from(document.querySelectorAll(".movie-check:checked")).map(cb => cb.value);
 
-  if (!checked.length) {
-    alert("Select at least one movie.");
-    return;
-  }
+      if (!checked.length) {
+        alert("Select at least one movie.");
+        return;
+      }
 
-  const alreadyOnBoard = [];
-  const toAdd = [];
+      const positions = getNextGridPositions(checked.length);
 
-  checked.forEach(title => {
-    const exists = nodes.some(n => normalizeTitle(n.name) === normalizeTitle(title));
-    if (exists) {
-      alreadyOnBoard.push(title);
-    } else {
-      toAdd.push(title);
+      checked.forEach((title, index) => {
+        addMovieByName(title, positions[index]);
+      });
+
+      saveBoard();
+      draw();
+      renderMovieList();
+      clearMovieChecks();
+      closeMoviePicker();
+      updateWinStatus();
+      setStatus(`${checked.length} movie${checked.length === 1 ? "" : "s"} added.`);
     }
-  });
-
-  const addedNodes = [];
-
-  // Put new movies in the currently visible part of the board.
-  const startX = board.scrollLeft + 80;
-  const startY = board.scrollTop + 90;
-  const xGap = 245;
-  const yGap = 300;
-  const cols = 4;
-
-  toAdd.forEach((title, index) => {
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-
-    const created = addMovieByName(title, {
-      x: startX + col * xGap,
-      y: startY + row * yGap
-    });
-
-    if (created) addedNodes.push(created);
-  });
-
-  saveBoard();
-  draw();
-  renderMovieList();
-  clearMovieChecks();
-  closeMoviePicker();
-  updateWinStatus();
-
-  if (addedNodes.length > 0) {
-    centerOnNode(addedNodes[0]);
-    focusedNodeId = addedNodes[0].id;
-    applyFocusStyles();
-  }
-
-  let message = `Added ${addedNodes.length} movie${addedNodes.length === 1 ? "" : "s"}.`;
-
-  if (alreadyOnBoard.length > 0) {
-    message += ` Already on board: ${alreadyOnBoard.join(", ")}.`;
-  }
-
-  if (toAdd.length !== addedNodes.length) {
-    const failed = toAdd.length - addedNodes.length;
-    message += ` Warning: ${failed} selected movie${failed === 1 ? "" : "s"} did not add.`;
-  }
-
-  setStatus(message);
-}
 
     function addAllVisibleMovies() {
       const visible = Array.from(document.querySelectorAll(".movie-check")).map(cb => cb.value);
@@ -2208,12 +2152,10 @@ function renderNode(nodeObj) {
       node.addEventListener("click", function (e) {
         e.stopPropagation();
         bringToFront(node);
-
-        if (posterEditMode) {
-          handlePosterEdit(obj);
-          return;
-        }
-
+if (posterEditMode) {
+  handlePosterEdit(obj);
+  return;
+}
         if (castLookupMode) {
           handleCastLookup(obj);
           return;
