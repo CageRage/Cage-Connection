@@ -2150,10 +2150,13 @@ function renderNode(nodeObj) {
 
       node.addEventListener("click", function (e) {
         e.stopPropagation();
-       bringToFront(node);
+        bringToFront(node);
 
+        if (posterEditMode) {
+          handlePosterEdit(obj);
+          return;
+        }
 
-if (posterEditMode) {
         if (castLookupMode) {
           handleCastLookup(obj);
           return;
