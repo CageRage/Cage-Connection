@@ -2143,67 +2143,12 @@ function renderNode(nodeObj) {
   }
 
   if (toAdd.length !== addedNodes.length) {
-    message += ` Warning: ${toAdd.length - addedNodes.length} selected movie${toAdd.length - addedNodes.length === 1 ? "" : "s"} did not add.`;
+    const failed = toAdd.length - addedNodes.length;
+    message += ` Warning: ${failed} selected movie${failed === 1 ? "" : "s"} did not add.`;
   }
 
   setStatus(message);
 }
-
-  const alreadyOnBoard = [];
-  const toAdd = [];
-
-  checked.forEach(title => {
-    const exists = nodes.some(n => normalizeTitle(n.name) === normalizeTitle(title));
-    if (exists) {
-      alreadyOnBoard.push(title);
-    } else {
-      toAdd.push(title);
-    }
-  });
-
-  const positions = getNextGridPositions(toAdd.length);
-  const addedNodes = [];
-
-  toAdd.forEach((title, index) => {
-    const created = addMovieByName(title, positions[index]);
-    if (created) addedNodes.push(created);
-  });
-
-  saveBoard();
-  draw();
-  renderMovieList();
-  clearMovieChecks();
-  closeMoviePicker();
-  updateWinStatus();
-
-  if (addedNodes.length > 0) {
-    centerOnNode(addedNodes[0]);
-    focusedNodeId = addedNodes[0].id;
-    applyFocusStyles();
-  }
-
-  let message = `Added ${addedNodes.length} movie${addedNodes.length === 1 ? "" : "s"}.`;
-
-  if (alreadyOnBoard.length > 0) {
-    message += ` Already on board: ${alreadyOnBoard.join(", ")}.`;
-  }
-
-  setStatus(message);
-}
-      const positions = getNextGridPositions(checked.length);
-
-      checked.forEach((title, index) => {
-        addMovieByName(title, positions[index]);
-      });
-
-      saveBoard();
-      draw();
-      renderMovieList();
-      clearMovieChecks();
-      closeMoviePicker();
-      updateWinStatus();
-      setStatus(`${checked.length} movie${checked.length === 1 ? "" : "s"} added.`);
-    }
 
     function addAllVisibleMovies() {
       const visible = Array.from(document.querySelectorAll(".movie-check")).map(cb => cb.value);
