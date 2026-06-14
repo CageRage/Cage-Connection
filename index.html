@@ -2081,14 +2081,56 @@ function renderNode(nodeObj) {
       document.querySelectorAll(".movie-check").forEach(cb => cb.checked = false);
     }
 
-    function addSelectedMovies() {
-      const checked = Array.from(document.querySelectorAll(".movie-check:checked")).map(cb => cb.value);
+   function addSelectedMovies() {
+  const checked = Array.from(document.querySelectorAll(".movie-check:checked"))
+    .map(cb => cb.value);
 
-      if (!checked.length) {
-        alert("Select at least one movie.");
-        return;
-      }
+  if (!checked.length) {
+    alert("Select at least one movie.");
+    return;
+  }
 
+  const alreadyOnBoard = [];
+  const toAdd = [];
+
+  checked.forEach(title => {
+    const exists = nodes.some(n => normalizeTitle(n.name) === normalizeTitle(title));
+    if (exists) {
+      alreadyOnBoard.push(title);
+    } else {
+      toAdd.push(title);
+    }
+  });
+
+  const positions = getNextGridPositions(toAdd.length);
+  const addedNodes = [];
+
+  toAdd.forEach((title, index) => {
+    const created = addMovieByName(title, positions[index]);
+    if (created) addedNodes.push(created);
+  });
+
+  saveBoard();
+  draw();
+  renderMovieList();
+  clearMovieChecks();
+  closeMoviePicker();
+  updateWinStatus();
+
+  if (addedNodes.length > 0) {
+    centerOnNode(addedNodes[0]);
+    focusedNodeId = addedNodes[0].id;
+    applyFocusStyles();
+  }
+
+  let message = `Added ${addedNodes.length} movie${addedNodes.length === 1 ? "" : "s"}.`;
+
+  if (alreadyOnBoard.length > 0) {
+    message += ` Already on board: ${alreadyOnBoard.join(", ")}.`;
+  }
+
+  setStatus(message);
+}
       const positions = getNextGridPositions(checked.length);
 
       checked.forEach((title, index) => {
