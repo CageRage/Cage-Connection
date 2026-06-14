@@ -487,10 +487,10 @@
       </div>
 
       <input id="movieSearch" type="text" placeholder="Search titles..." oninput="renderMovieList()" />
-      <div style="color:#d9e7ff;font-size:13px;margin:-4px 0 12px 0;line-height:1.35;">Filter the list, then click <strong>Add Shown Movies</strong>. The popup will close after adding.</div>
 
       <div class="picker-actions">
-        <button onclick="addAllVisibleMovies()">Add Shown Movies</button>
+        <button onclick="addSelectedMovies()">Add Checked Movies</button>
+        <button onclick="clearMovieChecks()">Clear Checks</button>
         <button onclick="addCustomMovie()">Add Custom Title</button>
       </div>
 
@@ -672,7 +672,7 @@ let posterOverrides = loadPosterOverrides();
     let wrongBridgePenalty = Number(localStorage.getItem(WRONG_BRIDGE_PENALTY_KEY) || 0);
 
     loadBoard();
-    setStatus("Ready.");
+    setStatus("Ready. Checked-add version.");
     updateScoreDisplay();
 
     function setStatus(text) {
@@ -2062,17 +2062,28 @@ function renderNode(nodeObj) {
         return;
       }
 
-      filtered.forEach(title => {
+      filtered.forEach((title, index) => {
         const item = document.createElement("div");
         item.className = "movie-item";
+        item.style.cursor = "pointer";
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.value = title;
+        checkbox.dataset.title = title;
         checkbox.className = "movie-check";
 
-        const label = document.createElement("label");
+        checkbox.addEventListener("click", function(e) {
+          e.stopPropagation();
+        });
+
+        const label = document.createElement("span");
         label.textContent = title;
+        label.style.flex = "1";
+
+        item.addEventListener("click", function() {
+          checkbox.checked = !checkbox.checked;
+        });
 
         item.appendChild(checkbox);
         item.appendChild(label);
@@ -2089,18 +2100,62 @@ function renderNode(nodeObj) {
     }
 
     function addSelectedMovies() {
-      const checked = Array.from(document.querySelectorAll(".movie-check:checked"))
-        .map(cb => cb.value)
-        .filter(Boolean);
+      const checked = Array.from(movieList.querySelectorAll(".movie-check"))
+        .filter(cb => cb.checked)
+        .map(cb => cb.dataset.title || cb.value);
 
       if (!checked.length) {
-        alert("Select at least one movie.");
+        alert("Check at least one movie first.");
         return;
       }
 
-      const added = addMovieTitlesToBoard(checked);
+      const alreadyOnBoard = [];
+      const toAdd = [];
+
+      checked.forEach(title => {
+        const exists = nodes.some(n => normalizeTitle(n.name) === normalizeTitle(title));
+        if (exists) {
+          alreadyOnBoard.push(title);
+        } else {
+          toAdd.push(title);
+        }
+      });
+
+      const startX = board.scrollLeft + 80;
+      const startY = board.scrollTop + 90;
+      const xGap = 245;
+      const yGap = 300;
+      const cols = 4;
+      const addedNodes = [];
+
+      toAdd.forEach((title, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        const created = addMovieByName(title, {
+          x: startX + col * xGap,
+          y: startY + row * yGap
+        });
+        if (created) addedNodes.push(created);
+      });
+
+      saveBoard();
+      draw();
+      renderMovieList();
+      clearMovieChecks();
       closeMoviePicker();
-      setStatus(`Added ${added.length} movie${added.length === 1 ? "" : "s"}: ${added.map(n => n.name).join(", ")}.`);
+      updateWinStatus();
+
+      if (addedNodes.length > 0) {
+        focusedNodeId = null;
+        clearNodeStates();
+        centerOnNode(addedNodes[0]);
+      }
+
+      let message = `Added ${addedNodes.length} checked movie${addedNodes.length === 1 ? "" : "s"}.`;
+      if (alreadyOnBoard.length > 0) {
+        message += ` Already on board: ${alreadyOnBoard.join(", ")}.`;
+      }
+      setStatus(message);
     }
 
     function addAllVisibleMovies() {
