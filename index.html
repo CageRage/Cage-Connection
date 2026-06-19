@@ -2239,31 +2239,38 @@ function renderNode(nodeObj) {
       setStatus(`Added custom title: ${cleaned}`);
     }
 
-    function attachNodeEvents(obj) {
-      const node = obj.el;
+function attachNodeEvents(obj) {
+  const node = obj.el;
 
-      node.addEventListener("click", function (e) {
-        e.stopPropagation();
-        bringToFront(node);
-if (posterEditMode) {
-  handlePosterEdit(obj);
-  return;
-}
-        if (castLookupMode) {
-          handleCastLookup(obj);
-          return;
-        }
+  node.addEventListener("click", function (e) {
+    e.stopPropagation();
+    bringToFront(node);
 
-        if (connectModeActive) {
-          handleConnectClick(obj);
-          return;
-        }
-
-        focusedNodeId = obj.id;
-        applyFocusStyles();
-        saveBoard();
-      });
+    if (removeMovieMode) {
+      removeMovie(obj);
+      return;
     }
+
+    if (posterEditMode) {
+      handlePosterEdit(obj);
+      return;
+    }
+
+    if (castLookupMode) {
+      handleCastLookup(obj);
+      return;
+    }
+
+    if (connectModeActive) {
+      handleConnectClick(obj);
+      return;
+    }
+
+    focusedNodeId = obj.id;
+    applyFocusStyles();
+    saveBoard();
+  });
+}
 
     function getDegree(nodeId) {
       return connections.filter(c => c.a.id === nodeId || c.b.id === nodeId).length;
