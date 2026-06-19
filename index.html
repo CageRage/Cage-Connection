@@ -2185,37 +2185,38 @@ function renderNode(nodeObj) {
       setStatus(`Added custom title: ${cleaned}`);
     }
 
-    function attachNodeEvents(obj) {
+    function performNodeAction(obj) {
       const node = obj.el;
+      bringToFront(node);
 
-      node.addEventListener("click", function (e) {
-        e.stopPropagation();
-        bringToFront(node);
+      if (removeMovieMode) {
+        removeMovie(obj);
+        return;
+      }
 
-        if (removeMovieMode) {
-          removeMovie(obj);
-          return;
-        }
+      if (posterEditMode) {
+        handlePosterEdit(obj);
+        return;
+      }
 
-        if (posterEditMode) {
-          handlePosterEdit(obj);
-          return;
-        }
+      if (castLookupMode) {
+        handleCastLookup(obj);
+        return;
+      }
 
-        if (castLookupMode) {
-          handleCastLookup(obj);
-          return;
-        }
+      if (connectModeActive) {
+        handleConnectClick(obj);
+        return;
+      }
 
-        if (connectModeActive) {
-          handleConnectClick(obj);
-          return;
-        }
+      focusedNodeId = obj.id;
+      applyFocusStyles();
+      saveBoard();
+    }
 
-        focusedNodeId = obj.id;
-        applyFocusStyles();
-        saveBoard();
-      });
+    function attachNodeEvents(obj) {
+      // Node selection is handled in makeDraggable on pointerup.
+      // This avoids browser click/caching issues on touch and mobile installs.
     }
 
     function getDegree(nodeId) {
@@ -2884,24 +2885,32 @@ function makeDraggable(obj) {
   let offsetY = 0;
   let dragging = false;
   let moved = false;
+  let startX = 0;
+  let startY = 0;
 
   el.addEventListener("pointerdown", function (e) {
     if (e.button !== undefined && e.button !== 0) return;
     dragging = true;
     moved = false;
+    startX = e.clientX;
+    startY = e.clientY;
     bringToFront(el);
 
     const elRect = el.getBoundingClientRect();
     offsetX = e.clientX - elRect.left;
     offsetY = e.clientY - elRect.top;
 
-try { el.setPointerCapture(e.pointerId); } catch {}
-// Do not prevent the normal click event here.
-// The app uses click to select/connect movie cards.
+    try { el.setPointerCapture(e.pointerId); } catch {}
+    e.preventDefault();
+  });
 
   el.addEventListener("pointermove", function (e) {
     if (!dragging) return;
-    moved = true;
+
+    const moveDistance = Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY);
+    if (moveDistance > 6) moved = true;
+
+    if (!moved) return;
 
     const rect = surface.getBoundingClientRect();
     obj.x = Math.max(20, e.clientX - rect.left - offsetX);
@@ -2918,17 +2927,20 @@ try { el.setPointerCapture(e.pointerId); } catch {}
     dragging = false;
     try { el.releasePointerCapture(e.pointerId); } catch {}
 
-    if (moved) {
-      const openSpot = findOpenGridSpot(obj.x, obj.y, obj.id);
-      obj.x = openSpot.x;
-      obj.y = openSpot.y;
-
-      el.style.left = obj.x + "px";
-      el.style.top = obj.y + "px";
-
-      draw();
-      saveBoard();
+    if (!moved) {
+      performNodeAction(obj);
+      return;
     }
+
+    const openSpot = findOpenGridSpot(obj.x, obj.y, obj.id);
+    obj.x = openSpot.x;
+    obj.y = openSpot.y;
+
+    el.style.left = obj.x + "px";
+    el.style.top = obj.y + "px";
+
+    draw();
+    saveBoard();
   }
 
   el.addEventListener("pointerup", finishDrag);
