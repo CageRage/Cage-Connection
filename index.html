@@ -9,7 +9,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cage Connection</title>
-  <!-- Clean add-movies version: 2026-06-14 -->
   <style>
     body {
       margin: 0;
@@ -466,7 +465,7 @@
  <!-- <button onclick="exportBoard()">Export Backup</button> -->
 <!-- <button onclick="document.getElementById('importFile').click()">Import Backup</button> -->
     <button class="danger-button" onclick="resetBoard()">Reset Board</button>
-
+<button onclick="startRemoveMovie()">Remove Movie</button>
     <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
     <span id="statusText">Ready.</span>
@@ -489,8 +488,10 @@
       <input id="movieSearch" type="text" placeholder="Search titles..." oninput="renderMovieList()" />
 
       <div class="picker-actions">
-        <button onclick="addSelectedMovies()">Add Checked Movies</button>
+        <button onclick="selectAllVisibleMovies()">Select All Visible</button>
         <button onclick="clearMovieChecks()">Clear Checks</button>
+        <button onclick="addSelectedMovies()">Add Selected</button>
+        <button onclick="addAllVisibleMovies()">Add All Visible</button>
         <button onclick="addCustomMovie()">Add Custom Title</button>
       </div>
 
@@ -649,7 +650,7 @@
       "Zandalee"
     ];
 
-    const STORAGE_KEY = "cage-universe-v14-stable-add";
+    const STORAGE_KEY = "cage-universe-v12";
     const CUSTOM_TITLES_KEY = "cage-universe-custom-titles-v4";
     const CAST_PENALTY_KEY = "cage-connection-cast-penalty-v1";
     const SHARED_WRONG_PENALTY_KEY = "cage-connection-shared-wrong-penalty-v1";
@@ -672,7 +673,7 @@ let posterOverrides = loadPosterOverrides();
     let wrongBridgePenalty = Number(localStorage.getItem(WRONG_BRIDGE_PENALTY_KEY) || 0);
 
     loadBoard();
-    setStatus("Ready. Checked-add version.");
+    setStatus("Ready.");
     updateScoreDisplay();
 
     function setStatus(text) {
@@ -1659,6 +1660,45 @@ function startPosterEdit() {
   clearNodeStates();
   setStatus("Poster edit mode ON. Click a movie, then enter the exact poster filename.");
 }
+    let removeMovieMode = false;
+
+function startRemoveMovie() {
+  removeMovieMode = true;
+  castLookupMode = false;
+  posterEditMode = false;
+  connectModeActive = false;
+  connectFirstNode = null;
+  clearNodeStates();
+  setStatus("Remove movie mode ON. Click a movie to remove it.");
+}
+
+function removeMovie(nodeObj) {
+  const ok = confirm(`Remove "${nodeObj.name}" from the board?
+
+This will also remove any connections attached to it.`);
+  if (!ok) {
+    removeMovieMode = false;
+    setStatus("Remove movie cancelled.");
+    return;
+  }
+
+  connections = connections.filter(c => c.a.id !== nodeObj.id && c.b.id !== nodeObj.id);
+
+  nodeObj.el.remove();
+  nodes = nodes.filter(n => n.id !== nodeObj.id);
+
+  if (focusedNodeId === nodeObj.id) {
+    focusedNodeId = null;
+  }
+
+  removeMovieMode = false;
+  saveBoard();
+  redrawNodes();
+  draw();
+  renderMovieList();
+  updateWinStatus();
+  setStatus(`Removed: ${nodeObj.name}`);
+}
 
 function handlePosterEdit(nodeObj) {
   const current = posterOverrides[nodeObj.name] || `${posterFileName(nodeObj.name)}.jpeg`;
@@ -1916,24 +1956,17 @@ function findMovie() {
     function getNextGridPositions(count) {
       const positions = [];
       const cols = 7;
-      const xStart = board.scrollLeft + 70;
-      const yStart = board.scrollTop + 80;
+      const xStart = 60;
+      const yStart = 70;
       const xGap = 245;
       const yGap = 300;
       for (let i = 0; i < count; i++) {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
+        const index = nodes.length + i;
+        const col = index % cols;
+        const row = Math.floor(index / cols);
         positions.push({ x: xStart + (col * xGap), y: yStart + (row * yGap) });
       }
       return positions;
-    }
-
-
-    function makeNodeId() {
-      if (window.crypto && typeof crypto.randomUUID === "function") {
-        return crypto.randomUUID();
-      }
-      return "node-" + Date.now() + "-" + Math.random().toString(16).slice(2);
     }
 
     function createNodeFromData(data) {
@@ -2011,7 +2044,7 @@ function renderNode(nodeObj) {
       const point = position || getNextGridPosition();
 
       const created = createNodeFromData({
-        id: makeNodeId(),
+        id: crypto.randomUUID(),
         name: cleaned,
         x: point.x,
         y: point.y
@@ -2062,27 +2095,17 @@ function renderNode(nodeObj) {
         return;
       }
 
-      filtered.forEach((title, index) => {
+      filtered.forEach(title => {
         const item = document.createElement("div");
         item.className = "movie-item";
-        item.style.cursor = "pointer";
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.value = title;
-        checkbox.dataset.title = title;
         checkbox.className = "movie-check";
-        checkbox.id = "movie-check-" + index;
 
         const label = document.createElement("label");
         label.textContent = title;
-        label.setAttribute("for", checkbox.id);
-        label.style.flex = "1";
-
-        item.addEventListener("click", function(e) {
-          if (e.target === checkbox) return;
-          checkbox.checked = !checkbox.checked;
-        });
 
         item.appendChild(checkbox);
         item.appendChild(label);
@@ -2099,125 +2122,48 @@ function renderNode(nodeObj) {
     }
 
     function addSelectedMovies() {
-      const checked = Array.from(movieList.querySelectorAll(".movie-check"))
-        .filter(cb => cb.checked)
-        .map(cb => cb.dataset.title || cb.value)
-        .filter(Boolean);
+      const checked = Array.from(document.querySelectorAll(".movie-check:checked")).map(cb => cb.value);
 
       if (!checked.length) {
-        alert("Check at least one movie first.");
+        alert("Select at least one movie.");
         return;
       }
 
-      const seen = new Set();
-      const alreadyOnBoard = [];
-      const toAdd = [];
+      const positions = getNextGridPositions(checked.length);
 
-      checked.forEach(title => {
-        const key = normalizeTitle(title);
-        if (!key || seen.has(key)) return;
-        seen.add(key);
-
-        const exists = nodes.some(n => normalizeTitle(n.name) === key);
-        if (exists) {
-          alreadyOnBoard.push(title);
-        } else {
-          toAdd.push(title);
-        }
+      checked.forEach((title, index) => {
+        addMovieByName(title, positions[index]);
       });
 
-      const startX = board.scrollLeft + 80;
-      const startY = board.scrollTop + 90;
-      const xGap = 245;
-      const yGap = 310;
-      const cols = 4;
-      const addedNodes = [];
-
-      toAdd.forEach((title, index) => {
-        const col = index % cols;
-        const row = Math.floor(index / cols);
-
-        const created = createNodeFromData({
-          id: makeNodeId(),
-          name: title,
-          x: startX + col * xGap,
-          y: startY + row * yGap
-        });
-
-        addedNodes.push(created);
-      });
-
-      focusedNodeId = null;
-      connectModeActive = false;
-      connectFirstNode = null;
       saveBoard();
       draw();
       renderMovieList();
       clearMovieChecks();
       closeMoviePicker();
       updateWinStatus();
-
-      if (addedNodes.length > 0) {
-        clearNodeStates();
-        centerOnNode(addedNodes[0]);
-      }
-
-      let message = `Added ${addedNodes.length} checked movie${addedNodes.length === 1 ? "" : "s"}.`;
-
-      if (alreadyOnBoard.length > 0) {
-        message += ` Already on board: ${alreadyOnBoard.join(", ")}.`;
-      }
-
-      setStatus(message);
+      setStatus(`${checked.length} movie${checked.length === 1 ? "" : "s"} added.`);
     }
 
     function addAllVisibleMovies() {
-      alert("Use Add Checked Movies instead.");
-    }
+      const visible = Array.from(document.querySelectorAll(".movie-check")).map(cb => cb.value);
 
-    function addMovieTitlesToBoard(titles) {
-      const uniqueTitles = [];
-      const seen = new Set();
+      if (!visible.length) {
+        alert("No visible movies to add.");
+        return;
+      }
 
-      titles.forEach(title => {
-        const key = normalizeTitle(title);
-        if (!key || seen.has(key)) return;
-        seen.add(key);
-        uniqueTitles.push(title);
+      const positions = getNextGridPositions(visible.length);
+
+      visible.forEach((title, index) => {
+        addMovieByName(title, positions[index]);
       });
 
-      const positions = getNextGridPositions(uniqueTitles.length);
-      const added = [];
-
-      uniqueTitles.forEach((title, index) => {
-        const existing = nodes.find(n => normalizeTitle(n.name) === normalizeTitle(title));
-        if (existing) {
-          added.push(existing);
-          return;
-        }
-
-        const created = createNodeFromData({
-          id: makeNodeId(),
-          name: title,
-          x: positions[index].x,
-          y: positions[index].y
-        });
-
-        added.push(created);
-      });
-
-      focusedNodeId = null;
       saveBoard();
       draw();
       renderMovieList();
-      clearMovieChecks();
+      closeMoviePicker();
       updateWinStatus();
-
-      if (added.length > 0) {
-        centerOnNode(added[0]);
-      }
-
-      return added;
+      setStatus(`${visible.length} visible movie${visible.length === 1 ? "" : "s"} added.`);
     }
 
     function addCustomMovie() {
@@ -2239,38 +2185,38 @@ function renderNode(nodeObj) {
       setStatus(`Added custom title: ${cleaned}`);
     }
 
-function attachNodeEvents(obj) {
-  const node = obj.el;
+    function attachNodeEvents(obj) {
+      const node = obj.el;
 
-  node.addEventListener("click", function (e) {
-    e.stopPropagation();
-    bringToFront(node);
+      node.addEventListener("click", function (e) {
+        e.stopPropagation();
+        bringToFront(node);
 
-    if (removeMovieMode) {
-      removeMovie(obj);
-      return;
+        if (removeMovieMode) {
+          removeMovie(obj);
+          return;
+        }
+
+        if (posterEditMode) {
+          handlePosterEdit(obj);
+          return;
+        }
+
+        if (castLookupMode) {
+          handleCastLookup(obj);
+          return;
+        }
+
+        if (connectModeActive) {
+          handleConnectClick(obj);
+          return;
+        }
+
+        focusedNodeId = obj.id;
+        applyFocusStyles();
+        saveBoard();
+      });
     }
-
-    if (posterEditMode) {
-      handlePosterEdit(obj);
-      return;
-    }
-
-    if (castLookupMode) {
-      handleCastLookup(obj);
-      return;
-    }
-
-    if (connectModeActive) {
-      handleConnectClick(obj);
-      return;
-    }
-
-    focusedNodeId = obj.id;
-    applyFocusStyles();
-    saveBoard();
-  });
-}
 
     function getDegree(nodeId) {
       return connections.filter(c => c.a.id === nodeId || c.b.id === nodeId).length;
@@ -2474,7 +2420,7 @@ function attachNodeEvents(obj) {
     if (!rightActor || !rightActor.trim()) return;
 
     connections.push({
-      id: makeNodeId(),
+      id: crypto.randomUUID(),
       type: "bridge",
       a: connectFirstNode,
       b: obj,
@@ -2508,7 +2454,7 @@ function attachNodeEvents(obj) {
     // The connection is allowed without warning.
 
     connections.push({
-      id: makeNodeId(),
+      id: crypto.randomUUID(),
       type: "shared",
       a: connectFirstNode,
       b: obj,
