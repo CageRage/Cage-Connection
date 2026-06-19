@@ -2895,9 +2895,9 @@ function makeDraggable(obj) {
     offsetX = e.clientX - elRect.left;
     offsetY = e.clientY - elRect.top;
 
-    try { el.setPointerCapture(e.pointerId); } catch {}
-    e.preventDefault();
-  });
+try { el.setPointerCapture(e.pointerId); } catch {}
+// Do not prevent the normal click event here.
+// The app uses click to select/connect movie cards.
 
   el.addEventListener("pointermove", function (e) {
     if (!dragging) return;
