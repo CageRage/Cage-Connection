@@ -694,15 +694,18 @@ function calculateScore() {
       return String(title).trim().toLowerCase();
     }
 
-    function posterFileName(title) {
+    function makePosterBase(title, options = {}) {
+      const apostropheReplacement = options.apostropheReplacement ?? "";
+      const colonReplacement = options.colonReplacement ?? "";
+
       return String(title)
         .trim()
         .toLowerCase()
         .normalize("NFKD")
-        .replace(/[’‘`´]/g, "")
-        .replace(/'/g, "")
+        .replace(/[’‘`´]/g, apostropheReplacement)
+        .replace(/'/g, apostropheReplacement)
         .replace(/&/g, "and")
-        .replace(/:/g, "")
+        .replace(/[：﹕꞉:]/g, colonReplacement)
         .replace(/\//g, "-")
         .replace(/!/g, "")
         .replace(/\./g, "")
@@ -713,21 +716,56 @@ function calculateScore() {
         .replace(/^-|-$/g, "");
     }
 
+    function posterFileName(title) {
+      return makePosterBase(title, {
+        apostropheReplacement: "",
+        colonReplacement: ""
+      });
+    }
+
+    function uniqueList(items) {
+      const seen = new Set();
+      return items.filter(item => {
+        if (!item || seen.has(item)) return false;
+        seen.add(item);
+        return true;
+      });
+    }
+
     function posterCandidateSrcsForMovie(title) {
       const forcedFile = posterOverrides[title];
-      const cacheBust = "posterfix1";
+      const cacheBust = "posterfix2";
 
       if (forcedFile) {
         return [`posters/${forcedFile}?v=${cacheBust}`];
       }
 
-      const base = posterFileName(title);
-      return [
-        `posters/${base}.jpeg?v=${cacheBust}`,
-        `posters/${base}.jpg?v=${cacheBust}`,
-        `posters/${base}.png?v=${cacheBust}`,
-        `posters/${base}.webp?v=${cacheBust}`
-      ];
+      const cleanTitle = String(title).trim();
+      const bases = uniqueList([
+        // Main app rule: remove apostrophes and colons.
+        makePosterBase(cleanTitle, { apostropheReplacement: "", colonReplacement: "" }),
+        // Common alternate: turn apostrophes/colons into hyphens.
+        makePosterBase(cleanTitle, { apostropheReplacement: "-", colonReplacement: "-" }),
+        // Common alternate: remove apostrophes, but use a hyphen where the colon was.
+        makePosterBase(cleanTitle, { apostropheReplacement: "", colonReplacement: "-" }),
+        // Common alternate: remove colon, but use a hyphen where the apostrophe was.
+        makePosterBase(cleanTitle, { apostropheReplacement: "-", colonReplacement: "" })
+      ]);
+
+      const exts = ["jpeg", "jpg", "png", "webp"];
+      const candidates = [];
+
+      bases.forEach(base => {
+        exts.forEach(ext => candidates.push(`posters/${base}.${ext}?v=${cacheBust}`));
+      });
+
+      // Last-resort fallbacks for files uploaded with their human title as the filename.
+      exts.forEach(ext => {
+        candidates.push(`posters/${cleanTitle}.${ext}?v=${cacheBust}`);
+        candidates.push(`posters/${encodeURIComponent(cleanTitle + "." + ext)}?v=${cacheBust}`);
+      });
+
+      return uniqueList(candidates);
     }
 
     function posterSrcForMovie(title) {
