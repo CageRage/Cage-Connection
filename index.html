@@ -694,9 +694,7 @@ function calculateScore() {
 function updateScoreDisplay() {
   const scoreEl = document.getElementById("scoreDisplay");
   if (!scoreEl) return;
-
-  const score = calculateScore();
-  scoreEl.textContent = `Score: ${score}`;
+  scoreEl.textContent = `Score: ${calculateScore()}`;
 }
     function normalizeTitle(title) {
       return String(title).trim().toLowerCase();
@@ -707,7 +705,6 @@ function updateScoreDisplay() {
         .trim()
         .toLowerCase()
         .replace(/&/g, "and")
-        .replace(/[’‘`´]/g, "")
         .replace(/'/g, "")
         .replace(/:/g, "")
         .replace(/\//g, "-")
@@ -764,8 +761,8 @@ function posterSrcForMovie(title) {
       nodes.forEach(n => n.el.remove());
       nodes = [];
       connections = [];
-      // Do not restore temporary selection/focus/mode state when reopening the app.
-      // Saved movies, positions, and connections still load normally.
+      // Do not restore temporary UI state when reopening.
+      // Saved movies/connections still load; focus/selection starts clean.
       focusedNodeId = null;
       connectModeActive = false;
       connectFirstNode = null;
@@ -808,10 +805,17 @@ function posterSrcForMovie(title) {
 
     function loadBoard() {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) {
+        setStatus("No saved board found. Add movies to start a new board.");
+        return;
+      }
 
       try {
         const data = JSON.parse(raw);
+        if (!data || !Array.isArray(data.nodes)) {
+          setStatus("Saved board data is empty or invalid. Add movies to start a new board.");
+          return;
+        }
         loadBoardFromData(data);
       } catch (e) {
         console.error("Load failed", e);
@@ -2233,23 +2237,15 @@ function renderNode(nodeObj) {
 
     function attachNodeEvents(obj) {
       const node = obj.el;
-      let lastPointerActionAt = 0;
 
-      // Fallback for desktop browsers if a normal click is fired.
       node.addEventListener("click", function (e) {
         e.stopPropagation();
 
-        // Avoid running twice when pointerup already handled the card action.
-        if (Date.now() - lastPointerActionAt < 250) return;
+        // If connect mode already handled this on pointerdown, do not run it twice.
+        if (obj._skipNextClick && Date.now() - obj._skipNextClick < 500) return;
 
         handleMovieCardAction(obj);
       });
-
-      // Called by makeDraggable when a pointerdown/pointerup was a tap, not a drag.
-      obj.handleCardTap = function () {
-        lastPointerActionAt = Date.now();
-        handleMovieCardAction(obj);
-      };
     }
 
     function getDegree(nodeId) {
@@ -2931,6 +2927,17 @@ function makeDraggable(obj) {
 
   el.addEventListener("pointerdown", function (e) {
     if (e.button !== undefined && e.button !== 0) return;
+
+    // Connect mode is the core game action. While it is on, a card press means
+    // “select this movie for the connection,” not “drag/focus this card.”
+    if (connectModeActive) {
+      e.stopPropagation();
+      e.preventDefault();
+      obj._skipNextClick = Date.now();
+      handleMovieCardAction(obj);
+      return;
+    }
+
     dragging = true;
     moved = false;
     startClientX = e.clientX;
@@ -2950,11 +2957,7 @@ function makeDraggable(obj) {
     const dx = Math.abs(e.clientX - startClientX);
     const dy = Math.abs(e.clientY - startClientY);
 
-    // Tiny movement is still a click/tap. Real movement becomes dragging.
-    if (dx > 6 || dy > 6) {
-      moved = true;
-    }
-
+    if (dx > 8 || dy > 8) moved = true;
     if (!moved) return;
 
     const rect = surface.getBoundingClientRect();
@@ -2982,14 +2985,8 @@ function makeDraggable(obj) {
 
       draw();
       saveBoard();
-      return;
     }
-
-    // This is the key fix: a short click/tap on a card selects it, even if
-    // pointer capture prevents the browser from firing a normal click event.
-    if (typeof obj.handleCardTap === "function") {
-      obj.handleCardTap();
-    }
+    // If it was not moved, let the normal click event handle focus/poster/cast mode.
   }
 
   el.addEventListener("pointerup", finishDrag);
