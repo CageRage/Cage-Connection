@@ -2185,37 +2185,56 @@ function renderNode(nodeObj) {
       setStatus(`Added custom title: ${cleaned}`);
     }
 
+    function handleMovieCardAction(obj) {
+      if (!obj || !obj.el) return;
+
+      bringToFront(obj.el);
+
+      // Connect mode is the core game action. It must win over focus/poster/cast modes.
+      if (connectModeActive) {
+        handleConnectClick(obj);
+        return;
+      }
+
+      if (removeMovieMode) {
+        removeMovie(obj);
+        return;
+      }
+
+      if (posterEditMode) {
+        handlePosterEdit(obj);
+        return;
+      }
+
+      if (castLookupMode) {
+        handleCastLookup(obj);
+        return;
+      }
+
+      focusedNodeId = obj.id;
+      applyFocusStyles();
+      saveBoard();
+    }
+
     function attachNodeEvents(obj) {
       const node = obj.el;
+      let lastPointerActionAt = 0;
 
+      // Fallback for desktop browsers if a normal click is fired.
       node.addEventListener("click", function (e) {
         e.stopPropagation();
-        bringToFront(node);
 
-        if (removeMovieMode) {
-          removeMovie(obj);
-          return;
-        }
+        // Avoid running twice when pointerup already handled the card action.
+        if (Date.now() - lastPointerActionAt < 250) return;
 
-        if (connectModeActive) {
-          handleConnectClick(obj);
-          return;
-        }
-
-        if (posterEditMode) {
-          handlePosterEdit(obj);
-          return;
-        }
-
-        if (castLookupMode) {
-          handleCastLookup(obj);
-          return;
-        }
-
-        focusedNodeId = obj.id;
-        applyFocusStyles();
-        saveBoard();
+        handleMovieCardAction(obj);
       });
+
+      // Called by makeDraggable when a pointerdown/pointerup was a tap, not a drag.
+      obj.handleCardTap = function () {
+        lastPointerActionAt = Date.now();
+        handleMovieCardAction(obj);
+      };
     }
 
     function getDegree(nodeId) {
@@ -2481,15 +2500,12 @@ function renderNode(nodeObj) {
   setStatus(`Connected ${firstName} to ${obj.name}. Connect mode still on.`);
 }
     function connectMode() {
-      // Connect mode must cancel every other click-mode first.
-      // Otherwise a leftover poster/cast/challenge/remove mode can steal the movie click.
-      removeMovieMode = false;
-      posterEditMode = false;
-      castLookupMode = false;
-      challengeMode = false;
-
       connectModeActive = true;
       connectFirstNode = null;
+      castLookupMode = false;
+      posterEditMode = false;
+      challengeMode = false;
+      removeMovieMode = false;
       clearNodeStates();
       setStatus("Connect mode ON. Click the first movie.");
     }
@@ -2498,10 +2514,10 @@ function renderNode(nodeObj) {
   clearNodeStates();
   connectModeActive = false;
   connectFirstNode = null;
-  removeMovieMode = false;
-  posterEditMode = false;
   castLookupMode = false;
+  posterEditMode = false;
   challengeMode = false;
+  removeMovieMode = false;
   setStatus("Ready.");
   updateScoreDisplay();
 }
@@ -2895,16 +2911,15 @@ function makeDraggable(obj) {
   let offsetY = 0;
   let dragging = false;
   let moved = false;
-  let startX = 0;
-  let startY = 0;
+  let startClientX = 0;
+  let startClientY = 0;
 
   el.addEventListener("pointerdown", function (e) {
     if (e.button !== undefined && e.button !== 0) return;
-
     dragging = true;
     moved = false;
-    startX = e.clientX;
-    startY = e.clientY;
+    startClientX = e.clientX;
+    startClientY = e.clientY;
     bringToFront(el);
 
     const elRect = el.getBoundingClientRect();
@@ -2912,16 +2927,20 @@ function makeDraggable(obj) {
     offsetY = e.clientY - elRect.top;
 
     try { el.setPointerCapture(e.pointerId); } catch {}
-    // Do not call preventDefault here. The app needs the normal click event for selecting movies.
   });
 
   el.addEventListener("pointermove", function (e) {
     if (!dragging) return;
 
-    const moveDistance = Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY);
-    if (moveDistance < 10) return;
+    const dx = Math.abs(e.clientX - startClientX);
+    const dy = Math.abs(e.clientY - startClientY);
 
-    moved = true;
+    // Tiny movement is still a click/tap. Real movement becomes dragging.
+    if (dx > 6 || dy > 6) {
+      moved = true;
+    }
+
+    if (!moved) return;
 
     const rect = surface.getBoundingClientRect();
     obj.x = Math.max(20, e.clientX - rect.left - offsetX);
@@ -2948,6 +2967,13 @@ function makeDraggable(obj) {
 
       draw();
       saveBoard();
+      return;
+    }
+
+    // This is the key fix: a short click/tap on a card selects it, even if
+    // pointer capture prevents the browser from firing a normal click event.
+    if (typeof obj.handleCardTap === "function") {
+      obj.handleCardTap();
     }
   }
 
