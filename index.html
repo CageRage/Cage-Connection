@@ -1988,38 +1988,11 @@ function findMovie() {
 
       nodes.push(obj);
       makeDraggable(obj);
-      function attachNodeEvents(obj) {
-  const node = obj.el;
-
-  node.addEventListener("click", function (e) {
-    e.stopPropagation();
-    bringToFront(node);
-
-    if (removeMovieMode) {
-      removeMovie(obj);
-      return;
+      attachNodeEvents(obj);
+      renderNode(obj);
+      return obj;
     }
 
-    if (posterEditMode) {
-      handlePosterEdit(obj);
-      return;
-    }
-
-    if (castLookupMode) {
-      handleCastLookup(obj);
-      return;
-    }
-
-    if (connectModeActive) {
-      handleConnectClick(obj);
-      return;
-    }
-
-    focusedNodeId = obj.id;
-    applyFocusStyles();
-    saveBoard();
-  });
-}
 function renderNode(nodeObj) {
       const degree = getDegree(nodeObj.id);
       const posterSrc = posterSrcForMovie(nodeObj.name);
@@ -2212,38 +2185,37 @@ function renderNode(nodeObj) {
       setStatus(`Added custom title: ${cleaned}`);
     }
 
-    function performNodeAction(obj) {
-      const node = obj.el;
-      bringToFront(node);
-
-      if (removeMovieMode) {
-        removeMovie(obj);
-        return;
-      }
-
-      if (posterEditMode) {
-        handlePosterEdit(obj);
-        return;
-      }
-
-      if (castLookupMode) {
-        handleCastLookup(obj);
-        return;
-      }
-
-      if (connectModeActive) {
-        handleConnectClick(obj);
-        return;
-      }
-
-      focusedNodeId = obj.id;
-      applyFocusStyles();
-      saveBoard();
-    }
-
     function attachNodeEvents(obj) {
-      // Node selection is handled in makeDraggable on pointerup.
-      // This avoids browser click/caching issues on touch and mobile installs.
+      const node = obj.el;
+
+      node.addEventListener("click", function (e) {
+        e.stopPropagation();
+        bringToFront(node);
+
+        if (removeMovieMode) {
+          removeMovie(obj);
+          return;
+        }
+
+        if (posterEditMode) {
+          handlePosterEdit(obj);
+          return;
+        }
+
+        if (castLookupMode) {
+          handleCastLookup(obj);
+          return;
+        }
+
+        if (connectModeActive) {
+          handleConnectClick(obj);
+          return;
+        }
+
+        focusedNodeId = obj.id;
+        applyFocusStyles();
+        saveBoard();
+      });
     }
 
     function getDegree(nodeId) {
@@ -2917,6 +2889,7 @@ function makeDraggable(obj) {
 
   el.addEventListener("pointerdown", function (e) {
     if (e.button !== undefined && e.button !== 0) return;
+
     dragging = true;
     moved = false;
     startX = e.clientX;
@@ -2928,16 +2901,16 @@ function makeDraggable(obj) {
     offsetY = e.clientY - elRect.top;
 
     try { el.setPointerCapture(e.pointerId); } catch {}
-   
+    // Do not call preventDefault here. The app needs the normal click event for selecting movies.
   });
 
   el.addEventListener("pointermove", function (e) {
     if (!dragging) return;
 
     const moveDistance = Math.abs(e.clientX - startX) + Math.abs(e.clientY - startY);
-    if (moveDistance > 6) moved = true;
+    if (moveDistance < 10) return;
 
-    if (!moved) return;
+    moved = true;
 
     const rect = surface.getBoundingClientRect();
     obj.x = Math.max(20, e.clientX - rect.left - offsetX);
@@ -2954,20 +2927,17 @@ function makeDraggable(obj) {
     dragging = false;
     try { el.releasePointerCapture(e.pointerId); } catch {}
 
-    if (!moved) {
-      performNodeAction(obj);
-      return;
+    if (moved) {
+      const openSpot = findOpenGridSpot(obj.x, obj.y, obj.id);
+      obj.x = openSpot.x;
+      obj.y = openSpot.y;
+
+      el.style.left = obj.x + "px";
+      el.style.top = obj.y + "px";
+
+      draw();
+      saveBoard();
     }
-
-    const openSpot = findOpenGridSpot(obj.x, obj.y, obj.id);
-    obj.x = openSpot.x;
-    obj.y = openSpot.y;
-
-    el.style.left = obj.x + "px";
-    el.style.top = obj.y + "px";
-
-    draw();
-    saveBoard();
   }
 
   el.addEventListener("pointerup", finishDrag);
