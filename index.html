@@ -864,26 +864,27 @@ removeMovieMode = false;
       }
     }
 
-    function getBoardData() {
-return {
-  nodes: nodes.map(n => ({
-    id: n.id,
-    name: n.name,
-    x: n.x,
-    y: n.y
-  })),
-  connections: connections.map(c => ({
-    id: c.id,
-    type: c.type,
-    aId: c.a.id,
-    bId: c.b.id,
-    bridgeTitle: c.bridgeTitle || "",
-    leftActor: c.leftActor || "",
-    rightActor: c.rightActor || "",
-    sharedActor: c.sharedActor || ""
-  }))
-};
-    }
+function getBoardData() {
+  return {
+    nodes: nodes.map(n => ({
+      id: n.id,
+      name: n.name,
+      x: n.x,
+      y: n.y
+    })),
+    connections: connections.map(c => ({
+      id: c.id,
+      type: c.type,
+      aId: c.a.id,
+      bId: c.b.id,
+      bridgeTitle: c.bridgeTitle || "",
+      leftActor: c.leftActor || "",
+      rightActor: c.rightActor || "",
+      sharedActor: c.sharedActor || ""
+    })),
+    focusedNodeId
+  };
+}
 const WIKI_URLS = {
   "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast",
   "Amos and Andrew": "https://en.wikipedia.org/wiki/Amos_%26_Andrew#Cast",
