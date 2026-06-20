@@ -1988,11 +1988,38 @@ function findMovie() {
 
       nodes.push(obj);
       makeDraggable(obj);
-      attachNodeEvents(obj);
-      renderNode(obj);
-      return obj;
+      function attachNodeEvents(obj) {
+  const node = obj.el;
+
+  node.addEventListener("click", function (e) {
+    e.stopPropagation();
+    bringToFront(node);
+
+    if (removeMovieMode) {
+      removeMovie(obj);
+      return;
     }
 
+    if (posterEditMode) {
+      handlePosterEdit(obj);
+      return;
+    }
+
+    if (castLookupMode) {
+      handleCastLookup(obj);
+      return;
+    }
+
+    if (connectModeActive) {
+      handleConnectClick(obj);
+      return;
+    }
+
+    focusedNodeId = obj.id;
+    applyFocusStyles();
+    saveBoard();
+  });
+}
 function renderNode(nodeObj) {
       const degree = getDegree(nodeObj.id);
       const posterSrc = posterSrcForMovie(nodeObj.name);
@@ -2901,7 +2928,7 @@ function makeDraggable(obj) {
     offsetY = e.clientY - elRect.top;
 
     try { el.setPointerCapture(e.pointerId); } catch {}
-    e.preventDefault();
+   
   });
 
   el.addEventListener("pointermove", function (e) {
