@@ -1798,12 +1798,17 @@ function challengeConnection(connectionId) {
   window.open(url, "_blank");
 }
     function startCastLookup() {
-      castLookupMode = true;
-      connectModeActive = false;
-      connectFirstNode = null;
-      clearNodeStates();
-      setStatus("Cast lookup mode ON. Click a movie to view its Wikipedia cast page for -5 points.");
-    }
+  castLookupMode = true;
+
+  connectModeActive = false;
+  connectFirstNode = null;
+  posterEditMode = false;
+  removeMovieMode = false;
+  challengeMode = false;
+
+  clearNodeStates();
+  setStatus("Cast lookup mode ON. Click a movie to view its Wikipedia cast page for -5 points.");
+}
 
     function handleCastLookup(nodeObj) {
   const url = movieWikiUrl(nodeObj.name);
@@ -2204,36 +2209,33 @@ function renderNode(nodeObj) {
       setStatus(`Added custom title: ${cleaned}`);
     }
 
-    function handleMovieCardAction(obj) {
-      if (!obj || !obj.el) return;
+   function handleMovieCardAction(obj) {
+  bringToFront(obj.el);
 
-      bringToFront(obj.el);
+  if (connectModeActive) {
+    handleConnectClick(obj);
+    return;
+  }
 
-      // Connect mode is the core game action. It must win over focus/poster/cast modes.
-      if (connectModeActive) {
-        handleConnectClick(obj);
-        return;
-      }
+  if (castLookupMode) {
+    handleCastLookup(obj);
+    return;
+  }
 
-      if (removeMovieMode) {
-        removeMovie(obj);
-        return;
-      }
+  if (posterEditMode) {
+    handlePosterEdit(obj);
+    return;
+  }
 
-      if (posterEditMode) {
-        handlePosterEdit(obj);
-        return;
-      }
+  if (removeMovieMode) {
+    removeMovie(obj);
+    return;
+  }
 
-      if (castLookupMode) {
-        handleCastLookup(obj);
-        return;
-      }
-
-      focusedNodeId = obj.id;
-      applyFocusStyles();
-      saveBoard();
-    }
+  focusedNodeId = obj.id;
+  applyFocusStyles();
+  saveBoard();
+}
 
     function attachNodeEvents(obj) {
       const node = obj.el;
