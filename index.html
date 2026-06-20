@@ -698,25 +698,41 @@ function calculateScore() {
       return String(title)
         .trim()
         .toLowerCase()
-        .replace(/&/g, "and")
+        .normalize("NFKD")
+        .replace(/[’‘`´]/g, "")
         .replace(/'/g, "")
+        .replace(/&/g, "and")
         .replace(/:/g, "")
         .replace(/\//g, "-")
         .replace(/!/g, "")
         .replace(/\./g, "")
         .replace(/\?/g, "")
-        .replace(/\s+/g, "-");
+        .replace(/,/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
     }
 
-function posterSrcForMovie(title) {
-  const forcedFile = posterOverrides[title];
+    function posterCandidateSrcsForMovie(title) {
+      const forcedFile = posterOverrides[title];
+      const cacheBust = "posterfix1";
 
-  if (forcedFile) {
-    return `posters/${forcedFile}?v=manual1`;
-  }
+      if (forcedFile) {
+        return [`posters/${forcedFile}?v=${cacheBust}`];
+      }
 
-  return `posters/${posterFileName(title)}.jpeg?v=manual1`;
-}
+      const base = posterFileName(title);
+      return [
+        `posters/${base}.jpeg?v=${cacheBust}`,
+        `posters/${base}.jpg?v=${cacheBust}`,
+        `posters/${base}.png?v=${cacheBust}`,
+        `posters/${base}.webp?v=${cacheBust}`
+      ];
+    }
+
+    function posterSrcForMovie(title) {
+      return posterCandidateSrcsForMovie(title)[0];
+    }
     function loadCustomTitles() {
       const raw = localStorage.getItem(CUSTOM_TITLES_KEY);
       if (!raw) return [];
@@ -1995,7 +2011,8 @@ function findMovie() {
 
 function renderNode(nodeObj) {
       const degree = getDegree(nodeObj.id);
-      const posterSrc = posterSrcForMovie(nodeObj.name);
+      const posterSrcs = posterCandidateSrcsForMovie(nodeObj.name);
+      let posterTryIndex = 0;
 
       nodeObj.el.innerHTML = "";
 
@@ -2014,10 +2031,18 @@ function renderNode(nodeObj) {
       img.className = "node-poster";
       img.alt = "";
       img.onload = function () {
-        nodeObj.el.insertBefore(img, title);
+        if (!nodeObj.el.contains(img)) {
+          nodeObj.el.insertBefore(img, title);
+        }
         draw();
       };
-      img.src = posterSrc;
+      img.onerror = function () {
+        posterTryIndex += 1;
+        if (posterTryIndex < posterSrcs.length) {
+          img.src = posterSrcs[posterTryIndex];
+        }
+      };
+      img.src = posterSrcs[0];
 
       nodeObj.el.classList.toggle("full", degree >= 2);
     }
