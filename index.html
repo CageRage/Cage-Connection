@@ -809,9 +809,15 @@ function calculateScore() {
       nodes.forEach(n => n.el.remove());
       nodes = [];
       connections = [];
-      focusedNodeId = data.focusedNodeId || null;
-      connectModeActive = false;
-      connectFirstNode = null;
+     // Do not restore temporary UI state when the app loads.
+// The board layout and connections are saved, but selection/focus should start clean.
+focusedNodeId = null;
+connectModeActive = false;
+connectFirstNode = null;
+castLookupMode = false;
+posterEditMode = false;
+challengeMode = false;
+removeMovieMode = false;
       svg.innerHTML = "";
       surface.querySelectorAll(".node").forEach(n => n.remove());
 
@@ -859,25 +865,24 @@ function calculateScore() {
     }
 
     function getBoardData() {
-      return {
-        nodes: nodes.map(n => ({
-          id: n.id,
-          name: n.name,
-          x: n.x,
-          y: n.y
-        })),
-        connections: connections.map(c => ({
-          id: c.id,
-          type: c.type,
-          aId: c.a.id,
-          bId: c.b.id,
-          bridgeTitle: c.bridgeTitle || "",
-          leftActor: c.leftActor || "",
-          rightActor: c.rightActor || "",
-          sharedActor: c.sharedActor || ""
-        })),
-        focusedNodeId
-      };
+return {
+  nodes: nodes.map(n => ({
+    id: n.id,
+    name: n.name,
+    x: n.x,
+    y: n.y
+  })),
+  connections: connections.map(c => ({
+    id: c.id,
+    type: c.type,
+    aId: c.a.id,
+    bId: c.b.id,
+    bridgeTitle: c.bridgeTitle || "",
+    leftActor: c.leftActor || "",
+    rightActor: c.rightActor || "",
+    sharedActor: c.sharedActor || ""
+  }))
+};
     }
 const WIKI_URLS = {
   "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast",
