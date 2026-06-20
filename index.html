@@ -690,87 +690,42 @@ function calculateScore() {
 
   return connectionScore - castPenalty - sharedWrongPenalty - wrongBridgePenalty;
 }
+
+function updateScoreDisplay() {
+  const scoreEl = document.getElementById("scoreDisplay");
+  if (!scoreEl) return;
+
+  const score = calculateScore();
+  scoreEl.textContent = `Score: ${score}`;
+}
     function normalizeTitle(title) {
       return String(title).trim().toLowerCase();
     }
 
-    function makePosterBase(title, options = {}) {
-      const apostropheReplacement = options.apostropheReplacement ?? "";
-      const colonReplacement = options.colonReplacement ?? "";
-
+    function posterFileName(title) {
       return String(title)
         .trim()
         .toLowerCase()
-        .normalize("NFKD")
-        .replace(/[’‘`´]/g, apostropheReplacement)
-        .replace(/'/g, apostropheReplacement)
         .replace(/&/g, "and")
-        .replace(/[：﹕꞉:]/g, colonReplacement)
+        .replace(/[’‘`´]/g, "")
+        .replace(/'/g, "")
+        .replace(/:/g, "")
         .replace(/\//g, "-")
         .replace(/!/g, "")
         .replace(/\./g, "")
         .replace(/\?/g, "")
-        .replace(/,/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
+        .replace(/\s+/g, "-");
     }
 
-    function posterFileName(title) {
-      return makePosterBase(title, {
-        apostropheReplacement: "",
-        colonReplacement: ""
-      });
-    }
+function posterSrcForMovie(title) {
+  const forcedFile = posterOverrides[title];
 
-    function uniqueList(items) {
-      const seen = new Set();
-      return items.filter(item => {
-        if (!item || seen.has(item)) return false;
-        seen.add(item);
-        return true;
-      });
-    }
+  if (forcedFile) {
+    return `posters/${forcedFile}?v=manual1`;
+  }
 
-    function posterCandidateSrcsForMovie(title) {
-      const forcedFile = posterOverrides[title];
-      const cacheBust = "posterfix2";
-
-      if (forcedFile) {
-        return [`posters/${forcedFile}?v=${cacheBust}`];
-      }
-
-      const cleanTitle = String(title).trim();
-      const bases = uniqueList([
-        // Main app rule: remove apostrophes and colons.
-        makePosterBase(cleanTitle, { apostropheReplacement: "", colonReplacement: "" }),
-        // Common alternate: turn apostrophes/colons into hyphens.
-        makePosterBase(cleanTitle, { apostropheReplacement: "-", colonReplacement: "-" }),
-        // Common alternate: remove apostrophes, but use a hyphen where the colon was.
-        makePosterBase(cleanTitle, { apostropheReplacement: "", colonReplacement: "-" }),
-        // Common alternate: remove colon, but use a hyphen where the apostrophe was.
-        makePosterBase(cleanTitle, { apostropheReplacement: "-", colonReplacement: "" })
-      ]);
-
-      const exts = ["jpeg", "jpg", "png", "webp"];
-      const candidates = [];
-
-      bases.forEach(base => {
-        exts.forEach(ext => candidates.push(`posters/${base}.${ext}?v=${cacheBust}`));
-      });
-
-      // Last-resort fallbacks for files uploaded with their human title as the filename.
-      exts.forEach(ext => {
-        candidates.push(`posters/${cleanTitle}.${ext}?v=${cacheBust}`);
-        candidates.push(`posters/${encodeURIComponent(cleanTitle + "." + ext)}?v=${cacheBust}`);
-      });
-
-      return uniqueList(candidates);
-    }
-
-    function posterSrcForMovie(title) {
-      return posterCandidateSrcsForMovie(title)[0];
-    }
+  return `posters/${posterFileName(title)}.jpeg?v=manual1`;
+}
     function loadCustomTitles() {
       const raw = localStorage.getItem(CUSTOM_TITLES_KEY);
       if (!raw) return [];
@@ -809,15 +764,15 @@ function calculateScore() {
       nodes.forEach(n => n.el.remove());
       nodes = [];
       connections = [];
-     // Do not restore temporary UI state when the app loads.
-// The board layout and connections are saved, but selection/focus should start clean.
-focusedNodeId = null;
-connectModeActive = false;
-connectFirstNode = null;
-castLookupMode = false;
-posterEditMode = false;
-challengeMode = false;
-removeMovieMode = false;
+      // Do not restore temporary selection/focus/mode state when reopening the app.
+      // Saved movies, positions, and connections still load normally.
+      focusedNodeId = null;
+      connectModeActive = false;
+      connectFirstNode = null;
+      castLookupMode = false;
+      posterEditMode = false;
+      challengeMode = false;
+      removeMovieMode = false;
       svg.innerHTML = "";
       surface.querySelectorAll(".node").forEach(n => n.remove());
 
@@ -864,27 +819,27 @@ removeMovieMode = false;
       }
     }
 
-function getBoardData() {
-  return {
-    nodes: nodes.map(n => ({
-      id: n.id,
-      name: n.name,
-      x: n.x,
-      y: n.y
-    })),
-    connections: connections.map(c => ({
-      id: c.id,
-      type: c.type,
-      aId: c.a.id,
-      bId: c.b.id,
-      bridgeTitle: c.bridgeTitle || "",
-      leftActor: c.leftActor || "",
-      rightActor: c.rightActor || "",
-      sharedActor: c.sharedActor || ""
-    })),
-    focusedNodeId
-  };
-}
+    function getBoardData() {
+      return {
+        nodes: nodes.map(n => ({
+          id: n.id,
+          name: n.name,
+          x: n.x,
+          y: n.y
+        })),
+        connections: connections.map(c => ({
+          id: c.id,
+          type: c.type,
+          aId: c.a.id,
+          bId: c.b.id,
+          bridgeTitle: c.bridgeTitle || "",
+          leftActor: c.leftActor || "",
+          rightActor: c.rightActor || "",
+          sharedActor: c.sharedActor || ""
+        })),
+        focusedNodeId
+      };
+    }
 const WIKI_URLS = {
   "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast",
   "Amos and Andrew": "https://en.wikipedia.org/wiki/Amos_%26_Andrew#Cast",
@@ -2055,8 +2010,7 @@ function findMovie() {
 
 function renderNode(nodeObj) {
       const degree = getDegree(nodeObj.id);
-      const posterSrcs = posterCandidateSrcsForMovie(nodeObj.name);
-      let posterTryIndex = 0;
+      const posterSrc = posterSrcForMovie(nodeObj.name);
 
       nodeObj.el.innerHTML = "";
 
@@ -2075,18 +2029,10 @@ function renderNode(nodeObj) {
       img.className = "node-poster";
       img.alt = "";
       img.onload = function () {
-        if (!nodeObj.el.contains(img)) {
-          nodeObj.el.insertBefore(img, title);
-        }
+        nodeObj.el.insertBefore(img, title);
         draw();
       };
-      img.onerror = function () {
-        posterTryIndex += 1;
-        if (posterTryIndex < posterSrcs.length) {
-          img.src = posterSrcs[posterTryIndex];
-        }
-      };
-      img.src = posterSrcs[0];
+      img.src = posterSrc;
 
       nodeObj.el.classList.toggle("full", degree >= 2);
     }
