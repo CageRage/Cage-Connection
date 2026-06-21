@@ -801,18 +801,15 @@ function posterSrcForMovie(title) {
           const b = nodes.find(n => n.id === c.bId);
           if (a && b) {
             connections.push({
-              id: c.id,
-              type: c.type || "bridge",
-              a,
-              b,
-              bridgeTitle: c.bridgeTitle || "",
-              leftActor: c.leftActor || "",
-              rightActor: c.rightActor || "",
-              sharedActor: c.sharedActor || ""
-            });
-          }
-        });
-      }
+  id: crypto.randomUUID(),
+  type: "shared",
+  a: connectFirstNode,
+  b: obj,
+  sharedActor,
+  owner: currentPlayerIndex
+});
+
+players[currentPlayerIndex].score += 1;
 
       redrawNodes();
       draw();
@@ -849,19 +846,18 @@ function posterSrcForMovie(title) {
           x: n.x,
           y: n.y
         })),
-        connections: connections.map(c => ({
-          id: c.id,
-          type: c.type,
-          aId: c.a.id,
-          bId: c.b.id,
-          bridgeTitle: c.bridgeTitle || "",
-          leftActor: c.leftActor || "",
-          rightActor: c.rightActor || "",
-          sharedActor: c.sharedActor || ""
-        })),
-        focusedNodeId
-      };
-    }
+        connections.push({
+  id: crypto.randomUUID(),
+  type: "bridge",
+  a: connectFirstNode,
+  b: obj,
+  bridgeTitle,
+  leftActor,
+  rightActor,
+  owner: currentPlayerIndex
+});
+
+players[currentPlayerIndex].score += 2;
 const WIKI_URLS = {
   "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast",
   "Amos & Andrew": "https://en.wikipedia.org/wiki/Amos_%26_Andrew#Cast",
