@@ -468,8 +468,9 @@
     <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
     <span id="statusText">Ready.</span>
-    <span id="scoreDisplay" style="margin-left:15px;font-weight:bold;color:#ffd54a;font-size:18px;">Score: 0</span>
-  </div>
+<button onclick="endTurn()">End Turn</button>
+<span id="turnDisplay" style="margin-left:15px;font-weight:bold;color:#ffd54a;font-size:16px;">Turn: Player 1</span>
+<span id="scoreDisplay" style="margin-left:10px;font-weight:bold;color:#ffd54a;font-size:16px;">Player 1: 0 | Player 2: 0 | Board: 0</span>  </div>
 
   <div id="board">
     <div id="surface">
@@ -670,6 +671,12 @@ let posterOverrides = loadPosterOverrides();
     let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
     let sharedWrongPenalty = Number(localStorage.getItem(SHARED_WRONG_PENALTY_KEY) || 0);
     let wrongBridgePenalty = Number(localStorage.getItem(WRONG_BRIDGE_PENALTY_KEY) || 0);
+    let players = [
+  { name: "Player 1", score: 0 },
+  { name: "Player 2", score: 0 }
+];
+
+let currentPlayerIndex = 0;
 
     loadBoard();
     setStatus("Ready.");
@@ -691,9 +698,21 @@ function calculateScore() {
 }
 
 function updateScoreDisplay() {
-  const scoreEl = document.getElementById("scoreDisplay");
-  if (!scoreEl) return;
-  scoreEl.textContent = `Score: ${calculateScore()}`;
+  const scoreDisplay = document.getElementById("scoreDisplay");
+  const turnDisplay = document.getElementById("turnDisplay");
+
+  const currentPlayer = players[currentPlayerIndex];
+
+  if (turnDisplay) {
+    turnDisplay.textContent = `Turn: ${currentPlayer.name}`;
+  }
+
+  if (scoreDisplay) {
+    scoreDisplay.textContent =
+      `${players[0].name}: ${players[0].score} | ` +
+      `${players[1].name}: ${players[1].score} | ` +
+      `Board: ${calculateScore()}`;
+  }
 }
     function normalizeTitle(title) {
       return String(title).trim().toLowerCase();
@@ -3312,7 +3331,12 @@ function renderNode(nodeObj) {
   setStatus("Ready.");
   updateScoreDisplay();
 }
-
+function endTurn() {
+  currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
+  clearSelection();
+  setStatus(`${players[currentPlayerIndex].name}'s turn.`);
+  updateScoreDisplay();
+}
 function clearFocus() {
   focusedNodeId = null;
   applyFocusStyles();
