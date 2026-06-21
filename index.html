@@ -3303,6 +3303,8 @@ function renderNode(nodeObj) {
     });
 
     players[currentPlayerIndex].score += 2;
+    switchTurnAfterConnection();
+return;
 
   } else if (normalized === "SHARED") {
     const sharedActor = prompt(`Actor in BOTH "${connectFirstNode.name}" and "${obj.name}":`);
@@ -3340,6 +3342,8 @@ function renderNode(nodeObj) {
     });
 
     players[currentPlayerIndex].score += 1;
+    switchTurnAfterConnection();
+return;
 
   } else {
     alert("Please enter BRIDGE or SHARED.");
@@ -3383,6 +3387,12 @@ function endTurn() {
   currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
   clearSelection();
   setStatus(`${players[currentPlayerIndex].name}'s turn.`);
+  updateScoreDisplay();
+}
+    function switchTurnAfterConnection() {
+  currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
+  clearSelection();
+  setStatus(`Connection saved. ${players[currentPlayerIndex].name}'s turn.`);
   updateScoreDisplay();
 }
 function clearFocus() {
