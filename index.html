@@ -778,58 +778,30 @@ function posterSrcForMovie(title) {
     }
 
     function loadBoardFromData(data) {
-  nodes.forEach(n => n.el.remove());
-  nodes = [];
-  connections = [];
+      nodes.forEach(n => n.el.remove());
+      nodes = [];
+      connections = [];
 
-  focusedNodeId = null;
-  connectModeActive = false;
-  connectFirstNode = null;
-  castLookupMode = false;
-  posterEditMode = false;
-  challengeMode = false;
-  removeMovieMode = false;
+      focusedNodeId = null;
+      connectModeActive = false;
+      connectFirstNode = null;
+      castLookupMode = false;
+      posterEditMode = false;
+      challengeMode = false;
+      removeMovieMode = false;
 
-  svg.innerHTML = "";
-  surface.querySelectorAll(".node").forEach(n => n.remove());
+      svg.innerHTML = "";
+      surface.querySelectorAll(".node").forEach(n => n.remove());
 
-  if (Array.isArray(data.nodes)) {
-    data.nodes.forEach(n => createNodeFromData(n));
-  }
-
-  if (Array.isArray(data.connections)) {
-    data.connections.forEach(c => {
-      const a = nodes.find(n => n.id === c.aId);
-      const b = nodes.find(n => n.id === c.bId);
-
-      if (a && b) {
-        connections.push({
-          id: c.id || crypto.randomUUID(),
-          type: c.type || "bridge",
-          a,
-          b,
-          bridgeTitle: c.bridgeTitle || "",
-          leftActor: c.leftActor || "",
-          rightActor: c.rightActor || "",
-          sharedActor: c.sharedActor || "",
-          owner: typeof c.owner === "number" ? c.owner : null
-        });
+      if (Array.isArray(data.nodes)) {
+        data.nodes.forEach(n => createNodeFromData(n));
       }
-    });
-  }
-
-  redrawNodes();
-  draw();
-  applyFocusStyles();
-  updateWinStatus();
-  renderMovieList();
-  updateScoreDisplay();
-}
 
       if (Array.isArray(data.connections)) {
         data.connections.forEach(c => {
           const a = nodes.find(n => n.id === c.aId);
           const b = nodes.find(n => n.id === c.bId);
+
           if (a && b) {
             connections.push({
               id: c.id || crypto.randomUUID(),
@@ -851,6 +823,7 @@ function posterSrcForMovie(title) {
       applyFocusStyles();
       updateWinStatus();
       renderMovieList();
+      updateScoreDisplay();
     }
 
     function loadBoard() {
