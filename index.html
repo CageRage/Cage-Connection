@@ -3417,7 +3417,9 @@ function endTurn() {
   saveTwoPlayerState();
   updateScoreDisplay();
 }
-    function switchTurnAfterConnection() {
+function switchTurnAfterConnection() {
+  saveBoard();
+
   currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
   clearSelection();
   setStatus(`Connection saved. ${players[currentPlayerIndex].name}'s turn.`);
