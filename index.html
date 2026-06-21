@@ -653,6 +653,7 @@
     const STORAGE_KEY = "cage-universe-v12";
     const CUSTOM_TITLES_KEY = "cage-universe-custom-titles-v4";
     const CAST_PENALTY_KEY = "cage-connection-cast-penalty-v1";
+    const TWO_PLAYER_STATE_KEY = "cage-connection-two-player-state-v1";
     const SHARED_WRONG_PENALTY_KEY = "cage-connection-shared-wrong-penalty-v1";
     const WRONG_BRIDGE_PENALTY_KEY = "cage-connection-wrong-bridge-penalty-v1";
     const POSTER_OVERRIDES_KEY = "cage-connection-poster-overrides-v1";
@@ -678,9 +679,10 @@ let posterOverrides = loadPosterOverrides();
 
 let currentPlayerIndex = 0;
 
-    loadBoard();
-    setStatus("Ready.");
-    updateScoreDisplay();
+  loadTwoPlayerState();
+loadBoard();
+setStatus("Ready.");
+updateScoreDisplay();
 
     function setStatus(text) {
       statusText.textContent = text;
@@ -3383,16 +3385,43 @@ return;
   setStatus("Ready.");
   updateScoreDisplay();
 }
+    function saveTwoPlayerState() {
+  localStorage.setItem(TWO_PLAYER_STATE_KEY, JSON.stringify({
+    players,
+    currentPlayerIndex
+  }));
+}
+
+function loadTwoPlayerState() {
+  const raw = localStorage.getItem(TWO_PLAYER_STATE_KEY);
+  if (!raw) return;
+
+  try {
+    const saved = JSON.parse(raw);
+
+    if (Array.isArray(saved.players) && saved.players.length === 2) {
+      players = saved.players;
+    }
+
+    if (saved.currentPlayerIndex === 0 || saved.currentPlayerIndex === 1) {
+      currentPlayerIndex = saved.currentPlayerIndex;
+    }
+  } catch {
+    // If saved two-player state is bad, ignore it and use defaults.
+  }
+}
 function endTurn() {
   currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
   clearSelection();
   setStatus(`${players[currentPlayerIndex].name}'s turn.`);
+  saveTwoPlayerState();
   updateScoreDisplay();
 }
     function switchTurnAfterConnection() {
   currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
   clearSelection();
   setStatus(`Connection saved. ${players[currentPlayerIndex].name}'s turn.`);
+  saveTwoPlayerState();
   updateScoreDisplay();
 }
 function clearFocus() {
