@@ -3252,6 +3252,29 @@ function makeDraggable(obj) {
       updateWinStatus();
       setStatus("Connected movies arranged in rows; singles arranged in grid.");
     }
+   function protectConnectModeBoardClicks(e) {
+  // If we are not connecting, do nothing.
+  if (!connectModeActive) return;
+
+  // If the player clicks a movie card, let the normal movie-click code handle it.
+  if (e.target.closest && e.target.closest(".node")) return;
+
+  // If the player clicks/scrolls/drags empty board space while connecting,
+  // do NOT let any other board click handler cancel the connection.
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  setStatus(
+    connectFirstNode
+      ? `Connecting from: ${connectFirstNode.name}. Click the second movie.`
+      : "Connect mode ON. Click the first movie."
+  );
+}
+
+board.addEventListener("click", protectConnectModeBoardClicks, true);
+surface.addEventListener("click", protectConnectModeBoardClicks, true);
+svg.addEventListener("click", protectConnectModeBoardClicks, true);
+  
   </script>
 </body>
 </html> 
