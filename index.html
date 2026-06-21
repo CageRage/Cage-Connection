@@ -778,23 +778,53 @@ function posterSrcForMovie(title) {
     }
 
     function loadBoardFromData(data) {
-      nodes.forEach(n => n.el.remove());
-      nodes = [];
-      connections = [];
-      // Do not restore temporary UI state when reopening.
-      focusedNodeId = null;
-      connectModeActive = false;
-      connectFirstNode = null;
-      castLookupMode = false;
-      posterEditMode = false;
-      challengeMode = false;
-      removeMovieMode = false;
-      svg.innerHTML = "";
-      surface.querySelectorAll(".node").forEach(n => n.remove());
+  nodes.forEach(n => n.el.remove());
+  nodes = [];
+  connections = [];
 
-      if (Array.isArray(data.nodes)) {
-        data.nodes.forEach(n => createNodeFromData(n));
+  focusedNodeId = null;
+  connectModeActive = false;
+  connectFirstNode = null;
+  castLookupMode = false;
+  posterEditMode = false;
+  challengeMode = false;
+  removeMovieMode = false;
+
+  svg.innerHTML = "";
+  surface.querySelectorAll(".node").forEach(n => n.remove());
+
+  if (Array.isArray(data.nodes)) {
+    data.nodes.forEach(n => createNodeFromData(n));
+  }
+
+  if (Array.isArray(data.connections)) {
+    data.connections.forEach(c => {
+      const a = nodes.find(n => n.id === c.aId);
+      const b = nodes.find(n => n.id === c.bId);
+
+      if (a && b) {
+        connections.push({
+          id: c.id || crypto.randomUUID(),
+          type: c.type || "bridge",
+          a,
+          b,
+          bridgeTitle: c.bridgeTitle || "",
+          leftActor: c.leftActor || "",
+          rightActor: c.rightActor || "",
+          sharedActor: c.sharedActor || "",
+          owner: typeof c.owner === "number" ? c.owner : null
+        });
       }
+    });
+  }
+
+  redrawNodes();
+  draw();
+  applyFocusStyles();
+  updateWinStatus();
+  renderMovieList();
+  updateScoreDisplay();
+}
 
       if (Array.isArray(data.connections)) {
         data.connections.forEach(c => {
@@ -843,28 +873,27 @@ function posterSrcForMovie(title) {
       }
     }
 
-    function getBoardData() {
-      return {
-        nodes: nodes.map(n => ({
-          id: n.id,
-          name: n.name,
-          x: n.x,
-          y: n.y
-        })),
-        connections: connections.map(c => ({
-          id: c.id,
-          type: c.type,
-          aId: c.a.id,
-          bId: c.b.id,
-          bridgeTitle: c.bridgeTitle || "",
-          leftActor: c.leftActor || "",
-          rightActor: c.rightActor || "",
-          sharedActor: c.sharedActor || "",
-          owner: typeof c.owner === "number" ? c.owner : null
-        })),
-        focusedNodeId
-      };
-    }
+function getBoardData() {
+  return {
+    nodes: nodes.map(n => ({
+      id: n.id,
+      name: n.name,
+      x: n.x,
+      y: n.y
+    })),
+    connections: connections.map(c => ({
+      id: c.id,
+      type: c.type,
+      aId: c.a.id,
+      bId: c.b.id,
+      bridgeTitle: c.bridgeTitle || "",
+      leftActor: c.leftActor || "",
+      rightActor: c.rightActor || "",
+      sharedActor: c.sharedActor || "",
+      owner: typeof c.owner === "number" ? c.owner : null
+    }))
+  };
+}
 
 const WIKI_URLS = {
   "8MM": "https://en.wikipedia.org/wiki/8mm_(film)#Cast",
