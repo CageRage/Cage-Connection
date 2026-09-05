@@ -1286,8 +1286,13 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
         <div><span class="online-kicker">ROOM CODE</span><strong id="onlineRoomCode">------</strong></div>
         <div id="onlineRoleText">Not connected</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="online-primary" onclick="copyInviteLink()">Copy Invite Link</button>
           <button type="button" class="online-primary" onclick="saveRemoteGameNow()">Save Game</button>
           <button type="button" onclick="leaveRemoteGame()">Leave Remote Game</button>
+        </div>
+        <div id="onlineInviteWrap" style="flex-basis:100%;margin-top:8px">
+          <label for="onlineInviteLink" style="display:block;font-size:10px;letter-spacing:.12em;color:#8ca597;margin-bottom:4px">INVITE LINK</label>
+          <input id="onlineInviteLink" type="text" readonly style="width:100%;box-sizing:border-box;padding:9px;background:#0c0e12;color:#d8d2c3;border:1px solid #34684a;font-size:13px" />
         </div>
       </section>
       <div id="onlineMessage" class="online-message" aria-live="polite">Create a room, join one, or resume a saved game. Remote games autosave continuously.</div>
@@ -5519,6 +5524,11 @@ function closeOnlinePanel(event){const e=document.getElementById("onlineOverlay"
 function setOnlineMessage(t){const e=document.getElementById("onlineMessage");if(e)e.textContent=t}
 function cleanPlayerName(v,f){const n=String(v||"").trim().replace(/\s+/g," ").slice(0,24);return n||f}
 function cleanRoomCode(v){return String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6)}
+const CANONICAL_GAME_URL="https://cagerage.github.io/Cage-Connection/";
+function makeInviteLink(code=remoteRoomCode){const clean=cleanRoomCode(code);return clean?`${CANONICAL_GAME_URL}?room=${encodeURIComponent(clean)}`:CANONICAL_GAME_URL}
+function refreshInviteLink(){const el=document.getElementById("onlineInviteLink");if(el)el.value=remoteRoomCode?makeInviteLink(remoteRoomCode):""}
+async function copyInviteLink(){if(!remoteRoomCode){setOnlineMessage("Create or join a room first.");return}const link=makeInviteLink(remoteRoomCode);const el=document.getElementById("onlineInviteLink");if(el)el.value=link;let copied=false;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(link);copied=true}}catch{}if(!copied&&el){try{el.focus();el.select();copied=document.execCommand("copy")}catch{}}setOnlineMessage(copied?`Invite link copied for room ${remoteRoomCode}.`:`Invite link ready below. Copy it and send it to Player 2.`)}
+function applyInviteFromUrl(){try{const params=new URLSearchParams(window.location.search);const code=cleanRoomCode(params.get("room"));if(code.length!==6)return;const join=document.getElementById("onlineJoinCode");if(join)join.value=code;const resume=document.getElementById("onlineResumeCode");if(resume&&!resume.value)resume.value=code;openOnlinePanel();setOnlineMessage(`Invitation loaded for room ${code}. Enter your name and click Join Game.`);setTimeout(()=>{const name=document.getElementById("onlineJoinName");if(name)name.focus()},0)}catch(err){console.error("Invite link parsing failed",err)}}
 function makeRoomCode(){const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let o="";for(let i=0;i<6;i++)o+=c[Math.floor(Math.random()*c.length)];return o}
 function saveRemoteSession(){if(!remoteRoomCode||!(remotePlayerIndex===0||remotePlayerIndex===1))return;try{localStorage.setItem(REMOTE_SESSION_KEY,JSON.stringify({code:remoteRoomCode,playerIndex:remotePlayerIndex,name:players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`}))}catch{}}
 function getRemoteSession(){try{const x=JSON.parse(localStorage.getItem(REMOTE_SESSION_KEY)||"null");return x&&typeof x.code==="string"?x:null}catch{return null}}
@@ -5538,7 +5548,7 @@ async function saveRemoteGameNow(){if(!remoteRoomRef){setOnlineMessage("Create, 
 async function resumeRemoteGame(sessionOverride=null){if(!remoteDb){setOnlineMessage("Firebase did not load. Refresh the page and try again.");return}const code=cleanRoomCode(sessionOverride?.code||document.getElementById("onlineResumeCode")?.value);const roleRaw=sessionOverride?.playerIndex??document.getElementById("onlineResumeRole")?.value;const role=Number(roleRaw);const typedName=String(sessionOverride?.name??document.getElementById("onlineResumeName")?.value??"").trim();if(code.length!==6){setOnlineMessage("Enter the 6-character room code.");return}if(role!==0&&role!==1){setOnlineMessage("Choose Player 1 or Player 2.");return}setOnlineMessage("Resuming saved game…");try{const roomRef=remoteDb.ref(`games/${code}`),snap=await roomRef.once("value");if(!snap.exists()||!snap.val().state){setOnlineMessage("That saved room was not found.");return}remoteRoomCode=code;remotePlayerIndex=role;remoteRoomRef=roomRef;const roomValue=snap.val();let members=await ensureRemoteMembers(roomValue);if(typedName){const nm=cleanPlayerName(typedName,`Player ${role+1}`);await remoteRoomRef.child(`members/${role}/name`).set(nm);members={...members,[String(role)]:{name:nm}}}applyRemoteState(roomValue.state);applyRemoteMembers(members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();setOnlineMessage(`Resumed room ${code} as ${players[role]?.name||`Player ${role+1}`}. Live sync is on.`);setStatus(`Resumed online room ${code}.`)}catch(err){console.error(err);setOnlineMessage(`Could not resume game: ${err.message||err}`)}}
 function resumeLastRemoteGame(){const x=getRemoteSession();if(!x){setOnlineMessage("No previously saved room was found on this browser.");return}resumeRemoteGame(x)}
 function leaveRemoteGame(){detachRemoteListeners();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);remoteRoomCode=null;remotePlayerIndex=null;remoteRoomRef=null;refreshOnlinePanel();setOnlineMessage("You left the remote room. Your local board remains on this device.");setStatus("Remote game disconnected. Local mode active.")}
-function refreshOnlinePanel(){prefillRemoteResume();const b=document.getElementById("onlineStatusBadge"),c=document.getElementById("onlineConnectedPanel"),r=document.getElementById("onlineRoomCode"),role=document.getElementById("onlineRoleText");if(remoteRoomCode){if(b){b.textContent=remoteRoomCode;b.classList.add("live")}if(c)c.classList.remove("hidden");if(r)r.textContent=remoteRoomCode;if(role)role.textContent=`You are ${players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`} (Player ${remotePlayerIndex+1})`}else{if(b){b.textContent="Offline";b.classList.remove("live")}if(c)c.classList.add("hidden")}}
+function refreshOnlinePanel(){prefillRemoteResume();const b=document.getElementById("onlineStatusBadge"),c=document.getElementById("onlineConnectedPanel"),r=document.getElementById("onlineRoomCode"),role=document.getElementById("onlineRoleText");if(remoteRoomCode){if(b){b.textContent=remoteRoomCode;b.classList.add("live")}if(c)c.classList.remove("hidden");if(r)r.textContent=remoteRoomCode;if(role)role.textContent=`You are ${players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`} (Player ${remotePlayerIndex+1})`;refreshInviteLink()}else{if(b){b.textContent="Offline";b.classList.remove("live")}if(c)c.classList.add("hidden");refreshInviteLink()}}
 function remoteTurnAllowed(){if(!remoteRoomCode)return true;if(remotePlayerIndex===currentPlayerIndex)return true;setStatus(`Waiting for ${players[currentPlayerIndex]?.name||`Player ${currentPlayerIndex+1}`}.`);return false}
 const _remoteSaveBoard=saveBoard;saveBoard=function(){_remoteSaveBoard();scheduleRemoteSync()};
 const _remoteSaveTwoPlayerState=saveTwoPlayerState;saveTwoPlayerState=function(){_remoteSaveTwoPlayerState();scheduleRemoteSync();scheduleOwnNameSync()};
@@ -5547,6 +5557,8 @@ function guardTurnFunction(name){const original=window[name];if(typeof original!
 refreshOnlinePanel();
 updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
 
+
+setTimeout(applyInviteFromUrl,0);
 </script>
 </body>
 </html> 
