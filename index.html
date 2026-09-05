@@ -460,6 +460,7 @@
     <button onclick="openPathFinder()">Find Path</button>
     <button onclick="startCastLookup()">Cast Lookup (-5)</button>
     <button onclick="startChallengeMode()">Challenge</button>
+    <button onclick="setupPlayers()">Players</button>
     <button onclick="autoArrangeAllComponents()">Auto Arrange</button>
  <!-- <button onclick="exportBoard()">Export Backup</button> -->
 <!-- <button onclick="document.getElementById('importFile').click()">Import Backup</button> -->
@@ -657,6 +658,7 @@
     const SHARED_WRONG_PENALTY_KEY = "cage-connection-shared-wrong-penalty-v1";
     const WRONG_BRIDGE_PENALTY_KEY = "cage-connection-wrong-bridge-penalty-v1";
     const POSTER_OVERRIDES_KEY = "cage-connection-poster-overrides-v1";
+    const GAME_STATE_KEY = "cage-connection-game-state-v2";
 
     let nodes = [];
     let connections = [];
@@ -669,53 +671,133 @@
     let posterEditMode = false;
     let challengeMode = false;
 let posterOverrides = loadPosterOverrides();
-    let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
-    let sharedWrongPenalty = Number(localStorage.getItem(SHARED_WRONG_PENALTY_KEY) || 0);
-    let wrongBridgePenalty = Number(localStorage.getItem(WRONG_BRIDGE_PENALTY_KEY) || 0);
+    let playerPenalties = [
+      { cast: 0, sharedWrong: 0, wrongBridge: 0 },
+      { cast: 0, sharedWrong: 0, wrongBridge: 0 }
+    ];
     let players = [
-  { name: "Player 1", score: 0 },
-  { name: "Player 2", score: 0 }
-];
+      { name: "Player 1" },
+      { name: "Player 2" }
+    ];
+    let playerCount = 2;
+    let currentPlayerIndex = 0;
 
-let currentPlayerIndex = 0;
+    if (!loadGameState()) {
+      loadTwoPlayerState();
+      loadLegacyPenalties();
+      loadBoard();
+      saveGameState();
+    }
+    setStatus("Ready.");
+    updateScoreDisplay();
 
-  loadTwoPlayerState();
-loadBoard();
-setStatus("Ready.");
-updateScoreDisplay();
+    window.addEventListener("beforeunload", saveGameState);
+    window.addEventListener("pagehide", saveGameState);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") saveGameState();
+    });
 
     function setStatus(text) {
       statusText.textContent = text;
       updateScoreDisplay();
     }
 
-function calculateScore() {
-  const connectionScore = connections.reduce((total, c) => {
-    if (c.type === "bridge") return total + 2;
-    if (c.type === "shared") return total + 1;
-    return total;
-  }, 0);
+function pointsForConnection(c) {
+  if (c.type === "bridge") return 2;
+  if (c.type === "shared") return 1;
+  return 0;
+}
 
-  return connectionScore - castPenalty - sharedWrongPenalty - wrongBridgePenalty;
+function getPlayerScore(playerIndex) {
+  const earned = connections.reduce((total, c) =>
+    c.owner === playerIndex ? total + pointsForConnection(c) : total, 0);
+  const p = playerPenalties[playerIndex] || { cast: 0, sharedWrong: 0, wrongBridge: 0 };
+  return earned - p.cast - p.sharedWrong - p.wrongBridge;
+}
+
+function calculateScore() {
+  return connections.reduce((total, c) => total + pointsForConnection(c), 0);
 }
 
 function updateScoreDisplay() {
   const scoreDisplay = document.getElementById("scoreDisplay");
   const turnDisplay = document.getElementById("turnDisplay");
-
-  const currentPlayer = players[currentPlayerIndex];
+  if (currentPlayerIndex >= playerCount) currentPlayerIndex = 0;
+  const currentPlayer = players[currentPlayerIndex] || players[0];
 
   if (turnDisplay) {
-    turnDisplay.textContent = `Turn: ${currentPlayer.name}`;
+    turnDisplay.textContent = playerCount === 1 ? `Player: ${currentPlayer.name}` : `Turn: ${currentPlayer.name}`;
   }
 
   if (scoreDisplay) {
-    scoreDisplay.textContent =
-      `${players[0].name}: ${players[0].score} | ` +
-      `${players[1].name}: ${players[1].score} | ` +
-      `Board: ${calculateScore()}`;
+    const parts = [];
+    for (let i = 0; i < playerCount; i++) parts.push(`${players[i].name}: ${getPlayerScore(i)}`);
+    parts.push(`Board: ${calculateScore()}`);
+    scoreDisplay.textContent = parts.join(" | ");
   }
 }
+
+function loadLegacyPenalties() {
+  const cast = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
+  const shared = Number(localStorage.getItem(SHARED_WRONG_PENALTY_KEY) || 0);
+  const wrong = Number(localStorage.getItem(WRONG_BRIDGE_PENALTY_KEY) || 0);
+  if (cast || shared || wrong) playerPenalties[0] = { cast, sharedWrong: shared, wrongBridge: wrong };
+}
+
+function getGameStateData() {
+  return {
+    version: 2,
+    savedAt: new Date().toISOString(),
+    board: getBoardData(),
+    customTitles,
+    posterOverrides,
+    players: players.map(p => ({ name: p.name })),
+    playerCount,
+    currentPlayerIndex,
+    playerPenalties
+  };
+}
+
+function saveGameState() {
+  try {
+    localStorage.setItem(GAME_STATE_KEY, JSON.stringify(getGameStateData()));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(getBoardData()));
+    localStorage.setItem(TWO_PLAYER_STATE_KEY, JSON.stringify({
+      players: players.map(p => ({ name: p.name })), playerCount, currentPlayerIndex
+    }));
+  } catch (e) {
+    console.error("Game save failed", e);
+  }
+}
+
+function loadGameState() {
+  const raw = localStorage.getItem(GAME_STATE_KEY);
+  if (!raw) return false;
+  try {
+    const saved = JSON.parse(raw);
+    if (!saved || !saved.board || !Array.isArray(saved.board.nodes)) return false;
+    if (Array.isArray(saved.customTitles)) customTitles = saved.customTitles;
+    if (saved.posterOverrides && typeof saved.posterOverrides === "object") posterOverrides = saved.posterOverrides;
+    if (Array.isArray(saved.players) && saved.players.length) {
+      players = [0,1].map(i => ({ name: (saved.players[i] && saved.players[i].name) || `Player ${i+1}` }));
+    }
+    playerCount = saved.playerCount === 1 ? 1 : 2;
+    currentPlayerIndex = (saved.currentPlayerIndex === 1 && playerCount === 2) ? 1 : 0;
+    if (Array.isArray(saved.playerPenalties)) {
+      playerPenalties = [0,1].map(i => ({
+        cast: Number(saved.playerPenalties[i]?.cast || 0),
+        sharedWrong: Number(saved.playerPenalties[i]?.sharedWrong || 0),
+        wrongBridge: Number(saved.playerPenalties[i]?.wrongBridge || 0)
+      }));
+    }
+    loadBoardFromData(saved.board);
+    return true;
+  } catch (e) {
+    console.error("Game load failed", e);
+    return false;
+  }
+}
+
     function normalizeTitle(title) {
       return String(title).trim().toLowerCase();
     }
@@ -775,6 +857,7 @@ function posterSrcForMovie(title) {
 
     function saveBoard() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(getBoardData()));
+      saveGameState();
     }
 
     function loadBoardFromData(data) {
@@ -812,7 +895,7 @@ function posterSrcForMovie(title) {
               leftActor: c.leftActor || "",
               rightActor: c.rightActor || "",
               sharedActor: c.sharedActor || "",
-              owner: typeof c.owner === "number" ? c.owner : null
+              owner: typeof c.owner === "number" ? c.owner : 0
             });
           }
         });
@@ -863,7 +946,7 @@ function getBoardData() {
       leftActor: c.leftActor || "",
       rightActor: c.rightActor || "",
       sharedActor: c.sharedActor || "",
-      owner: typeof c.owner === "number" ? c.owner : null
+      owner: typeof c.owner === "number" ? c.owner : 0
     }))
   };
 }
@@ -2679,8 +2762,8 @@ This will deduct 5 points from your score.`);
     return;
   }
 
-  castPenalty += 5;
-  localStorage.setItem(CAST_PENALTY_KEY, String(castPenalty));
+  playerPenalties[currentPlayerIndex].cast += 5;
+  saveGameState();
   updateScoreDisplay();
 
   castLookupMode = false;
@@ -2804,12 +2887,27 @@ function findMovie() {
       svg.innerHTML = "";
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(CAST_PENALTY_KEY);
-      castPenalty = 0;
+      localStorage.removeItem(SHARED_WRONG_PENALTY_KEY);
+      localStorage.removeItem(WRONG_BRIDGE_PENALTY_KEY);
+      localStorage.removeItem(GAME_STATE_KEY);
+      localStorage.removeItem(TWO_PLAYER_STATE_KEY);
+
+      // Clear both current and legacy score state completely.
+      players = [
+        { name: players[0]?.name || "Player 1", score: 0 },
+        { name: players[1]?.name || "Player 2", score: 0 }
+      ];
+      playerPenalties = [
+        { cast: 0, sharedWrong: 0, wrongBridge: 0 },
+        { cast: 0, sharedWrong: 0, wrongBridge: 0 }
+      ];
+      currentPlayerIndex = 0;
       closeIndex();
       closeMoviePicker();
       closePathFinder();
       renderMovieList();
       updateScoreDisplay();
+      saveGameState();
       setStatus("Board reset.");
     }
 
@@ -3306,7 +3404,6 @@ function renderNode(nodeObj) {
       owner: currentPlayerIndex
     });
 
-    players[currentPlayerIndex].score += 2;
     switchTurnAfterConnection();
 return;
 
@@ -3321,8 +3418,8 @@ return;
     );
 
     if (validation.status === "invalid") {
-      sharedWrongPenalty += 1;
-      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+      playerPenalties[currentPlayerIndex].sharedWrong += 1;
+      saveGameState();
       updateScoreDisplay();
 
       alert(`Incorrect shared connection:\n\n${validation.message}\n\nScore -1.`);
@@ -3345,7 +3442,6 @@ return;
       owner: currentPlayerIndex
     });
 
-    players[currentPlayerIndex].score += 1;
     switchTurnAfterConnection();
 return;
 
@@ -3389,7 +3485,8 @@ return;
 }
     function saveTwoPlayerState() {
   localStorage.setItem(TWO_PLAYER_STATE_KEY, JSON.stringify({
-    players,
+    players: players.map(p => ({ name: p.name })),
+    playerCount,
     currentPlayerIndex
   }));
 }
@@ -3397,35 +3494,45 @@ return;
 function loadTwoPlayerState() {
   const raw = localStorage.getItem(TWO_PLAYER_STATE_KEY);
   if (!raw) return;
-
   try {
     const saved = JSON.parse(raw);
-
-    if (Array.isArray(saved.players) && saved.players.length === 2) {
-      players = saved.players;
+    if (Array.isArray(saved.players) && saved.players.length) {
+      players = [0,1].map(i => ({ name: (saved.players[i] && saved.players[i].name) || `Player ${i+1}` }));
     }
-
-    if (saved.currentPlayerIndex === 0 || saved.currentPlayerIndex === 1) {
-      currentPlayerIndex = saved.currentPlayerIndex;
-    }
-  } catch {
-    // If saved two-player state is bad, ignore it and use defaults.
-  }
+    if (saved.playerCount === 1 || saved.playerCount === 2) playerCount = saved.playerCount;
+    if (saved.currentPlayerIndex === 0 || (saved.currentPlayerIndex === 1 && playerCount === 2)) currentPlayerIndex = saved.currentPlayerIndex;
+  } catch {}
 }
+
+function setupPlayers() {
+  const countText = prompt("How many players? Enter 1 or 2:", String(playerCount));
+  if (countText === null) return;
+  const count = Number(countText.trim());
+  if (count !== 1 && count !== 2) { alert("Please enter 1 or 2."); return; }
+  playerCount = count;
+  for (let i = 0; i < playerCount; i++) {
+    const name = prompt(`Name for Player ${i + 1}:`, players[i].name || `Player ${i + 1}`);
+    if (name !== null && name.trim()) players[i].name = name.trim();
+  }
+  if (currentPlayerIndex >= playerCount) currentPlayerIndex = 0;
+  saveGameState();
+  updateScoreDisplay();
+  setStatus(playerCount === 2 ? `${players[currentPlayerIndex].name}'s turn.` : `${players[0].name} is playing.`);
+}
+
 function endTurn() {
-  currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
+  if (playerCount === 2) currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
   clearSelection();
-  setStatus(`${players[currentPlayerIndex].name}'s turn.`);
-  saveTwoPlayerState();
+  setStatus(playerCount === 2 ? `${players[currentPlayerIndex].name}'s turn.` : `${players[0].name}'s turn.`);
+  saveGameState();
   updateScoreDisplay();
 }
 function switchTurnAfterConnection() {
   saveBoard();
-
-  currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
+  if (playerCount === 2) currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
   clearSelection();
-  setStatus(`Connection saved. ${players[currentPlayerIndex].name}'s turn.`);
-  saveTwoPlayerState();
+  setStatus(playerCount === 2 ? `Connection saved. ${players[currentPlayerIndex].name}'s turn.` : "Connection saved.");
+  saveGameState();
   updateScoreDisplay();
 }
 function clearFocus() {
@@ -3505,8 +3612,9 @@ function clearFocus() {
 
     if (!ok) return;
 
-    wrongBridgePenalty += 3;
-    localStorage.setItem(WRONG_BRIDGE_PENALTY_KEY, String(wrongBridgePenalty));
+    const penalizedPlayer = (c.owner === 0 || c.owner === 1) ? c.owner : currentPlayerIndex;
+    playerPenalties[penalizedPlayer].wrongBridge += 3;
+    saveGameState();
     updateScoreDisplay();
 
     deleteConnection(connectionId, true);
@@ -3556,8 +3664,8 @@ function clearFocus() {
     );
 
     if (validation.status === "invalid") {
-      sharedWrongPenalty += 1;
-      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+      playerPenalties[currentPlayerIndex].sharedWrong += 1;
+      saveGameState();
       updateScoreDisplay();
 
       alert(`Incorrect shared connection:\n\n${validation.message}\n\nScore -1.`);
