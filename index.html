@@ -5812,6 +5812,21 @@ async function joinRemoteGame(){if(!remoteDb){setOnlineMessage("Firebase did not
 async function saveRemoteGameNow(){if(!remoteRoomRef){setOnlineMessage("Create, join, or resume a remote game first.");return}setOnlineMessage("Saving game…");try{const localState=getRemoteState();await remoteRoomRef.child("state").transaction(current=>{if(!current)return localState;const scores=Array.isArray(current.scores)&&current.scores.length>=2?[Number(current.scores[0]||0),Number(current.scores[1]||0)]:[0,0];if(remotePlayerIndex===0||remotePlayerIndex===1)scores[remotePlayerIndex]=Number(localState.scores?.[remotePlayerIndex]||0);return{...current,...localState,scores,board:mergeRemoteBoards(current.board,localState.board),recentActions:mergeRecentActions(current.recentActions,localState.recentActions),updatedAt:Date.now()}});await remoteRoomRef.child("savedAt").set(firebase.database.ServerValue.TIMESTAMP);if(remotePlayerIndex===0||remotePlayerIndex===1)await remoteRoomRef.child(`members/${remotePlayerIndex}/name`).set(cleanPlayerName(players[remotePlayerIndex]?.name,`Player ${remotePlayerIndex+1}`));saveRemoteSession();setOnlineMessage(`Game ${remoteRoomCode} saved. You can close the browser and resume later with this room code.`);setStatus(`Game ${remoteRoomCode} saved.`)}catch(err){console.error(err);setOnlineMessage(`Could not save game: ${err.message||err}`)}}
 async function resumeRemoteGame(sessionOverride=null){if(!remoteDb){setOnlineMessage("Firebase did not load. Refresh the page and try again.");return}const code=cleanRoomCode(sessionOverride?.code||document.getElementById("onlineResumeCode")?.value);const roleRaw=sessionOverride?.playerIndex??document.getElementById("onlineResumeRole")?.value;const role=Number(roleRaw);const typedName=String(sessionOverride?.name??document.getElementById("onlineResumeName")?.value??"").trim();if(code.length!==6){setOnlineMessage("Enter the 6-character room code.");return}if(role!==0&&role!==1){setOnlineMessage("Choose Player 1 or Player 2.");return}setOnlineMessage("Resuming saved game…");try{const roomRef=remoteDb.ref(`games/${code}`),snap=await roomRef.once("value");if(!snap.exists()||!snap.val().state){setOnlineMessage("That saved room was not found.");return}remoteRoomCode=code;remotePlayerIndex=role;remoteRoomRef=roomRef;const roomValue=snap.val();let members=await ensureRemoteMembers(roomValue);if(typedName){const nm=cleanPlayerName(typedName,`Player ${role+1}`);await remoteRoomRef.child(`members/${role}/name`).set(nm);members={...members,[String(role)]:{name:nm}}}applyRemoteState(roomValue.state);applyRemoteMembers(members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();setOnlineMessage(`Resumed room ${code} as ${players[role]?.name||`Player ${role+1}`}. Live sync is on.`);setStatus(`Resumed online room ${code}.`)}catch(err){console.error(err);setOnlineMessage(`Could not resume game: ${err.message||err}`)}}
 function resumeLastRemoteGame(){const x=getRemoteSession();if(!x){setOnlineMessage("No previously saved room was found on this browser.");return}resumeRemoteGame(x)}
+async function autoResumeRemoteSession(){
+  try{
+    if(remoteRoomCode||!remoteDb)return;
+    const params=new URLSearchParams(window.location.search);
+    const inviteCode=cleanRoomCode(params.get("room"));
+    if(inviteCode.length===6)return;
+    const x=getRemoteSession();
+    if(!x||cleanRoomCode(x.code).length!==6||(Number(x.playerIndex)!==0&&Number(x.playerIndex)!==1))return;
+    setStatus(`Reconnecting to room ${cleanRoomCode(x.code)}…`);
+    await resumeRemoteGame(x);
+  }catch(err){
+    console.error("Automatic room reconnect failed",err);
+    setStatus("Could not automatically reconnect. Use Online → Resume Last Game.");
+  }
+}
 function leaveRemoteGame(){detachRemoteListeners();clearDockChat();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);remoteRoomCode=null;remotePlayerIndex=null;remoteRoomRef=null;try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}try{const u=new URL(window.location.href);u.searchParams.delete("room");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch{}const c=document.getElementById("onlineResumeCode");if(c)c.value="";refreshOnlinePanel();setOnlineMessage("You left the remote room. It is no longer marked as your active/resume-last game.");setStatus("Remote game disconnected. Local mode active.")}
 function refreshOnlinePanel(){prefillRemoteResume();const b=document.getElementById("onlineStatusBadge"),c=document.getElementById("onlineConnectedPanel"),r=document.getElementById("onlineRoomCode"),role=document.getElementById("onlineRoleText");if(remoteRoomCode){if(b){b.textContent=remoteRoomCode;b.classList.add("live")}if(c)c.classList.remove("hidden");if(r)r.textContent=remoteRoomCode;if(role)role.textContent=`You are ${players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`} (Player ${remotePlayerIndex+1})`;refreshInviteLink()}else{if(b){b.textContent="Offline";b.classList.remove("live")}if(c)c.classList.add("hidden");refreshInviteLink()}}
 function remoteTurnAllowed(){if(!remoteRoomCode)return true;if(remotePlayerIndex===currentPlayerIndex)return true;setStatus(`Waiting for ${players[currentPlayerIndex]?.name||`Player ${currentPlayerIndex+1}`}.`);return false}
@@ -5821,7 +5836,7 @@ function guardTurnFunction(name){const original=window[name];if(typeof original!
 ["connectMode","openBonusRound","startCastLookup","startChallengeMode","startRemoveMovie","endTurn"].forEach(guardTurnFunction);
 refreshOnlinePanel();
 updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
-setTimeout(applyInviteFromUrl,0);
+setTimeout(()=>{applyInviteFromUrl();setTimeout(autoResumeRemoteSession,80)},0);
 
 </script>
 </body>
