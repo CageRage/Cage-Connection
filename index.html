@@ -3728,13 +3728,38 @@ function challengeConnection(connectionId) {
   const wikiBridge = movieWikiUrl(c.bridgeTitle);
   const wikiB = movieWikiUrl(c.b.name);
 
+  const challengerIndex = currentPlayerIndex;
   const actions = `
     <a href="${escapeAttr(wikiA)}" target="_blank" rel="noopener">Check ${escapeHtml(c.a.name)}</a>
     <a href="${escapeAttr(wikiBridge)}" target="_blank" rel="noopener">Check ${escapeHtml(c.bridgeTitle)}</a>
     <a href="${escapeAttr(wikiB)}" target="_blank" rel="noopener">Check ${escapeHtml(c.b.name)}</a>
-    <a href="${escapeAttr(chatUrl)}" target="_blank" rel="noopener">Ask ChatGPT</a>`;
-  openCheatDialog("Challenge — Needs Verification", claimHtml + '<div class="cheat-result-unknown">Cage Connection does not have enough built-in cast data to verify this bridge automatically.</div><p>Use one of the buttons below to verify it. Because these are direct clicks, the browser will not treat them as popups.</p>', actions);
+    <a href="${escapeAttr(chatUrl)}" target="_blank" rel="noopener">Ask ChatGPT</a>
+    <button type="button" onclick="resolveManualChallenge('lost', ${challengerIndex})">Connection is valid — I lose (-3)</button>
+    <button type="button" onclick="resolveManualChallenge('won', ${challengerIndex})">Connection is invalid — I win</button>`;
+  openCheatDialog("Challenge — Needs Verification", claimHtml + '<div class="cheat-result-unknown">Cage Connection does not have enough built-in cast data to verify this bridge automatically.</div><p>Verify it with Wikipedia or ChatGPT, then record the result below.</p>', actions);
   setStatus("Challenge opened for verification.");
+}
+
+function resolveManualChallenge(result, challengerIndex) {
+  challengerIndex = Number(challengerIndex);
+  if (!(challengerIndex === 0 || challengerIndex === 1)) return;
+  const challenger = players[challengerIndex]?.name || `Player ${challengerIndex + 1}`;
+
+  if (result === "lost") {
+    players[challengerIndex].score = Number(players[challengerIndex].score || 0) - 3;
+    saveTwoPlayerState();
+    updateScoreDisplay();
+    addDockRecent(`${challenger} lost the challenge (-3): the connection was valid.`);
+    openCheatDialog("Challenge Result", '<div class="cheat-result-good">VALID — the connection stands.</div><p><strong>Challenge failed: -3 points.</strong></p>');
+    setStatus(`Challenge failed. ${challenger} -3.`);
+    return;
+  }
+
+  if (result === "won") {
+    addDockRecent(`${challenger} won the challenge: the connection was invalid.`);
+    openCheatDialog("Challenge Result", '<div class="cheat-result-bad">INVALID — challenge won.</div><p>No challenge penalty.</p>');
+    setStatus(`Challenge won. ${challenger} loses no points.`);
+  }
 }
 
     function startCastLookup() {
