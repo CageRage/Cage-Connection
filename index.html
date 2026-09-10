@@ -4505,6 +4505,18 @@ function renderNode(nodeObj) {
   }
 
   const first = connectFirstNode;
+
+  // A +3 row bonus is earned only when this new connection joins two
+  // already-established, separate rows/chains (not when extending a row
+  // with a single unconnected movie). Capture that state before adding
+  // the new connection.
+  const firstComponentBefore = getConnectedComponentNodeIds(first.id);
+  const secondComponentBefore = getConnectedComponentNodeIds(obj.id);
+  const earnsRowMergeBonus =
+    !firstComponentBefore.has(obj.id) &&
+    firstComponentBefore.size >= 2 &&
+    secondComponentBefore.size >= 2;
+
   const result = await showConnectionDialog(first, obj);
   if (!result) {
     setStatus(`Connecting from: ${first.name}`);
@@ -4535,7 +4547,14 @@ function renderNode(nodeObj) {
     players[currentPlayerIndex].score += 2;
   }
 
-  switchTurnAfterConnection();
+  if (earnsRowMergeBonus) {
+    players[currentPlayerIndex].score += 3;
+    if (typeof addDockRecent === "function") {
+      addDockRecent(`${players[currentPlayerIndex].name} earned a +3 row bonus for joining two separate chains.`);
+    }
+  }
+
+  switchTurnAfterConnection(earnsRowMergeBonus);
 }
 
 function showConnectionDialog(first, second) {
@@ -4767,14 +4786,16 @@ function endTurn() {
   saveTwoPlayerState();
   updateScoreDisplay();
 }
-function switchTurnAfterConnection() {
+function switchTurnAfterConnection(rowMergeBonus = false) {
   autoArrangeAllComponents();
   saveBoard();
 
   currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
   bonusUsedThisTurn = false;
   clearSelection();
-  setStatus(`Connection saved. ${players[currentPlayerIndex].name}'s turn.`);
+  setStatus(rowMergeBonus
+    ? `Connection saved. +3 row bonus for joining two separate chains. ${players[currentPlayerIndex].name}'s turn.`
+    : `Connection saved. ${players[currentPlayerIndex].name}'s turn.`);
   saveTwoPlayerState();
   updateScoreDisplay();
 }
