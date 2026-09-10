@@ -1739,9 +1739,10 @@ if (board) {
 
 function calculateScore() {
   const connectionScore = connections.reduce((total, c) => {
-    if (c.type === "bridge") return total + 2;
-    if (c.type === "shared") return total + 1;
-    return total;
+    const rowBonus = Number(c.rowMergeBonus || 0);
+    if (c.type === "bridge") return total + 2 + rowBonus;
+    if (c.type === "shared") return total + 1 + rowBonus;
+    return total + rowBonus;
   }, 0);
 
   return connectionScore - castPenalty - sharedWrongPenalty - wrongBridgePenalty;
@@ -1860,7 +1861,8 @@ function posterSrcForMovie(title) {
               leftActor: c.leftActor || "",
               rightActor: c.rightActor || "",
               sharedActor: c.sharedActor || "",
-              owner: typeof c.owner === "number" ? c.owner : null
+              owner: typeof c.owner === "number" ? c.owner : null,
+              rowMergeBonus: Number(c.rowMergeBonus || 0)
             });
           }
         });
@@ -1911,7 +1913,8 @@ function getBoardData() {
       leftActor: c.leftActor || "",
       rightActor: c.rightActor || "",
       sharedActor: c.sharedActor || "",
-      owner: typeof c.owner === "number" ? c.owner : null
+      owner: typeof c.owner === "number" ? c.owner : null,
+      rowMergeBonus: Number(c.rowMergeBonus || 0)
     }))
   };
 }
@@ -4190,6 +4193,16 @@ function renderNode(nodeObj) {
       return created;
     }
 
+    function syncAddedMovieBoardNow() {
+      // Adding a movie must never create a connection. In an online turn,
+      // publish the exact local board instead of merging in stale remote links.
+      if (typeof remoteRoomRef !== "undefined" && remoteRoomRef &&
+          remotePlayerIndex === currentPlayerIndex) {
+        remoteRoomRef.child("state/board").set(getBoardData())
+          .catch(err => console.error("Added-movie board sync failed", err));
+      }
+    }
+
     function centerOnNode(nodeObj) {
       board.scrollLeft = Math.max(0, nodeObj.x - board.clientWidth / 2 + 100);
       board.scrollTop = Math.max(0, nodeObj.y - board.clientHeight / 2 + 30);
@@ -4270,6 +4283,7 @@ function renderNode(nodeObj) {
       });
 
       saveBoard();
+      syncAddedMovieBoardNow();
       draw();
       renderMovieList();
       clearMovieChecks();
@@ -4294,6 +4308,7 @@ function renderNode(nodeObj) {
       });
 
       saveBoard();
+      syncAddedMovieBoardNow();
       draw();
       renderMovieList();
       closeMoviePicker();
@@ -4315,6 +4330,7 @@ function renderNode(nodeObj) {
       }
 
       addMovieByName(cleaned);
+      syncAddedMovieBoardNow();
       renderMovieList();
       closeMoviePicker();
       updateWinStatus();
@@ -4535,14 +4551,16 @@ function renderNode(nodeObj) {
     connections.push({
       id: crypto.randomUUID(), type:"shared", a:first, b:obj,
       bridgeTitle:"", leftActor:"", rightActor:"",
-      sharedActor:result.sharedActor, owner:currentPlayerIndex
+      sharedActor:result.sharedActor, owner:currentPlayerIndex,
+      rowMergeBonus: earnsRowMergeBonus ? 3 : 0
     });
     players[currentPlayerIndex].score += 1;
   } else {
     connections.push({
       id: crypto.randomUUID(), type:"bridge", a:first, b:obj,
       bridgeTitle:result.bridgeTitle, leftActor:result.leftActor, rightActor:result.rightActor,
-      sharedActor:"", owner:currentPlayerIndex
+      sharedActor:"", owner:currentPlayerIndex,
+      rowMergeBonus: earnsRowMergeBonus ? 3 : 0
     });
     players[currentPlayerIndex].score += 2;
   }
@@ -4552,6 +4570,19 @@ function renderNode(nodeObj) {
     if (typeof addDockRecent === "function") {
       addDockRecent(`${players[currentPlayerIndex].name} earned a +3 row bonus for joining two separate chains.`);
     }
+  }
+
+  // Show the full score immediately, including any +3 row-merge bonus.
+  updateScoreDisplay();
+
+  // A connection is a turn-owned board change. Push the exact board and the
+  // mover's score before the turn flips so stale Firebase connections cannot
+  // attach themselves to a newly-added/re-added movie.
+  if (typeof remoteRoomRef !== "undefined" && remoteRoomRef &&
+      (remotePlayerIndex === currentPlayerIndex)) {
+    const mover = currentPlayerIndex;
+    remoteRoomRef.child("state/board").set(getBoardData()).catch(err => console.error("Authoritative board sync failed", err));
+    remoteRoomRef.child(`state/scores/${mover}`).set(Number(players[mover].score || 0)).catch(err => console.error("Authoritative score sync failed", err));
   }
 
   switchTurnAfterConnection(earnsRowMergeBonus);
@@ -4794,7 +4825,7 @@ function switchTurnAfterConnection(rowMergeBonus = false) {
   bonusUsedThisTurn = false;
   clearSelection();
   setStatus(rowMergeBonus
-    ? `Connection saved. +3 row bonus for joining two separate chains. ${players[currentPlayerIndex].name}'s turn.`
+    ? `Connection saved. +3 row bonus awarded for joining two separate chains. ${players[currentPlayerIndex].name}'s turn.`
     : `Connection saved. ${players[currentPlayerIndex].name}'s turn.`);
   saveTwoPlayerState();
   updateScoreDisplay();
