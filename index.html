@@ -1291,7 +1291,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
           <label for="onlineJoinCode">Room code</label>
           <input id="onlineJoinCode" type="text" maxlength="6" placeholder="ABC123" autocapitalize="characters" />
           <label for="onlineJoinName">Your name</label>
-          <input id="onlineJoinName" type="text" maxlength="24" value="Player 2" />
+          <input id="onlineJoinName" type="text" maxlength="24" placeholder="Enter your name" />
           <button type="button" class="online-primary" onclick="joinRemoteGame()">Join Game</button>
         </section>
         <section class="online-card">
@@ -6048,6 +6048,7 @@ async function joinRemoteGame(){
   const code=cleanRoomCode(document.getElementById("onlineJoinCode")?.value);
   const requestedName=String(document.getElementById("onlineJoinName")?.value||"").trim();
   if(code.length!==6){setOnlineMessage("Enter the 6-character room code.");return}
+  if(!requestedName){setOnlineMessage("Enter your name before joining.");const nameInput=document.getElementById("onlineJoinName");if(nameInput)nameInput.focus();return}
   setOnlineMessage("Joining room…");
   try{
     const roomRef=remoteDb.ref(`games/${code}`),snap=await roomRef.once("value");
@@ -6088,7 +6089,7 @@ async function autoResumeRemoteSession(){
   }
 }
 function leaveRemoteGame(){detachRemoteListeners();clearDockChat();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);remoteRoomCode=null;remotePlayerIndex=null;remotePlayerCount=0;remoteRoomRef=null;try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}try{const u=new URL(window.location.href);u.searchParams.delete("room");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch{}const c=document.getElementById("onlineResumeCode");if(c)c.value="";refreshOnlinePanel();setOnlineMessage("You left the remote room. It is no longer marked as your active/resume-last game.");setStatus("Remote game disconnected. Local mode active.")}
-function refreshOnlinePanel(){prefillRemoteResume();const b=document.getElementById("onlineStatusBadge"),c=document.getElementById("onlineConnectedPanel"),r=document.getElementById("onlineRoomCode"),role=document.getElementById("onlineRoleText");if(remoteRoomCode){if(b){b.textContent=remoteRoomCode;b.classList.add("live")}if(c)c.classList.remove("hidden");if(r)r.textContent=remoteRoomCode;if(role)role.textContent=`You are ${players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`} (Player ${remotePlayerIndex+1})`;refreshInviteLink()}else{if(b){b.textContent="Offline";b.classList.remove("live")}if(c)c.classList.add("hidden");refreshInviteLink()}}
+function refreshOnlinePanel(){prefillRemoteResume();const b=document.getElementById("onlineStatusBadge"),c=document.getElementById("onlineConnectedPanel"),r=document.getElementById("onlineRoomCode"),role=document.getElementById("onlineRoleText");if(remoteRoomCode){if(b){b.textContent=remoteRoomCode;b.classList.add("live")}if(c)c.classList.remove("hidden");if(r)r.textContent=remoteRoomCode;if(role)role.textContent=`You are ${players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`} (Player ${remotePlayerIndex+1}) • ${getActivePlayerCount()} of 4 players joined`;refreshInviteLink()}else{if(b){b.textContent="Offline";b.classList.remove("live")}if(c)c.classList.add("hidden");refreshInviteLink()}}
 function remoteTurnAllowed(){if(!remoteRoomCode)return true;if(remotePlayerIndex===currentPlayerIndex)return true;setStatus(`Waiting for ${players[currentPlayerIndex]?.name||`Player ${currentPlayerIndex+1}`}.`);return false}
 const _remoteSaveBoard=saveBoard;saveBoard=function(){_remoteSaveBoard();scheduleRemoteSync()};
 const _remoteSaveTwoPlayerState=saveTwoPlayerState;saveTwoPlayerState=function(){_remoteSaveTwoPlayerState();scheduleRemoteSync();scheduleOwnNameSync()};
