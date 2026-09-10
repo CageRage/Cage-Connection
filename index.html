@@ -1493,6 +1493,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
 
 
     const BUILT_IN_TITLES = [
+      "Adaptation",
       "8MM",
       "Amos & Andrew",
       "Arcadian",
@@ -3680,7 +3681,8 @@ function challengeConnection(connectionId) {
     return;
   }
 
-  const challenger = players[currentPlayerIndex]?.name || `Player ${currentPlayerIndex + 1}`;
+  const challengerIndex = currentPlayerIndex;
+  const challenger = players[challengerIndex]?.name || `Player ${challengerIndex + 1}`;
   addDockRecent(`${challenger} challenged ${c.a.name} → ${c.bridgeTitle} → ${c.b.name}.`);
 
   const leftA = movieHasActor(c.a.name, c.leftActor);
@@ -3688,41 +3690,18 @@ function challengeConnection(connectionId) {
   const rightBridge = movieHasActor(c.bridgeTitle, c.rightActor);
   const rightB = movieHasActor(c.b.name, c.rightActor);
 
-  let verdict = "unknown";
+  let builtInNote = '<div class="cheat-result-unknown">Verify the connection, then record the result below.</div>';
   if ([leftA,leftBridge,rightBridge,rightB].every(v => v !== null)) {
-    verdict = (leftA && leftBridge && rightBridge && rightB) ? "valid" : "invalid";
+    const builtInValid = leftA && leftBridge && rightBridge && rightB;
+    builtInNote = builtInValid
+      ? '<div class="cheat-result-good">Built-in cast check: VALID.</div>'
+      : '<div class="cheat-result-bad">Built-in cast check: INVALID.</div>';
   }
 
   const claimHtml = `
     <div class="cheat-claim"><strong>${escapeHtml(c.a.name)}</strong> → <strong>${escapeHtml(c.bridgeTitle)}</strong> → <strong>${escapeHtml(c.b.name)}</strong><br><br>
     ${escapeHtml(c.leftActor)} connects ${escapeHtml(c.a.name)} to ${escapeHtml(c.bridgeTitle)}.<br>
     ${escapeHtml(c.rightActor)} connects ${escapeHtml(c.bridgeTitle)} to ${escapeHtml(c.b.name)}.</div>`;
-
-  if (verdict === "valid") {
-    players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) - 3;
-    saveTwoPlayerState();
-    updateScoreDisplay();
-    addDockRecent(`${challenger} lost the challenge (-3): the connection was valid.`);
-    openCheatDialog("Challenge Result", claimHtml + '<div class="cheat-result-good">VALID — the connection stands.</div><p><strong>Challenge failed: -3 points.</strong></p>');
-    setStatus(`Challenge failed. ${challenger} -3.`);
-    return;
-  }
-
-  if (verdict === "invalid") {
-    let failed = [];
-    if (!leftA) failed.push(`${c.leftActor} is not listed in ${c.a.name}`);
-    if (!leftBridge) failed.push(`${c.leftActor} is not listed in ${c.bridgeTitle}`);
-    if (!rightBridge) failed.push(`${c.rightActor} is not listed in ${c.bridgeTitle}`);
-    if (!rightB) failed.push(`${c.rightActor} is not listed in ${c.b.name}`);
-    const challengedPlayerIndex = (c.owner === 0 || c.owner === 1) ? c.owner : (1 - currentPlayerIndex);
-    const penalty = 4; // bridge is worth 2; successful challenge costs double
-    applyChallengeWinPenalty(challengedPlayerIndex, penalty);
-    const challengedPlayer = players[challengedPlayerIndex]?.name || `Player ${challengedPlayerIndex + 1}`;
-    addDockRecent(`${challenger} won the challenge. ${challengedPlayer} -${penalty} for the invalid 2-point connection.`);
-    openCheatDialog("Challenge Result", claimHtml + `<div class="cheat-result-bad">INVALID</div><p>${failed.map(escapeHtml).join("<br>")}</p><p><strong>${escapeHtml(challengedPlayer)} loses ${penalty} points.</strong></p>`);
-    setStatus(`Challenge won. ${challengedPlayer} -${penalty}.`);
-    return;
-  }
 
   const promptText =
     `Check this movie connection. ${c.a.name} connects to ${c.b.name} through ${c.bridgeTitle}. ` +
@@ -3733,27 +3712,33 @@ function challengeConnection(connectionId) {
   const wikiBridge = movieWikiUrl(c.bridgeTitle);
   const wikiB = movieWikiUrl(c.b.name);
 
-  const challengerIndex = currentPlayerIndex;
   const actions = `
     <a href="${escapeAttr(wikiA)}" target="_blank" rel="noopener">Check ${escapeHtml(c.a.name)}</a>
     <a href="${escapeAttr(wikiBridge)}" target="_blank" rel="noopener">Check ${escapeHtml(c.bridgeTitle)}</a>
     <a href="${escapeAttr(wikiB)}" target="_blank" rel="noopener">Check ${escapeHtml(c.b.name)}</a>
     <a href="${escapeAttr(chatUrl)}" target="_blank" rel="noopener">Ask ChatGPT</a>
-    <button type="button" onclick="resolveManualChallenge('lost', ${challengerIndex})">Connection is valid — I lose (-3)</button>
-    <button type="button" onclick="resolveManualChallenge('won', ${challengerIndex})">Connection is invalid — opponent loses 4</button>`;
-  openCheatDialog("Challenge — Needs Verification", claimHtml + '<div class="cheat-result-unknown">Cage Connection does not have enough built-in cast data to verify this bridge automatically.</div><p>Verify it with Wikipedia or ChatGPT, then record the result below.</p>', actions);
-  setStatus("Challenge opened for verification.");
+    <button type="button" onclick="resolveManualChallenge('lost', ${challengerIndex}, '${escapeAttr(c.id)}')">I lost — connection is valid (-3)</button>
+    <button type="button" onclick="resolveManualChallenge('won', ${challengerIndex}, '${escapeAttr(c.id)}')">I won — connection is invalid</button>`;
+
+  openCheatDialog(
+    "Challenge — Record Result",
+    claimHtml + builtInNote + '<p><strong>After checking, choose the result below.</strong></p>',
+    actions
+  );
+  setStatus("Challenge opened. Verify it, then record whether you won or lost.");
 }
 
-function resolveManualChallenge(result, challengerIndex) {
+function resolveManualChallenge(result, challengerIndex, connectionId) {
   challengerIndex = Number(challengerIndex);
   if (!(challengerIndex === 0 || challengerIndex === 1)) return;
   const challenger = players[challengerIndex]?.name || `Player ${challengerIndex + 1}`;
+  const challengedConnection = connections.find(c => c.id === connectionId && c.type === "bridge");
 
   if (result === "lost") {
     players[challengerIndex].score = Number(players[challengerIndex].score || 0) - 3;
     saveTwoPlayerState();
     updateScoreDisplay();
+    if (typeof scheduleRemoteSync === "function") scheduleRemoteSync();
     addDockRecent(`${challenger} lost the challenge (-3): the connection was valid.`);
     openCheatDialog("Challenge Result", '<div class="cheat-result-good">VALID — the connection stands.</div><p><strong>Challenge failed: -3 points.</strong></p>');
     setStatus(`Challenge failed. ${challenger} -3.`);
@@ -3761,9 +3746,10 @@ function resolveManualChallenge(result, challengerIndex) {
   }
 
   if (result === "won") {
-    const challengedConnection = connections.find(c => c.type === "bridge" && (c.owner === 0 || c.owner === 1) && c.owner !== challengerIndex);
-    const challengedPlayerIndex = challengedConnection ? challengedConnection.owner : (1 - challengerIndex);
-    const penalty = 4; // bridge is worth 2; successful challenge costs double
+    const challengedPlayerIndex = challengedConnection && (challengedConnection.owner === 0 || challengedConnection.owner === 1)
+      ? challengedConnection.owner
+      : (1 - challengerIndex);
+    const penalty = 4;
     applyChallengeWinPenalty(challengedPlayerIndex, penalty);
     const challengedPlayer = players[challengedPlayerIndex]?.name || `Player ${challengedPlayerIndex + 1}`;
     addDockRecent(`${challenger} won the challenge. ${challengedPlayer} -${penalty} for the invalid 2-point connection.`);
