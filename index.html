@@ -638,7 +638,7 @@
 #challengeEventCard h2{margin:0 0 14px;font-size:28px;}
 #challengeEventText{font-size:18px;line-height:1.45;margin-bottom:18px;}
 #challengeEventActions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-#challengeEventActions button{min-width:190px;padding:13px 16px;font-weight:700;}
+#challengeEventActions button,#challengeEventActions a{min-width:190px;padding:13px 16px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box;}
 #challengeWaiting{opacity:.8;font-size:14px;margin-top:12px;}
 
 #cheatOverlay.hidden { display:none; }
@@ -3708,18 +3708,17 @@ function showChallengeEventModal(challenge){
   challengeEventActions.innerHTML="";
   challengeWaiting.textContent="";
   if(remotePlayerIndex===challengerIndex || (!remoteRoomRef && currentPlayerIndex===challengerIndex)){
-    const test=document.createElement("button");
-    test.type="button";
-    test.textContent="Test in ChatGPT";
-    test.addEventListener("click",()=>{
-      const left=challenge.leftMovie||String(route).split(" → ")[0]||"the first movie";
-      const bridge=challenge.bridgeTitle||String(route).split(" → ")[1]||"the bridge movie";
-      const right=challenge.rightMovie||String(route).split(" → ")[2]||"the final movie";
-      const leftActor=challenge.leftActor||"the first listed actor";
-      const rightActor=challenge.rightActor||"the second listed actor";
-      const prompt=`Check this movie connection. ${left} connects to ${right} through ${bridge}. ${leftActor} must appear in both ${left} and ${bridge}; ${rightActor} must appear in both ${bridge} and ${right}. Is the connection valid?`;
-      window.open(`https://chatgpt.com/?prompt=${encodeURIComponent(prompt)}`,"_blank","noopener");
-    });
+    const left=challenge.leftMovie||String(route).split(" → ")[0]||"the first movie";
+    const bridge=challenge.bridgeTitle||String(route).split(" → ")[1]||"the bridge movie";
+    const right=challenge.rightMovie||String(route).split(" → ")[2]||"the final movie";
+    const leftActor=challenge.leftActor||"the first listed actor";
+    const rightActor=challenge.rightActor||"the second listed actor";
+    const prompt=`Check this movie connection. ${left} connects to ${right} through ${bridge}. ${leftActor} must appear in both ${left} and ${bridge}; ${rightActor} must appear in both ${bridge} and ${right}. Is the connection valid?`;
+    const test=document.createElement("a");
+    test.href=`https://chatgpt.com/?q=${encodeURIComponent(prompt)}`;
+    test.target="_blank";
+    test.rel="noopener";
+    test.textContent="Run Challenge Test in ChatGPT";
     const win=document.createElement("button");
     win.type="button";
     win.textContent="✓ Challenge successful";
@@ -3729,7 +3728,7 @@ function showChallengeEventModal(challenge){
     lose.textContent="✕ Challenge unsuccessful";
     lose.addEventListener("click",()=>resolveChallengeEvent("lost",challenge));
     challengeEventActions.append(test,win,lose);
-    challengeWaiting.textContent="Test the connection in ChatGPT, then declare the result here.";
+    challengeWaiting.textContent="Open ChatGPT to run the test. The challenge prompt will already be filled in. Then return here and declare the result.";
   }else{
     challengeWaiting.textContent=`Waiting for ${challenger} to declare the result…`;
   }
