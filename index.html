@@ -4866,8 +4866,8 @@ function getNextTurnIndex(fromIndex = currentPlayerIndex) {
   return active[(pos >= 0 ? pos + 1 : 0) % active.length];
 }
 let skipTurnArmedUntil=0;
-function skipCurrentPlayerTurn(){
-  if(!remoteRoomCode){
+async function skipCurrentPlayerTurn(){
+  if(!remoteRoomCode||!remoteRoomRef){
     setStatus("Skip Current Player is only available in an online room.");
     return;
   }
@@ -4891,29 +4891,58 @@ function skipCurrentPlayerTurn(){
   skipTurnArmedUntil=0;
   if(btn)btn.textContent="Skip Current Player";
   const skipped=currentName;
-  currentPlayerIndex=getNextTurnIndex(currentPlayerIndex);
-  bonusUsedThisTurn=false;
-  clearSelection();
-  addDockRecent(`${skipped}'s turn was skipped.`);
-  setStatus(`${skipped}'s turn skipped. ${players[currentPlayerIndex].name}'s turn.`);
-  saveTwoPlayerState();
-  updateScoreDisplay();
+  const nextIndex=getNextTurnIndex(currentPlayerIndex);
+
+  try{
+    await remoteRoomRef.child("state/currentPlayerIndex").set(nextIndex);
+    currentPlayerIndex=nextIndex;
+    bonusUsedThisTurn=false;
+    clearSelection();
+    addDockRecent(`${skipped}'s turn was skipped.`);
+    setStatus(`${skipped}'s turn skipped. ${players[currentPlayerIndex].name}'s turn.`);
+    saveTwoPlayerState();
+    updateScoreDisplay();
+  }catch(err){
+    console.error("Skip turn sync failed",err);
+    setStatus("Could not skip the turn. Try again.");
+  }
 }
 
-function endTurn() {
-  currentPlayerIndex = getNextTurnIndex(currentPlayerIndex);
-  bonusUsedThisTurn = false;
+async function endTurn() {
+  const nextIndex=getNextTurnIndex(currentPlayerIndex);
+
+  if(remoteRoomCode&&remoteRoomRef){
+    try{
+      await remoteRoomRef.child("state/currentPlayerIndex").set(nextIndex);
+    }catch(err){
+      console.error("End turn sync failed",err);
+      setStatus("Could not end the turn. Try again.");
+      return;
+    }
+  }
+
+  currentPlayerIndex=nextIndex;
+  bonusUsedThisTurn=false;
   clearSelection();
   setStatus(`${players[currentPlayerIndex].name}'s turn.`);
   saveTwoPlayerState();
   updateScoreDisplay();
 }
-function switchTurnAfterConnection(rowMergeBonus = false) {
+async function switchTurnAfterConnection(rowMergeBonus = false) {
   autoArrangeAllComponents();
   saveBoard();
 
-  currentPlayerIndex = getNextTurnIndex(currentPlayerIndex);
-  bonusUsedThisTurn = false;
+  const nextIndex=getNextTurnIndex(currentPlayerIndex);
+  if(remoteRoomCode&&remoteRoomRef){
+    try{
+      await remoteRoomRef.child("state/currentPlayerIndex").set(nextIndex);
+    }catch(err){
+      console.error("Connection turn sync failed",err);
+    }
+  }
+
+  currentPlayerIndex=nextIndex;
+  bonusUsedThisTurn=false;
   clearSelection();
   setStatus(rowMergeBonus
     ? `Connection saved. +3 row bonus awarded for joining two separate chains. ${players[currentPlayerIndex].name}'s turn.`
