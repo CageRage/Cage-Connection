@@ -4297,7 +4297,6 @@ function renderNode(nodeObj) {
     }
 
     function addSelectedMovies() {
-      if (!remoteTurnAllowed()) return;
       const checked = Array.from(document.querySelectorAll(".movie-check:checked")).map(cb => cb.value);
 
       if (!checked.length) {
@@ -4322,7 +4321,6 @@ function renderNode(nodeObj) {
     }
 
     function addAllVisibleMovies() {
-      if (!remoteTurnAllowed()) return;
       const visible = Array.from(document.querySelectorAll(".movie-check")).map(cb => cb.value);
 
       if (!visible.length) {
