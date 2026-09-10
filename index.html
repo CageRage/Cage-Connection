@@ -632,6 +632,15 @@
 
 /* In-game cheat dialogs */
 #cheatOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.74); display:flex; align-items:center; justify-content:center; z-index:22000; padding:20px; }
+#challengeEventOverlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:26000;padding:20px;}
+#challengeEventOverlay.hidden{display:none;}
+#challengeEventCard{width:min(560px,92vw);background:#171717;border:2px solid #b78a24;border-radius:14px;padding:26px;box-shadow:0 18px 60px rgba(0,0,0,.55);text-align:center;}
+#challengeEventCard h2{margin:0 0 14px;font-size:28px;}
+#challengeEventText{font-size:18px;line-height:1.45;margin-bottom:18px;}
+#challengeEventActions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+#challengeEventActions button{min-width:190px;padding:13px 16px;font-weight:700;}
+#challengeWaiting{opacity:.8;font-size:14px;margin-top:12px;}
+
 #cheatOverlay.hidden { display:none; }
 #cheatDialog { width:min(680px,92vw); max-height:84vh; overflow:auto; background:#111826; border:1px solid #334766; border-radius:12px; padding:18px; box-shadow:0 12px 36px rgba(0,0,0,.55); }
 #cheatDialog h2 { margin:0 0 8px; color:#ffd54a; }
@@ -1431,6 +1440,16 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
   </div>
 </div>
 
+
+<div id="challengeEventOverlay" class="hidden">
+  <div id="challengeEventCard" role="dialog" aria-modal="true" aria-labelledby="challengeEventTitle">
+    <h2 id="challengeEventTitle">Connection Challenged</h2>
+    <div id="challengeEventText"></div>
+    <div id="challengeEventActions"></div>
+    <div id="challengeWaiting"></div>
+  </div>
+</div>
+
 <div id="cheatOverlay" class="hidden">
   <div id="cheatDialog" role="dialog" aria-modal="true" aria-labelledby="cheatTitle">
     <h2 id="cheatTitle">Cheat</h2>
@@ -1460,6 +1479,10 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     const movieList = document.getElementById("movieList");
     const statusText = document.getElementById("statusText");
     const cheatOverlay = document.getElementById("cheatOverlay");
+    const challengeEventOverlay = document.getElementById("challengeEventOverlay");
+    const challengeEventText = document.getElementById("challengeEventText");
+    const challengeEventActions = document.getElementById("challengeEventActions");
+    const challengeWaiting = document.getElementById("challengeWaiting");
     const cheatTitle = document.getElementById("cheatTitle");
     const cheatBody = document.getElementById("cheatBody");
     const cheatActions = document.getElementById("cheatActions");
@@ -3669,93 +3692,96 @@ function escapeAttr(text) {
   return String(text || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
+function hideChallengeEventModal(){
+  if(challengeEventOverlay) challengeEventOverlay.classList.add("hidden");
+  if(challengeEventActions) challengeEventActions.innerHTML="";
+  if(challengeWaiting) challengeWaiting.textContent="";
+}
+
+function showChallengeEventModal(challenge){
+  if(!challengeEventOverlay||!challengeEventText||!challengeEventActions||!challengeWaiting)return;
+  if(!challenge){hideChallengeEventModal();return;}
+  const challengerIndex=Number(challenge.challengerIndex);
+  const challenger=players[challengerIndex]?.name||`Player ${challengerIndex+1}`;
+  const route=challenge.route||"This connection";
+  challengeEventText.innerHTML=`<strong>${escapeHtml(route)}</strong><br>has been challenged by <strong>${escapeHtml(challenger)}</strong>.`;
+  challengeEventActions.innerHTML="";
+  challengeWaiting.textContent="";
+  if(remotePlayerIndex===challengerIndex || (!remoteRoomRef && currentPlayerIndex===challengerIndex)){
+    const win=document.createElement("button");
+    win.type="button";
+    win.textContent="✓ Challenge successful";
+    win.addEventListener("click",()=>resolveChallengeEvent("won",challenge));
+    const lose=document.createElement("button");
+    lose.type="button";
+    lose.textContent="✕ Challenge unsuccessful";
+    lose.addEventListener("click",()=>resolveChallengeEvent("lost",challenge));
+    challengeEventActions.append(win,lose);
+    challengeWaiting.textContent="Choose the result after you verify the connection.";
+  }else{
+    challengeWaiting.textContent=`Waiting for ${challenger} to declare the result…`;
+  }
+  challengeEventOverlay.classList.remove("hidden");
+}
+
 function challengeConnection(connectionId) {
   const c = connections.find(x => x.id === connectionId);
   if (!c) return;
-
   challengeMode = false;
-
   if (c.type !== "bridge") {
-    openCheatDialog("Challenge", `<div class="cheat-result-unknown">Only bridge connections can be challenged.</div><p>Shared-actor connections are checked by the app whenever cast data is available.</p>`);
-    setStatus("Challenge opened.");
+    openCheatDialog("Challenge", `<div class="cheat-result-unknown">Only bridge connections can be challenged.</div>`);
     return;
   }
-
   const challengerIndex = currentPlayerIndex;
   const challenger = players[challengerIndex]?.name || `Player ${challengerIndex + 1}`;
-  addDockRecent(`${challenger} challenged ${c.a.name} → ${c.bridgeTitle} → ${c.b.name}.`);
-
-  const leftA = movieHasActor(c.a.name, c.leftActor);
-  const leftBridge = movieHasActor(c.bridgeTitle, c.leftActor);
-  const rightBridge = movieHasActor(c.bridgeTitle, c.rightActor);
-  const rightB = movieHasActor(c.b.name, c.rightActor);
-
-  let builtInNote = '<div class="cheat-result-unknown">Verify the connection, then record the result below.</div>';
-  if ([leftA,leftBridge,rightBridge,rightB].every(v => v !== null)) {
-    const builtInValid = leftA && leftBridge && rightBridge && rightB;
-    builtInNote = builtInValid
-      ? '<div class="cheat-result-good">Built-in cast check: VALID.</div>'
-      : '<div class="cheat-result-bad">Built-in cast check: INVALID.</div>';
+  const challengedPlayerIndex = (c.owner===0||c.owner===1) ? c.owner : (1-challengerIndex);
+  const challenge={
+    id:`ch_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+    connectionId:c.id,
+    challengerIndex,
+    challengedPlayerIndex,
+    route:`${c.a.name} → ${c.bridgeTitle} → ${c.b.name}`,
+    points:2,
+    createdAt:Date.now()
+  };
+  addDockRecent(`${challenger} challenged ${challenge.route}.`);
+  setStatus(`${challenge.route} has been challenged.`);
+  if(remoteRoomRef){
+    remoteRoomRef.child("challenge").set(challenge).catch(err=>{console.error("Challenge sync failed",err);showChallengeEventModal(challenge);});
+  }else{
+    showChallengeEventModal(challenge);
   }
-
-  const claimHtml = `
-    <div class="cheat-claim"><strong>${escapeHtml(c.a.name)}</strong> → <strong>${escapeHtml(c.bridgeTitle)}</strong> → <strong>${escapeHtml(c.b.name)}</strong><br><br>
-    ${escapeHtml(c.leftActor)} connects ${escapeHtml(c.a.name)} to ${escapeHtml(c.bridgeTitle)}.<br>
-    ${escapeHtml(c.rightActor)} connects ${escapeHtml(c.bridgeTitle)} to ${escapeHtml(c.b.name)}.</div>`;
-
-  const promptText =
-    `Check this movie connection. ${c.a.name} connects to ${c.b.name} through ${c.bridgeTitle}. ` +
-    `${c.leftActor} must appear in both ${c.a.name} and ${c.bridgeTitle}; ` +
-    `${c.rightActor} must appear in both ${c.bridgeTitle} and ${c.b.name}. Is the connection valid?`;
-  const chatUrl = `https://chatgpt.com/?q=${encodeURIComponent(promptText)}`;
-  const wikiA = movieWikiUrl(c.a.name);
-  const wikiBridge = movieWikiUrl(c.bridgeTitle);
-  const wikiB = movieWikiUrl(c.b.name);
-
-  const actions = `
-    <a href="${escapeAttr(wikiA)}" target="_blank" rel="noopener">Check ${escapeHtml(c.a.name)}</a>
-    <a href="${escapeAttr(wikiBridge)}" target="_blank" rel="noopener">Check ${escapeHtml(c.bridgeTitle)}</a>
-    <a href="${escapeAttr(wikiB)}" target="_blank" rel="noopener">Check ${escapeHtml(c.b.name)}</a>
-    <a href="${escapeAttr(chatUrl)}" target="_blank" rel="noopener">Ask ChatGPT</a>
-    <button type="button" onclick="resolveManualChallenge('lost', ${challengerIndex}, '${escapeAttr(c.id)}')">I lost — connection is valid (-3)</button>
-    <button type="button" onclick="resolveManualChallenge('won', ${challengerIndex}, '${escapeAttr(c.id)}')">I won — connection is invalid</button>`;
-
-  openCheatDialog(
-    "Challenge — Record Result",
-    claimHtml + builtInNote + '<p><strong>After checking, choose the result below.</strong></p>',
-    actions
-  );
-  setStatus("Challenge opened. Verify it, then record whether you won or lost.");
 }
 
-function resolveManualChallenge(result, challengerIndex, connectionId) {
-  challengerIndex = Number(challengerIndex);
-  if (!(challengerIndex === 0 || challengerIndex === 1)) return;
-  const challenger = players[challengerIndex]?.name || `Player ${challengerIndex + 1}`;
-  const challengedConnection = connections.find(c => c.id === connectionId && c.type === "bridge");
-
-  if (result === "lost") {
-    players[challengerIndex].score = Number(players[challengerIndex].score || 0) - 3;
-    saveTwoPlayerState();
-    updateScoreDisplay();
-    if (typeof scheduleRemoteSync === "function") scheduleRemoteSync();
-    addDockRecent(`${challenger} lost the challenge (-3): the connection was valid.`);
-    openCheatDialog("Challenge Result", '<div class="cheat-result-good">VALID — the connection stands.</div><p><strong>Challenge failed: -3 points.</strong></p>');
-    setStatus(`Challenge failed. ${challenger} -3.`);
-    return;
+async function resolveChallengeEvent(result, challenge){
+  if(!challenge)return;
+  const challengerIndex=Number(challenge.challengerIndex);
+  const challengedPlayerIndex=Number(challenge.challengedPlayerIndex);
+  const challenger=players[challengerIndex]?.name||`Player ${challengerIndex+1}`;
+  if(result==="lost"){
+    if(remoteRoomRef){
+      try{await remoteRoomRef.child(`state/scores/${challengerIndex}`).transaction(v=>Number(v||0)-3);}catch(err){console.error("Challenge loss sync failed",err);return;}
+    }else{
+      players[challengerIndex].score=Number(players[challengerIndex].score||0)-3;
+      saveTwoPlayerState();updateScoreDisplay();
+    }
+    addDockRecent(`${challenger} lost the challenge (-3): the connection stands.`);
+    setStatus(`Challenge unsuccessful. ${challenger} -3.`);
+  }else if(result==="won"){
+    const penalty=Number(challenge.points||2)*2;
+    const challengedPlayer=players[challengedPlayerIndex]?.name||`Player ${challengedPlayerIndex+1}`;
+    if(remoteRoomRef){
+      try{await remoteRoomRef.child(`state/scores/${challengedPlayerIndex}`).transaction(v=>Number(v||0)-penalty);}catch(err){console.error("Challenge win sync failed",err);return;}
+    }else{
+      players[challengedPlayerIndex].score=Number(players[challengedPlayerIndex].score||0)-penalty;
+      saveTwoPlayerState();updateScoreDisplay();
+    }
+    addDockRecent(`${challenger} won the challenge. ${challengedPlayer} -${penalty}.`);
+    setStatus(`Challenge successful. ${challengedPlayer} -${penalty}.`);
   }
-
-  if (result === "won") {
-    const challengedPlayerIndex = challengedConnection && (challengedConnection.owner === 0 || challengedConnection.owner === 1)
-      ? challengedConnection.owner
-      : (1 - challengerIndex);
-    const penalty = 4;
-    applyChallengeWinPenalty(challengedPlayerIndex, penalty);
-    const challengedPlayer = players[challengedPlayerIndex]?.name || `Player ${challengedPlayerIndex + 1}`;
-    addDockRecent(`${challenger} won the challenge. ${challengedPlayer} -${penalty} for the invalid 2-point connection.`);
-    openCheatDialog("Challenge Result", `<div class="cheat-result-bad">INVALID — challenge won.</div><p><strong>${escapeHtml(challengedPlayer)} loses ${penalty} points.</strong></p>`);
-    setStatus(`Challenge won. ${challengedPlayer} -${penalty}.`);
-  }
+  if(remoteRoomRef){
+    try{await remoteRoomRef.child("challenge").remove();}catch(err){console.error("Challenge clear failed",err);}
+  }else hideChallengeEventModal();
 }
 
 function applyChallengeWinPenalty(playerIndex, penalty) {
@@ -5641,7 +5667,7 @@ submitBonusAnswer = function() {
 const FIREBASE_CONFIG={apiKey:"AIzaSyCW9X7o1xr-hmB1Xf1vp6J77BP8FZDaanM",authDomain:"cage-connection.firebaseapp.com",databaseURL:"https://cage-connection-default-rtdb.firebaseio.com",projectId:"cage-connection",storageBucket:"cage-connection.firebasestorage.app",messagingSenderId:"1090463742722",appId:"1:1090463742722:web:055ab8586c3d95305be01b"};
 const REMOTE_SESSION_KEY="cage-connection-remote-session-v2";
 let remoteDb=null,remoteRoomCode=null,remotePlayerIndex=null,remoteRoomRef=null;
-let remoteStateHandler=null,remoteMembersHandler=null,remoteChatQuery=null,remoteChatHandler=null,applyingRemoteState=false;
+let remoteStateHandler=null,remoteMembersHandler=null,remoteChatQuery=null,remoteChatHandler=null,remoteChallengeHandler=null,applyingRemoteState=false;
 let remoteSyncTimer=null,remoteNameSyncTimer=null;
 try{if(window.firebase&&!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);if(window.firebase){remoteDb=firebase.database();try{if(remoteDb&&remoteDb.INTERNAL&&typeof remoteDb.INTERNAL.forceLongPolling==="function")remoteDb.INTERNAL.forceLongPolling()}catch(lpErr){console.warn("Could not force Firebase long polling",lpErr)}}}catch(err){console.error("Firebase initialization failed",err)}
 function openOnlinePanel(){const e=document.getElementById("onlineOverlay");if(e)e.classList.remove("hidden");prefillRemoteResume();refreshOnlinePanel()}
@@ -5775,8 +5801,8 @@ function setDockChatEnabled(enabled){const i=document.getElementById("dockChatIn
 function clearDockChat(){const box=document.getElementById("dockChatMessages");if(box)box.innerHTML='<div class="dock-chat-line">Join an online room to chat.</div>';}
 function appendDockChat(msg){const box=document.getElementById("dockChatMessages");if(!box||!msg)return;if(box.children.length===1&&box.textContent.includes("Join an online room"))box.innerHTML="";const line=document.createElement("div");line.className="dock-chat-line";const name=document.createElement("span");name.className="dock-chat-name";name.textContent=`${String(msg.name||"Player")}: `;const text=document.createElement("span");text.textContent=String(msg.text||"");line.append(name,text);box.appendChild(line);while(box.children.length>12)box.removeChild(box.firstChild);box.scrollTop=box.scrollHeight;}
 function sendDockChat(event){if(event)event.preventDefault();if(!remoteRoomRef||!(remotePlayerIndex===0||remotePlayerIndex===1)){setStatus("Join an online room to use Game Notes chat.");return;}const input=document.getElementById("dockChatInput");const text=String(input?.value||"").trim().slice(0,180);if(!text)return;const name=players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`;remoteRoomRef.child("chat").push({name,playerIndex:remotePlayerIndex,text,createdAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{if(input){input.value="";input.focus();}}).catch(err=>{console.error("Chat send failed",err);setStatus("Chat message could not be sent.");});}
-function detachRemoteListeners(){if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
-function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(12);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
+function detachRemoteListeners(){if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
+function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(12);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
 function clearLocalBoardAfterRoomCreated(){
   nodes.forEach(n=>{try{n.el.remove()}catch{}});
   nodes=[];
