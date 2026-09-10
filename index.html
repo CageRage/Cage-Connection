@@ -3733,7 +3733,6 @@ function challengeConnection(connectionId) {
     return;
   }
   const challengerIndex = currentPlayerIndex;
-  const challenger = players[challengerIndex]?.name || `Player ${challengerIndex + 1}`;
   const challengedPlayerIndex = (c.owner===0||c.owner===1) ? c.owner : (1-challengerIndex);
   const challenge={
     id:`ch_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
@@ -3744,10 +3743,43 @@ function challengeConnection(connectionId) {
     points:2,
     createdAt:Date.now()
   };
+  showChallengeConfirmModal(challenge);
+}
+
+function showChallengeConfirmModal(challenge){
+  if(!challengeEventOverlay||!challengeEventText||!challengeEventActions||!challengeWaiting)return;
+  challengeEventText.innerHTML=`Challenge <strong>${escapeHtml(challenge.route)}</strong>?`;
+  challengeEventActions.innerHTML="";
+  challengeWaiting.textContent="The other player will be notified only after you confirm.";
+
+  const confirmBtn=document.createElement("button");
+  confirmBtn.type="button";
+  confirmBtn.textContent="Challenge this connection";
+  confirmBtn.addEventListener("click",()=>commitChallengeEvent(challenge));
+
+  const cancelBtn=document.createElement("button");
+  cancelBtn.type="button";
+  cancelBtn.textContent="Cancel";
+  cancelBtn.addEventListener("click",()=>{
+    hideChallengeEventModal();
+    setStatus("Challenge cancelled.");
+  });
+
+  challengeEventActions.append(confirmBtn,cancelBtn);
+  challengeEventOverlay.classList.remove("hidden");
+}
+
+function commitChallengeEvent(challenge){
+  if(!challenge)return;
+  const challengerIndex=Number(challenge.challengerIndex);
+  const challenger=players[challengerIndex]?.name||`Player ${challengerIndex+1}`;
   addDockRecent(`${challenger} challenged ${challenge.route}.`);
   setStatus(`${challenge.route} has been challenged.`);
   if(remoteRoomRef){
-    remoteRoomRef.child("challenge").set(challenge).catch(err=>{console.error("Challenge sync failed",err);showChallengeEventModal(challenge);});
+    remoteRoomRef.child("challenge").set(challenge).catch(err=>{
+      console.error("Challenge sync failed",err);
+      showChallengeEventModal(challenge);
+    });
   }else{
     showChallengeEventModal(challenge);
   }
