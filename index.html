@@ -3714,8 +3714,13 @@ function challengeConnection(connectionId) {
     if (!leftBridge) failed.push(`${c.leftActor} is not listed in ${c.bridgeTitle}`);
     if (!rightBridge) failed.push(`${c.rightActor} is not listed in ${c.bridgeTitle}`);
     if (!rightB) failed.push(`${c.rightActor} is not listed in ${c.b.name}`);
-    openCheatDialog("Challenge Result", claimHtml + `<div class="cheat-result-bad">INVALID</div><p>${failed.map(escapeHtml).join("<br>")}</p>`);
-    setStatus("Challenge result: INVALID.");
+    const challengedPlayerIndex = (c.owner === 0 || c.owner === 1) ? c.owner : (1 - currentPlayerIndex);
+    const penalty = 4; // bridge is worth 2; successful challenge costs double
+    applyChallengeWinPenalty(challengedPlayerIndex, penalty);
+    const challengedPlayer = players[challengedPlayerIndex]?.name || `Player ${challengedPlayerIndex + 1}`;
+    addDockRecent(`${challenger} won the challenge. ${challengedPlayer} -${penalty} for the invalid 2-point connection.`);
+    openCheatDialog("Challenge Result", claimHtml + `<div class="cheat-result-bad">INVALID</div><p>${failed.map(escapeHtml).join("<br>")}</p><p><strong>${escapeHtml(challengedPlayer)} loses ${penalty} points.</strong></p>`);
+    setStatus(`Challenge won. ${challengedPlayer} -${penalty}.`);
     return;
   }
 
@@ -3735,7 +3740,7 @@ function challengeConnection(connectionId) {
     <a href="${escapeAttr(wikiB)}" target="_blank" rel="noopener">Check ${escapeHtml(c.b.name)}</a>
     <a href="${escapeAttr(chatUrl)}" target="_blank" rel="noopener">Ask ChatGPT</a>
     <button type="button" onclick="resolveManualChallenge('lost', ${challengerIndex})">Connection is valid — I lose (-3)</button>
-    <button type="button" onclick="resolveManualChallenge('won', ${challengerIndex})">Connection is invalid — I win</button>`;
+    <button type="button" onclick="resolveManualChallenge('won', ${challengerIndex})">Connection is invalid — opponent loses 4</button>`;
   openCheatDialog("Challenge — Needs Verification", claimHtml + '<div class="cheat-result-unknown">Cage Connection does not have enough built-in cast data to verify this bridge automatically.</div><p>Verify it with Wikipedia or ChatGPT, then record the result below.</p>', actions);
   setStatus("Challenge opened for verification.");
 }
@@ -3756,9 +3761,31 @@ function resolveManualChallenge(result, challengerIndex) {
   }
 
   if (result === "won") {
-    addDockRecent(`${challenger} won the challenge: the connection was invalid.`);
-    openCheatDialog("Challenge Result", '<div class="cheat-result-bad">INVALID — challenge won.</div><p>No challenge penalty.</p>');
-    setStatus(`Challenge won. ${challenger} loses no points.`);
+    const challengedConnection = connections.find(c => c.type === "bridge" && (c.owner === 0 || c.owner === 1) && c.owner !== challengerIndex);
+    const challengedPlayerIndex = challengedConnection ? challengedConnection.owner : (1 - challengerIndex);
+    const penalty = 4; // bridge is worth 2; successful challenge costs double
+    applyChallengeWinPenalty(challengedPlayerIndex, penalty);
+    const challengedPlayer = players[challengedPlayerIndex]?.name || `Player ${challengedPlayerIndex + 1}`;
+    addDockRecent(`${challenger} won the challenge. ${challengedPlayer} -${penalty} for the invalid 2-point connection.`);
+    openCheatDialog("Challenge Result", `<div class="cheat-result-bad">INVALID — challenge won.</div><p><strong>${escapeHtml(challengedPlayer)} loses ${penalty} points.</strong></p>`);
+    setStatus(`Challenge won. ${challengedPlayer} -${penalty}.`);
+  }
+}
+
+function applyChallengeWinPenalty(playerIndex, penalty) {
+  playerIndex = Number(playerIndex);
+  penalty = Number(penalty || 0);
+  if (!(playerIndex === 0 || playerIndex === 1) || penalty <= 0) return;
+
+  players[playerIndex].score = Number(players[playerIndex].score || 0) - penalty;
+  saveTwoPlayerState();
+  updateScoreDisplay();
+
+  // A successful challenge changes the other player's score, so update that
+  // specific remote score directly instead of relying on local-player-only sync.
+  if (typeof remoteRoomRef !== "undefined" && remoteRoomRef) {
+    remoteRoomRef.child(`state/scores/${playerIndex}`).transaction(current => Number(current || 0) - penalty)
+      .catch(err => console.error("Challenge score sync failed", err));
   }
 }
 
