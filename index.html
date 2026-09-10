@@ -4075,32 +4075,60 @@ function findMovie() {
       }
     }
 
-    function getNextGridPosition() {
+    // New, unconnected movies must never be dropped into the middle of an
+    // existing connection row. The old placement used nodes.length, but
+    // auto-arrange moves connected cards away from their original grid cells;
+    // that allowed a later movie to be placed directly on top of a connection
+    // line, making the row look as though the new movie had changed the route.
+    function getNextGridPosition(extraReserved = []) {
       const metrics = getLayoutMetrics();
       const cols = metrics.singleCols;
       const xStart = 60;
       const yStart = 70;
       const xGap = metrics.xGap;
       const yGap = metrics.yGap;
-      const index = nodes.length;
-      const col = index % cols;
-      const row = Math.floor(index / cols);
-      return { x: xStart + (col * xGap), y: yStart + (row * yGap) };
+
+      if (!nodes.length && !extraReserved.length) return { x: xStart, y: yStart };
+
+      const occupied = [
+        ...nodes.map(n => ({x:n.x, y:n.y})),
+        ...extraReserved
+      ];
+
+      const maxY = occupied.length ? Math.max(...occupied.map(p => Number(p.y || 0))) : yStart;
+
+      // Reuse the lowest staging row only when it contains unconnected movies.
+      // Otherwise start a fresh row beneath the entire current board.
+      const bottomIsolated = nodes.filter(n =>
+        getDegree(n.id) === 0 && Math.abs(n.y - maxY) < (yGap * 0.25)
+      );
+      let stagingY = bottomIsolated.length ? maxY : maxY + yGap;
+
+      // If this is an empty board, don't create an unnecessary blank first row.
+      if (!nodes.length) stagingY = yStart;
+
+      function cellOccupied(x, y) {
+        return occupied.some(p =>
+          Math.abs(Number(p.x || 0) - x) < (xGap * 0.45) &&
+          Math.abs(Number(p.y || 0) - y) < (yGap * 0.45)
+        );
+      }
+
+      for (let rowOffset = 0; rowOffset < 100; rowOffset++) {
+        const y = stagingY + (rowOffset * yGap);
+        for (let col = 0; col < cols; col++) {
+          const x = xStart + (col * xGap);
+          if (!cellOccupied(x, y)) return { x, y };
+        }
+      }
+
+      return { x: xStart, y: stagingY + yGap };
     }
 
     function getNextGridPositions(count) {
       const positions = [];
-      const metrics = getLayoutMetrics();
-      const cols = metrics.singleCols;
-      const xStart = 60;
-      const yStart = 70;
-      const xGap = metrics.xGap;
-      const yGap = metrics.yGap;
       for (let i = 0; i < count; i++) {
-        const index = nodes.length + i;
-        const col = index % cols;
-        const row = Math.floor(index / cols);
-        positions.push({ x: xStart + (col * xGap), y: yStart + (row * yGap) });
+        positions.push(getNextGridPosition(positions));
       }
       return positions;
     }
