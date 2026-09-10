@@ -3708,6 +3708,18 @@ function showChallengeEventModal(challenge){
   challengeEventActions.innerHTML="";
   challengeWaiting.textContent="";
   if(remotePlayerIndex===challengerIndex || (!remoteRoomRef && currentPlayerIndex===challengerIndex)){
+    const test=document.createElement("button");
+    test.type="button";
+    test.textContent="Test in ChatGPT";
+    test.addEventListener("click",()=>{
+      const left=challenge.leftMovie||String(route).split(" → ")[0]||"the first movie";
+      const bridge=challenge.bridgeTitle||String(route).split(" → ")[1]||"the bridge movie";
+      const right=challenge.rightMovie||String(route).split(" → ")[2]||"the final movie";
+      const leftActor=challenge.leftActor||"the first listed actor";
+      const rightActor=challenge.rightActor||"the second listed actor";
+      const prompt=`Check this movie connection. ${left} connects to ${right} through ${bridge}. ${leftActor} must appear in both ${left} and ${bridge}; ${rightActor} must appear in both ${bridge} and ${right}. Is the connection valid?`;
+      window.open(`https://chatgpt.com/?prompt=${encodeURIComponent(prompt)}`,"_blank","noopener");
+    });
     const win=document.createElement("button");
     win.type="button";
     win.textContent="✓ Challenge successful";
@@ -3716,8 +3728,8 @@ function showChallengeEventModal(challenge){
     lose.type="button";
     lose.textContent="✕ Challenge unsuccessful";
     lose.addEventListener("click",()=>resolveChallengeEvent("lost",challenge));
-    challengeEventActions.append(win,lose);
-    challengeWaiting.textContent="Choose the result after you verify the connection.";
+    challengeEventActions.append(test,win,lose);
+    challengeWaiting.textContent="Test the connection in ChatGPT, then declare the result here.";
   }else{
     challengeWaiting.textContent=`Waiting for ${challenger} to declare the result…`;
   }
@@ -3740,6 +3752,11 @@ function challengeConnection(connectionId) {
     challengerIndex,
     challengedPlayerIndex,
     route:`${c.a.name} → ${c.bridgeTitle} → ${c.b.name}`,
+    leftMovie:c.a.name,
+    bridgeTitle:c.bridgeTitle,
+    rightMovie:c.b.name,
+    leftActor:c.leftActor,
+    rightActor:c.rightActor,
     points:2,
     createdAt:Date.now()
   };
