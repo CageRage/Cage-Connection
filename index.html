@@ -1291,7 +1291,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
           <label for="onlineJoinCode">Room code</label>
           <input id="onlineJoinCode" type="text" maxlength="6" placeholder="ABC123" autocapitalize="characters" />
           <label for="onlineJoinName">Your name</label>
-          <input id="onlineJoinName" type="text" maxlength="24" placeholder="Enter your name" autocomplete="off" autocorrect="off" spellcheck="false" />
+          <input id="onlineJoinName" name="cc_join_name_v4" type="text" maxlength="24" value="" placeholder="Type your name" autocomplete="new-password" autocorrect="off" spellcheck="false" inputmode="text" />
           <button type="button" class="online-primary" onclick="joinRemoteGame()">Join Game</button>
         </section>
         <section class="online-card">
@@ -4830,8 +4830,12 @@ function loadTwoPlayerState() {
   try {
     const saved = JSON.parse(raw);
 
-    if (Array.isArray(saved.players) && saved.players.length === 2) {
-      players = saved.players;
+    if (Array.isArray(saved.players) && saved.players.length >= 2) {
+      const prior = saved.players.slice(0,4);
+      players = Array.from({length:4}, (_,i) => ({
+        name: String(prior[i]?.name || `Player ${i+1}`),
+        score: Number(prior[i]?.score || 0)
+      }));
     }
 
     if (Number.isInteger(saved.currentPlayerIndex) && saved.currentPlayerIndex >= 0 && saved.currentPlayerIndex < Math.min(players.length,4)) {
@@ -5810,12 +5814,40 @@ submitBonusAnswer = function() {
 const FIREBASE_CONFIG={apiKey:"AIzaSyCW9X7o1xr-hmB1Xf1vp6J77BP8FZDaanM",authDomain:"cage-connection.firebaseapp.com",databaseURL:"https://cage-connection-default-rtdb.firebaseio.com",projectId:"cage-connection",storageBucket:"cage-connection.firebasestorage.app",messagingSenderId:"1090463742722",appId:"1:1090463742722:web:055ab8586c3d95305be01b"};
 const REMOTE_SESSION_KEY="cage-connection-remote-session-v2";
 let remoteDb=null,remoteRoomCode=null,remotePlayerIndex=null,remoteRoomRef=null;
+function ensureFourPlayerSlots(){
+  if(!Array.isArray(players)) players=[];
+  players = Array.from({length:4}, (_,i)=>({
+    name: String(players[i]?.name || `Player ${i+1}`),
+    score: Number(players[i]?.score || 0)
+  }));
+}
+ensureFourPlayerSlots();
 let remotePlayerCount=0;
 function getActivePlayerCount(){ return remoteRoomCode ? Math.max(1, Math.min(4, Number(remotePlayerCount || 1))) : 2; }
 let remoteStateHandler=null,remoteMembersHandler=null,remoteChatQuery=null,remoteChatHandler=null,remoteChallengeHandler=null,applyingRemoteState=false;
 let remoteSyncTimer=null,remoteNameSyncTimer=null;
 try{if(window.firebase&&!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);if(window.firebase){remoteDb=firebase.database();try{if(remoteDb&&remoteDb.INTERNAL&&typeof remoteDb.INTERNAL.forceLongPolling==="function")remoteDb.INTERNAL.forceLongPolling()}catch(lpErr){console.warn("Could not force Firebase long polling",lpErr)}}}catch(err){console.error("Firebase initialization failed",err)}
-function openOnlinePanel(){const e=document.getElementById("onlineOverlay");if(e)e.classList.remove("hidden");if(!remoteRoomCode){const n=document.getElementById("onlineJoinName");if(n){n.value="";n.setAttribute("value","");}}prefillRemoteResume();refreshOnlinePanel();setTimeout(()=>{if(!remoteRoomCode){const n=document.getElementById("onlineJoinName");if(n)n.value="";}},50)}
+function resetJoinNameInput(){
+  const old=document.getElementById("onlineJoinName");
+  if(!old)return null;
+  const n=old.cloneNode(true);
+  n.value="";
+  n.defaultValue="";
+  n.setAttribute("value","");
+  n.setAttribute("autocomplete","new-password");
+  n.setAttribute("name","cc_join_name_"+Date.now());
+  n.addEventListener("focus",()=>{if(/^Player\s+[1-4]$/i.test(String(n.value||"").trim()))n.value="";});
+  old.replaceWith(n);
+  return n;
+}
+function openOnlinePanel(){
+  const e=document.getElementById("onlineOverlay");
+  if(e)e.classList.remove("hidden");
+  if(!remoteRoomCode)resetJoinNameInput();
+  prefillRemoteResume();
+  refreshOnlinePanel();
+  [50,250,800].forEach(ms=>setTimeout(()=>{if(!remoteRoomCode){const n=document.getElementById("onlineJoinName");if(n&&/^Player\s+[1-4]$/i.test(String(n.value||"").trim()))n.value="";}},ms));
+}
 function closeOnlinePanel(event){const e=document.getElementById("onlineOverlay");if(event&&event.target!==e)return;if(e)e.classList.add("hidden")}
 function setOnlineMessage(t){const e=document.getElementById("onlineMessage");if(e)e.textContent=t}
 function cleanPlayerName(v,f){const n=String(v||"").trim().replace(/\s+/g," ").slice(0,24);return n||f}
@@ -5824,7 +5856,19 @@ const CANONICAL_GAME_URL="https://cagerage.github.io/Cage-Connection/";
 function makeInviteLink(code=remoteRoomCode){const clean=cleanRoomCode(code);return clean?`${CANONICAL_GAME_URL}?room=${encodeURIComponent(clean)}`:CANONICAL_GAME_URL}
 function refreshInviteLink(){const el=document.getElementById("onlineInviteLink");if(el)el.value=remoteRoomCode?makeInviteLink(remoteRoomCode):""}
 async function copyInviteLink(){if(!remoteRoomCode){setOnlineMessage("Create or join a room first.");return}const link=makeInviteLink(remoteRoomCode);const el=document.getElementById("onlineInviteLink");if(el)el.value=link;let copied=false;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(link);copied=true}}catch{}if(!copied&&el){try{el.focus();el.select();copied=document.execCommand("copy")}catch{}}setOnlineMessage(copied?`Invite link copied for room ${remoteRoomCode}.`:`Invite link ready below. Copy it and send it to Player 2.`)}
-function applyInviteFromUrl(){try{const params=new URLSearchParams(window.location.search);const code=cleanRoomCode(params.get("room"));if(code.length!==6)return;const join=document.getElementById("onlineJoinCode");if(join)join.value=code;const resume=document.getElementById("onlineResumeCode");if(resume&&!resume.value)resume.value=code;const name=document.getElementById("onlineJoinName");if(name){name.value="";name.setAttribute("value","");}openOnlinePanel();setOnlineMessage(`Invitation loaded for room ${code}. Enter your name and click Join Game.`);setTimeout(()=>{const name=document.getElementById("onlineJoinName");if(name){name.value="";name.focus()}},100)}catch(err){console.error("Invite link parsing failed",err)}}
+function applyInviteFromUrl(){try{
+  const params=new URLSearchParams(window.location.search);
+  const code=cleanRoomCode(params.get("room"));
+  if(code.length!==6)return;
+  const join=document.getElementById("onlineJoinCode");
+  if(join)join.value=code;
+  const resume=document.getElementById("onlineResumeCode");
+  if(resume&&!resume.value)resume.value=code;
+  openOnlinePanel();
+  const name=resetJoinNameInput();
+  setOnlineMessage(`Invitation loaded for room ${code}. Type your name and click Join Game.`);
+  setTimeout(()=>{const n=document.getElementById("onlineJoinName");if(n){n.value="";n.focus()}},150);
+}catch(err){console.error("Invite link parsing failed",err)}}
 function makeRoomCode(){const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let o="";for(let i=0;i<6;i++)o+=c[Math.floor(Math.random()*c.length)];return o}
 function saveRemoteSession(){if(!remoteRoomCode||!(Number.isInteger(remotePlayerIndex)&&remotePlayerIndex>=0&&remotePlayerIndex<4))return;try{localStorage.setItem(REMOTE_SESSION_KEY,JSON.stringify({code:remoteRoomCode,playerIndex:remotePlayerIndex,name:players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`}))}catch{}}
 function getRemoteSession(){try{const x=JSON.parse(localStorage.getItem(REMOTE_SESSION_KEY)||"null");return x&&typeof x.code==="string"?x:null}catch{return null}}
@@ -6027,8 +6071,10 @@ async function createRemoteGame(){
       state:freshState
     }));
 
-    players[0].name=name;
-    players[1].name="Player 2"; players[2].name="Player 3"; players[3].name="Player 4";
+    players = Array.from({length:4}, (_,i) => ({
+      name: i===0 ? name : `Player ${i+1}`,
+      score: 0
+    }));
     remoteRoomCode=code;
     remotePlayerIndex=0; remotePlayerCount=1;
     remoteRoomRef=roomRef;
@@ -6047,6 +6093,12 @@ async function joinRemoteGame(){
   if(!remoteDb){setOnlineMessage("Firebase did not load. Refresh the page and try again.");return}
   const code=cleanRoomCode(document.getElementById("onlineJoinCode")?.value);
   const requestedName=String(document.getElementById("onlineJoinName")?.value||"").trim();
+  if(/^Player\s+[1-4]$/i.test(requestedName)){
+    setOnlineMessage("Please type your actual name before joining.");
+    const nameInput=document.getElementById("onlineJoinName");
+    if(nameInput){nameInput.value="";nameInput.focus();}
+    return;
+  }
   if(code.length!==6){setOnlineMessage("Enter the 6-character room code.");return}
   if(!requestedName){setOnlineMessage("Enter your name before joining.");const nameInput=document.getElementById("onlineJoinName");if(nameInput)nameInput.focus();return}
   setOnlineMessage("Joining room…");
