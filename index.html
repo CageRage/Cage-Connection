@@ -1166,6 +1166,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
 
     <button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
     <button onclick="connectMode()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15"/><path d="M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15"/></svg><span>Connect</span></button>
+    <button onclick="startChallengeMode()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span>Challenge</span></button>
     <button onclick="openBonusRound()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg><span>Bonus Round</span></button>
     <button id="onlineButton" type="button" onclick="openOnlinePanel()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 16 0"/><path d="M7 12a5 5 0 0 1 10 0"/><path d="M10 12a2 2 0 0 1 4 0"/><circle cx="12" cy="16" r="1"/></svg><span>Online</span></button>
     <span id="onlineStatusBadge" class="online-status-badge">Offline</span>
@@ -1174,7 +1175,6 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
       <summary><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h7l-1 8 8-12h-7z"/></svg><span>Cheats</span><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
       <div class="toolbar-menu-panel">
         <button onclick="this.closest('details').removeAttribute('open'); startCastLookup()">Cast Lookup (-2)</button>
-        <button onclick="this.closest('details').removeAttribute('open'); startChallengeMode()">Challenge</button>
         <button onclick="this.closest('details').removeAttribute('open'); openPathFinder()">Find Path</button>
         <button onclick="this.closest('details').removeAttribute('open'); showIndex()">Show Index</button>
       </div>
