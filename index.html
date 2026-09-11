@@ -6041,25 +6041,35 @@ async function joinRemoteGame(){
   if(!typedName){setOnlineMessage("Enter your name before joining.");return}
   const name=cleanPlayerName(typedName,"Player");
   setOnlineMessage("Joining room…");
+
   try{
     const roomRef=remoteDb.ref(`games/${code}`);
     const snap=await roomRef.once("value");
-    if(!snap.exists()||!snap.val().state){setOnlineMessage("That room code was not found.");return}
-
-    let claimedIndex=null;
-    const tx=await roomRef.child("members").transaction(current=>{
-      const members=current||{};
-      for(const i of [1,2,3]){
-        const seat=members[String(i)];
-        if(!seat||!String(seat.name||"").trim()){
-          claimedIndex=i;
-          return {...members,[String(i)]:{name}};
-        }
-      }
+    if(!snap.exists()||!snap.val().state){
+      setOnlineMessage("That room code was not found.");
       return;
-    });
+    }
 
-    if(!tx.committed||claimedIndex===null){
+    // Claim ONE seat at a time. This is retry-safe:
+    // Firebase may rerun a transaction callback, but it can only ever
+    // operate on the same seat, so one player cannot accidentally fill
+    // multiple seats during transaction retries.
+    let claimedIndex=null;
+
+    for(const i of [1,2,3]){
+      const seatRef=roomRef.child(`members/${i}`);
+      const tx=await seatRef.transaction(current=>{
+        if(current && String(current.name||"").trim()) return;
+        return {name};
+      });
+
+      if(tx.committed){
+        claimedIndex=i;
+        break;
+      }
+    }
+
+    if(claimedIndex===null){
       setOnlineMessage("This room already has 4 players.");
       return;
     }
@@ -6067,12 +6077,16 @@ async function joinRemoteGame(){
     remoteRoomCode=code;
     remotePlayerIndex=claimedIndex;
     remoteRoomRef=roomRef;
+
     const latest=await roomRef.once("value");
     const roomValue=latest.val();
+
     applyRemoteState(roomValue.state);
     applyRemoteMembers(roomValue.members);
     attachRemoteListeners();
-    if(claimedIndex<2)saveRemoteSession();
+
+    if(claimedIndex<2) saveRemoteSession();
+
     refreshOnlinePanel();
     setOnlineMessage(`Joined room ${code} as ${name} (Player ${claimedIndex+1}). Live sync is on.`);
     setStatus(`Joined online room ${code}.`);
