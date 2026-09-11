@@ -1324,6 +1324,11 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
           <button id="endGameForEveryoneButton" type="button" onclick="endGameForEveryone()" style="display:none">End Game for Everyone</button>
         </div>
       </section>
+      <section style="margin-top:14px;padding-top:14px;border-top:1px solid #3a3f48">
+        <div class="online-kicker" style="margin-bottom:6px">START FRESH</div>
+        <div style="color:#cfcfcf;margin-bottom:10px">Use this if an old board keeps reopening on this browser. This clears the saved local board, scores, names, and remembered room.</div>
+        <button id="startFreshButton" type="button" onclick="startFreshLocalGame()">Start Fresh / Clear Saved Game</button>
+      </section>
       <div id="onlineMessage" class="online-message" aria-live="polite">Create a room, join one, or resume a saved game. Remote games autosave continuously.</div>
     </div>
   </div>
@@ -6030,6 +6035,59 @@ async function autoResumeRemoteSession(){
     setStatus("Could not automatically reconnect. Use Online → Resume Last Game.");
   }
 }
+let startFreshArmedUntil=0;
+function startFreshLocalGame(){
+  const now=Date.now();
+  const btn=document.getElementById("startFreshButton");
+  if(now>startFreshArmedUntil){
+    startFreshArmedUntil=now+5000;
+    if(btn)btn.textContent="Confirm Start Fresh";
+    setOnlineMessage("Click Start Fresh again within 5 seconds to clear this browser's saved game.");
+    setTimeout(()=>{
+      if(Date.now()>startFreshArmedUntil){
+        const b=document.getElementById("startFreshButton");
+        if(b)b.textContent="Start Fresh / Clear Saved Game";
+      }
+    },5200);
+    return;
+  }
+
+  startFreshArmedUntil=0;
+  if(btn)btn.textContent="Start Fresh / Clear Saved Game";
+
+  detachRemoteListeners();
+  clearDockChat();
+  clearTimeout(remoteSyncTimer);
+  clearTimeout(remoteNameSyncTimer);
+  remoteRoomCode=null;
+  remotePlayerIndex=null;
+  remoteRoomRef=null;
+
+  try{localStorage.removeItem(STORAGE_KEY)}catch{}
+  try{localStorage.removeItem(TWO_PLAYER_STATE_KEY)}catch{}
+  try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}
+
+  try{
+    const u=new URL(window.location.href);
+    u.searchParams.delete("room");
+    history.replaceState(null,"",u.pathname+u.search+u.hash);
+  }catch{}
+
+  movies.length=0;
+  connections.length=0;
+  players[0]={name:"Player 1",score:0};
+  players[1]={name:"Player 2",score:0};
+  currentPlayerIndex=0;
+  bonusUsedThisTurn=false;
+  clearSelection();
+  draw();
+  updateScoreDisplay();
+  renderMovieList();
+  refreshOnlinePanel();
+  setOnlineMessage("Saved game cleared. This browser is now starting fresh.");
+  setStatus("Fresh game ready.");
+}
+
 let endGameForEveryoneArmedUntil=0;
 async function endGameForEveryone(){
   if(!remoteRoomRef||remotePlayerIndex!==0){
