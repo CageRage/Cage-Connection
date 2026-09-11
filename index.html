@@ -4610,14 +4610,35 @@ function renderNode(nodeObj) {
   // Show the full score immediately, including any +3 row-merge bonus.
   updateScoreDisplay();
 
-  // A connection is a turn-owned board change. Push the exact board and the
-  // mover's score before the turn flips so stale Firebase connections cannot
-  // attach themselves to a newly-added/re-added movie.
+  // A connection is a turn-owned board change. Save the board AND the
+  // mover's score in one Firebase transaction before the turn flips.
+  // This avoids the old race where the board update could arrive first
+  // with a stale score of 0 and then get written back over the earned points.
   if (typeof remoteRoomRef !== "undefined" && remoteRoomRef &&
       (remotePlayerIndex === currentPlayerIndex)) {
     const mover = currentPlayerIndex;
-    remoteRoomRef.child("state/board").set(getBoardData()).catch(err => console.error("Authoritative board sync failed", err));
-    remoteRoomRef.child(`state/scores/${mover}`).set(Number(players[mover].score || 0)).catch(err => console.error("Authoritative score sync failed", err));
+    const moverScore = Number(players[mover].score || 0);
+    const boardSnapshot = getBoardData();
+
+    try {
+      await remoteRoomRef.child("state").transaction(current => {
+        const base = current || getRemoteState();
+        const scores = Array.isArray(base.scores) && base.scores.length >= 2
+          ? [Number(base.scores[0] || 0), Number(base.scores[1] || 0)]
+          : [0, 0];
+
+        scores[mover] = moverScore;
+
+        return {
+          ...base,
+          board: boardSnapshot,
+          scores,
+          updatedAt: Date.now()
+        };
+      });
+    } catch (err) {
+      console.error("Authoritative connection sync failed", err);
+    }
   }
 
   switchTurnAfterConnection(earnsRowMergeBonus);
