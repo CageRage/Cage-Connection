@@ -1340,7 +1340,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
       <div class="picker-actions">
         <button onclick="selectAllVisibleMovies()">Select All Visible</button>
         <button onclick="clearMovieChecks()">Clear Checks</button>
-        <button onclick="addSelectedMovies()">Add Selected</button>
+        <button id="addSelectedButton" onclick="this.textContent='Adding...'; addSelectedMovies().finally(()=>this.textContent='Add Selected')">Add Selected</button>
         <button onclick="addAllVisibleMovies()">Add All Visible</button>
         <button onclick="addCustomMovie()">Add Custom Title</button>
       </div>
@@ -4296,11 +4296,11 @@ function renderNode(nodeObj) {
       document.querySelectorAll(".movie-check").forEach(cb => cb.checked = false);
     }
 
-    function addSelectedMovies() {
+    async function addSelectedMovies() {
       const checked = Array.from(document.querySelectorAll(".movie-check:checked")).map(cb => cb.value);
 
       if (!checked.length) {
-        alert("Select at least one movie.");
+        setStatus("Select at least one movie first.");
         return;
       }
 
@@ -4310,9 +4310,29 @@ function renderNode(nodeObj) {
         addMovieByName(title, positions[index]);
       });
 
-      saveBoard();
-      syncAddedMovieBoardNow();
+      const boardSnapshot = getBoardData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(boardSnapshot));
       draw();
+
+      // In an online room, write the new board directly and atomically.
+      // Do not depend on whose turn the local browser thinks it is.
+      if (typeof remoteRoomRef !== "undefined" && remoteRoomRef) {
+        try {
+          await remoteRoomRef.child("state").transaction(current => {
+            const base = current || getRemoteState();
+            return {
+              ...base,
+              board: mergeRemoteBoards(base.board, boardSnapshot),
+              updatedAt: Date.now()
+            };
+          });
+        } catch (err) {
+          console.error("Add Selected sync failed", err);
+          setStatus("Movie was added locally, but online sync failed. Try Save Game.");
+          return;
+        }
+      }
+
       renderMovieList();
       clearMovieChecks();
       closeMoviePicker();
@@ -4320,11 +4340,11 @@ function renderNode(nodeObj) {
       setStatus(`${checked.length} movie${checked.length === 1 ? "" : "s"} added.`);
     }
 
-    function addAllVisibleMovies() {
+    async function addAllVisibleMovies() {
       const visible = Array.from(document.querySelectorAll(".movie-check")).map(cb => cb.value);
 
       if (!visible.length) {
-        alert("No visible movies to add.");
+        setStatus("No visible movies to add.");
         return;
       }
 
@@ -4334,9 +4354,27 @@ function renderNode(nodeObj) {
         addMovieByName(title, positions[index]);
       });
 
-      saveBoard();
-      syncAddedMovieBoardNow();
+      const boardSnapshot = getBoardData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(boardSnapshot));
       draw();
+
+      if (typeof remoteRoomRef !== "undefined" && remoteRoomRef) {
+        try {
+          await remoteRoomRef.child("state").transaction(current => {
+            const base = current || getRemoteState();
+            return {
+              ...base,
+              board: mergeRemoteBoards(base.board, boardSnapshot),
+              updatedAt: Date.now()
+            };
+          });
+        } catch (err) {
+          console.error("Add All Visible sync failed", err);
+          setStatus("Movies were added locally, but online sync failed. Try Save Game.");
+          return;
+        }
+      }
+
       renderMovieList();
       closeMoviePicker();
       updateWinStatus();
