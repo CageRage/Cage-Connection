@@ -1,7 +1,5 @@
 
 <!DOCTYPE html>
-<!-- CAGE CONNECTION BUILD: MEMBER-SLOTS + END-GAME-FOR-EVERYONE -->
-
 <html lang="en">
 <head>
   <link rel="icon" type="image/png" href="cage-connection-icon.png">
@@ -1757,17 +1755,29 @@ function updateScoreDisplay() {
   const scoreDisplay = document.getElementById("scoreDisplay");
   const turnDisplay = document.getElementById("turnDisplay");
 
-  const currentPlayer = players[currentPlayerIndex];
+  const currentPlayer = players[currentPlayerIndex] || { name: `Player ${currentPlayerIndex+1}` };
 
   if (turnDisplay) {
     turnDisplay.textContent = `Turn: ${currentPlayer.name}`;
   }
 
   if (scoreDisplay) {
-    scoreDisplay.textContent =
-      `${players[0].name}: ${players[0].score} | ` +
-      `${players[1].name}: ${players[1].score} | ` +
-      `Board: ${calculateScore()}`;
+    const connected = (typeof remoteMemberNames !== "undefined" && Array.isArray(remoteMemberNames))
+      ? remoteMemberNames.filter(Boolean)
+      : [];
+
+    if (remoteRoomCode && connected.length) {
+      const parts = connected.map((name, i) => {
+        const score = Number(players[i]?.score || 0);
+        return `${name}: ${score}`;
+      });
+      scoreDisplay.textContent = `${parts.join(" | ")} | Board: ${calculateScore()}`;
+    } else {
+      scoreDisplay.textContent =
+        `${players[0].name}: ${players[0].score} | ` +
+        `${players[1].name}: ${players[1].score} | ` +
+        `Board: ${calculateScore()}`;
+    }
   }
 }
     function normalizeTitle(title) {
