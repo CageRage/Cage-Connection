@@ -1322,7 +1322,8 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button type="button" class="online-primary" onclick="copyInviteLink()">Copy Invite Link</button>
           <button type="button" class="online-primary" onclick="saveRemoteGameNow()">Save Game</button>
-          <button type="button" onclick="leaveRemoteGame()">Leave Game</button>
+          <button type="button" onclick="leaveRemoteGame()">Leave Room</button>
+          <button id="endRemoteGameButton" type="button" onclick="endRemoteGame()" style="display:none">End Game for Everyone</button>
         </div>
       </section>
       <div id="onlineMessage" class="online-message" aria-live="polite">Create a room, join one, or resume a saved game. Remote games autosave continuously.</div>
@@ -5995,7 +5996,7 @@ function clearDockChat(){const box=document.getElementById("dockChatMessages");i
 function appendDockChat(msg){const box=document.getElementById("dockChatMessages");if(!box||!msg)return;if(box.children.length===1&&box.textContent.includes("Join an online room"))box.innerHTML="";const line=document.createElement("div");line.className="dock-chat-line";const name=document.createElement("span");name.className="dock-chat-name";name.textContent=`${String(msg.name||"Player")}: `;const text=document.createElement("span");text.textContent=String(msg.text||"");line.append(name,text);box.appendChild(line);while(box.children.length>12)box.removeChild(box.firstChild);box.scrollTop=box.scrollHeight;}
 function sendDockChat(event){if(event)event.preventDefault();if(!remoteRoomRef||!(remotePlayerIndex===0||remotePlayerIndex===1)){setStatus("Join an online room to use Game Notes chat.");return;}const input=document.getElementById("dockChatInput");const text=String(input?.value||"").trim().slice(0,180);if(!text)return;const name=players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`;remoteRoomRef.child("chat").push({name,playerIndex:remotePlayerIndex,text,createdAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{if(input){input.value="";input.focus();}}).catch(err=>{console.error("Chat send failed",err);setStatus("Chat message could not be sent.");});}
 function detachRemoteListeners(){if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
-function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(12);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
+function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state);else handleRemoteRoomEnded()};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(12);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
 function clearLocalBoardAfterRoomCreated(){
   nodes.forEach(n=>{try{n.el.remove()}catch{}});
   nodes=[];
@@ -6113,6 +6114,56 @@ async function joinRemoteGame(){
 async function saveRemoteGameNow(){if(!remoteRoomRef){setOnlineMessage("Create, join, or resume a remote game first.");return}setOnlineMessage("Saving game…");try{const localState=getRemoteState();await remoteRoomRef.child("state").transaction(current=>{if(!current)return localState;const scores=Array.isArray(current.scores)&&current.scores.length>=2?[Number(current.scores[0]||0),Number(current.scores[1]||0)]:[0,0];if(remotePlayerIndex===0||remotePlayerIndex===1)scores[remotePlayerIndex]=Number(localState.scores?.[remotePlayerIndex]||0);return{...current,...localState,scores,board:mergeRemoteBoards(current.board,localState.board),recentActions:mergeRecentActions(current.recentActions,localState.recentActions),updatedAt:Date.now()}});await remoteRoomRef.child("savedAt").set(firebase.database.ServerValue.TIMESTAMP);if(remotePlayerIndex===0||remotePlayerIndex===1)await remoteRoomRef.child(`members/${remotePlayerIndex}/name`).set(cleanPlayerName(players[remotePlayerIndex]?.name,`Player ${remotePlayerIndex+1}`));saveRemoteSession();setOnlineMessage(`Game ${remoteRoomCode} saved. You can close the browser and resume later with this room code.`);setStatus(`Game ${remoteRoomCode} saved.`)}catch(err){console.error(err);setOnlineMessage(`Could not save game: ${err.message||err}`)}}
 async function resumeRemoteGame(sessionOverride=null){if(!remoteDb){setOnlineMessage("Firebase did not load. Refresh the page and try again.");return}const code=cleanRoomCode(sessionOverride?.code||document.getElementById("onlineResumeCode")?.value);const roleRaw=sessionOverride?.playerIndex??document.getElementById("onlineResumeRole")?.value;const role=Number(roleRaw);const typedName=String(sessionOverride?.name??document.getElementById("onlineResumeName")?.value??"").trim();if(code.length!==6){setOnlineMessage("Enter the 6-character room code.");return}if(role!==0&&role!==1){setOnlineMessage("Choose Player 1 or Player 2.");return}setOnlineMessage("Resuming saved game…");try{const roomRef=remoteDb.ref(`games/${code}`),snap=await roomRef.once("value");if(!snap.exists()||!snap.val().state){setOnlineMessage("That saved room was not found.");return}remoteRoomCode=code;remotePlayerIndex=role;remoteRoomRef=roomRef;const roomValue=snap.val();let members=await ensureRemoteMembers(roomValue);if(typedName){const nm=cleanPlayerName(typedName,`Player ${role+1}`);await remoteRoomRef.child(`members/${role}/name`).set(nm);members={...members,[String(role)]:{name:nm}}}applyRemoteState(roomValue.state);applyRemoteMembers(members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();setOnlineMessage(`Resumed room ${code} as ${players[role]?.name||`Player ${role+1}`}. Live sync is on.`);setStatus(`Resumed online room ${code}.`)}catch(err){console.error(err);setOnlineMessage(`Could not resume game: ${err.message||err}`)}}
 function resumeLastRemoteGame(){const x=getRemoteSession();if(!x){setOnlineMessage("No previously saved room was found on this browser.");return}resumeRemoteGame(x)}
+let endRemoteGameArmedUntil=0;
+function disconnectRemoteLocally(message="Remote game disconnected. Local mode active."){
+  detachRemoteListeners();
+  clearDockChat();
+  clearTimeout(remoteSyncTimer);
+  clearTimeout(remoteNameSyncTimer);
+  remoteRoomCode=null;
+  remotePlayerIndex=null;
+  remoteRoomRef=null;
+  remoteMemberCount=0;
+  remoteMemberNames=[];
+  try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}
+  try{const u=new URL(window.location.href);u.searchParams.delete("room");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch{}
+  const c=document.getElementById("onlineResumeCode");
+  if(c)c.value="";
+  refreshOnlinePanel();
+  setStatus(message);
+}
+function handleRemoteRoomEnded(){
+  if(!remoteRoomCode)return;
+  const endedCode=remoteRoomCode;
+  disconnectRemoteLocally(`Game ${endedCode} was ended by the host.`);
+  setOnlineMessage(`Game ${endedCode} has ended and the room was deleted.`);
+}
+async function endRemoteGame(){
+  if(!remoteRoomRef||!remoteRoomCode){setOnlineMessage("There is no active online game to end.");return}
+  if(remotePlayerIndex!==0){setOnlineMessage("Only the host can end the game for everyone. You can use Leave Room to disconnect yourself.");return}
+  const now=Date.now();
+  const btn=document.getElementById("endRemoteGameButton");
+  if(now>endRemoteGameArmedUntil){
+    endRemoteGameArmedUntil=now+5000;
+    if(btn)btn.textContent="Click again to END GAME";
+    setOnlineMessage("Click End Game for Everyone again within 5 seconds to permanently delete this room.");
+    setTimeout(()=>{if(Date.now()>endRemoteGameArmedUntil){const b=document.getElementById("endRemoteGameButton");if(b)b.textContent="End Game for Everyone"}},5200);
+    return;
+  }
+  endRemoteGameArmedUntil=0;
+  if(btn)btn.textContent="End Game for Everyone";
+  const endedCode=remoteRoomCode;
+  const ref=remoteRoomRef;
+  setOnlineMessage(`Ending game ${endedCode}…`);
+  try{
+    await ref.remove();
+    disconnectRemoteLocally(`Game ${endedCode} ended.`);
+    setOnlineMessage(`Game ${endedCode} ended and the room was permanently deleted.`);
+  }catch(err){
+    console.error("End game failed",err);
+    setOnlineMessage(`Could not end game: ${err.message||err}`);
+  }
+}
 async function autoResumeRemoteSession(){
   try{
     if(remoteRoomCode||!remoteDb)return;
@@ -6128,7 +6179,7 @@ async function autoResumeRemoteSession(){
     setStatus("Could not automatically reconnect. Use Online → Resume Last Game.");
   }
 }
-function leaveRemoteGame(){detachRemoteListeners();clearDockChat();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);remoteRoomCode=null;remotePlayerIndex=null;remoteRoomRef=null;remoteMemberCount=0;remoteMemberNames=[];try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}try{const u=new URL(window.location.href);u.searchParams.delete("room");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch{}const c=document.getElementById("onlineResumeCode");if(c)c.value="";refreshOnlinePanel();setOnlineMessage("You left the remote room. It is no longer marked as your active/resume-last game.");setStatus("Remote game disconnected. Local mode active.")}
+function leaveRemoteGame(){const code=remoteRoomCode;disconnectRemoteLocally("Remote game disconnected. Local mode active.");setOnlineMessage(code?`You left room ${code}. The room still exists for the other players until the host ends it.`:"You are not connected to an online room.")}
 function refreshOnlinePanel(){
   prefillRemoteResume();
   const b=document.getElementById("onlineStatusBadge"),
@@ -6145,12 +6196,16 @@ function refreshOnlinePanel(){
     if(role)role.textContent=`You are ${myName} (Player ${remotePlayerIndex+1})`;
     if(count)count.textContent=`${Math.max(1,remoteMemberCount||0)} of 4 players joined`;
     if(memberNames)memberNames.textContent=`Players: ${remoteMemberNames.filter(Boolean).join(" • ")||myName}`;
+    const endBtn=document.getElementById("endRemoteGameButton");
+    if(endBtn)endBtn.style.display=remotePlayerIndex===0?"inline-block":"none";
     refreshInviteLink();
   }else{
     if(b){b.textContent="Offline";b.classList.remove("live")}
     if(c)c.classList.add("hidden");
     if(count)count.textContent="0 of 4 players joined";
     if(memberNames)memberNames.textContent="Players: —";
+    const endBtn=document.getElementById("endRemoteGameButton");
+    if(endBtn)endBtn.style.display="none";
     refreshInviteLink();
   }
 }
