@@ -1321,6 +1321,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
           <button type="button" class="online-primary" onclick="copyInviteLink()">Copy Invite Link</button>
           <button type="button" class="online-primary" onclick="saveRemoteGameNow()">Save Game</button>
           <button type="button" onclick="leaveRemoteGame()">Leave Game</button>
+          <button id="endGameForEveryoneButton" type="button" onclick="endGameForEveryone()" style="display:none">End Game for Everyone</button>
         </div>
       </section>
       <div id="onlineMessage" class="online-message" aria-live="polite">Create a room, join one, or resume a saved game. Remote games autosave continuously.</div>
@@ -6029,8 +6030,67 @@ async function autoResumeRemoteSession(){
     setStatus("Could not automatically reconnect. Use Online → Resume Last Game.");
   }
 }
+let endGameForEveryoneArmedUntil=0;
+async function endGameForEveryone(){
+  if(!remoteRoomRef||remotePlayerIndex!==0){
+    setOnlineMessage("Only Player 1 / the host can end the game for everyone.");
+    return;
+  }
+
+  const now=Date.now();
+  const btn=document.getElementById("endGameForEveryoneButton");
+
+  if(now>endGameForEveryoneArmedUntil){
+    endGameForEveryoneArmedUntil=now+5000;
+    if(btn)btn.textContent="Confirm End Game for Everyone";
+    setOnlineMessage("Click End Game for Everyone again within 5 seconds to permanently delete this room.");
+    setTimeout(()=>{
+      if(Date.now()>endGameForEveryoneArmedUntil){
+        const b=document.getElementById("endGameForEveryoneButton");
+        if(b)b.textContent="End Game for Everyone";
+      }
+    },5200);
+    return;
+  }
+
+  endGameForEveryoneArmedUntil=0;
+  if(btn)btn.textContent="End Game for Everyone";
+
+  const endedCode=remoteRoomCode;
+  setOnlineMessage(`Ending room ${endedCode}…`);
+
+  try{
+    await withFirebaseTimeout(remoteRoomRef.remove());
+
+    detachRemoteListeners();
+    clearDockChat();
+    clearTimeout(remoteSyncTimer);
+    clearTimeout(remoteNameSyncTimer);
+    remoteRoomCode=null;
+    remotePlayerIndex=null;
+    remoteRoomRef=null;
+
+    try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}
+    try{
+      const u=new URL(window.location.href);
+      u.searchParams.delete("room");
+      history.replaceState(null,"",u.pathname+u.search+u.hash);
+    }catch{}
+
+    const c=document.getElementById("onlineResumeCode");
+    if(c)c.value="";
+
+    refreshOnlinePanel();
+    setOnlineMessage(`Room ${endedCode} was permanently ended and deleted.`);
+    setStatus("Online game ended. Local mode active.");
+  }catch(err){
+    console.error("Could not end game for everyone",err);
+    setOnlineMessage(`Could not end the game: ${err.message||err}`);
+  }
+}
+
 function leaveRemoteGame(){detachRemoteListeners();clearDockChat();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);remoteRoomCode=null;remotePlayerIndex=null;remoteRoomRef=null;try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}try{const u=new URL(window.location.href);u.searchParams.delete("room");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch{}const c=document.getElementById("onlineResumeCode");if(c)c.value="";refreshOnlinePanel();setOnlineMessage("You left the remote room. It is no longer marked as your active/resume-last game.");setStatus("Remote game disconnected. Local mode active.")}
-function refreshOnlinePanel(){prefillRemoteResume();const b=document.getElementById("onlineStatusBadge"),c=document.getElementById("onlineConnectedPanel"),r=document.getElementById("onlineRoomCode"),role=document.getElementById("onlineRoleText");if(remoteRoomCode){if(b){b.textContent=remoteRoomCode;b.classList.add("live")}if(c)c.classList.remove("hidden");if(r)r.textContent=remoteRoomCode;if(role)role.textContent=`You are ${players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`} (Player ${remotePlayerIndex+1})`;refreshInviteLink()}else{if(b){b.textContent="Offline";b.classList.remove("live")}if(c)c.classList.add("hidden");refreshInviteLink()}}
+function refreshOnlinePanel(){prefillRemoteResume();const b=document.getElementById("onlineStatusBadge"),c=document.getElementById("onlineConnectedPanel"),r=document.getElementById("onlineRoomCode"),role=document.getElementById("onlineRoleText"),endBtn=document.getElementById("endGameForEveryoneButton");if(remoteRoomCode){if(b){b.textContent=remoteRoomCode;b.classList.add("live")}if(c)c.classList.remove("hidden");if(r)r.textContent=remoteRoomCode;if(role)role.textContent=`You are ${players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`} (Player ${remotePlayerIndex+1})`;if(endBtn)endBtn.style.display=remotePlayerIndex===0?"inline-block":"none";refreshInviteLink()}else{if(b){b.textContent="Offline";b.classList.remove("live")}if(c)c.classList.add("hidden");if(endBtn){endBtn.style.display="none";endBtn.textContent="End Game for Everyone"}refreshInviteLink()}}
 function remoteTurnAllowed(){if(!remoteRoomCode)return true;if(remotePlayerIndex===currentPlayerIndex)return true;setStatus(`Waiting for ${players[currentPlayerIndex]?.name||`Player ${currentPlayerIndex+1}`}.`);return false}
 const _remoteSaveBoard=saveBoard;saveBoard=function(){_remoteSaveBoard();scheduleRemoteSync()};
 const _remoteSaveTwoPlayerState=saveTwoPlayerState;saveTwoPlayerState=function(){_remoteSaveTwoPlayerState();scheduleRemoteSync();scheduleOwnNameSync()};
