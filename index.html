@@ -1284,7 +1284,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
           <p>Start a shared room using the board currently on your screen.</p>
           <label for="onlineCreateName">Your name</label>
           <input id="onlineCreateName" type="text" maxlength="24" value="Player 1" />
-          <button type="button" class="online-primary" onclick="createRemoteGame()">Create Game</button>
+          <button id="createGameButton" type="button" class="online-primary">Create Game</button>
         </section>
         <section class="online-card">
           <h3>Join a game</h3>
@@ -6077,5 +6077,69 @@ updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
 setTimeout(()=>{applyInviteFromUrl();setTimeout(autoResumeRemoteSession,80)},0);
 
 </script>
+
+<script>
+(function(){
+  function showCreateMessage(msg){
+    const el=document.getElementById("onlineMessage");
+    if(el) el.textContent=msg;
+  }
+  async function createRoomFallback(){
+    showCreateMessage("Create button clicked — starting room…");
+    try{
+      if(typeof remoteDb === "undefined" || !remoteDb){
+        showCreateMessage("Firebase did not load. Refresh the page and try again.");
+        return;
+      }
+      const nameInput=document.getElementById("onlineCreateName");
+      const name=(nameInput && String(nameInput.value||"").trim()) || "Cagester";
+      const code=(typeof makeRoomCode === "function") ? makeRoomCode() : Math.random().toString(36).slice(2,8).toUpperCase();
+      const roomRef=remoteDb.ref(`games/${code}`);
+      const freshState={
+        version:2,
+        board:{nodes:[],connections:[]},
+        scores:[0,0],
+        currentPlayerIndex:0,
+        bonusUsedThisTurn:false,
+        recentActions:[],
+        updatedAt:firebase.database.ServerValue.TIMESTAMP
+      };
+      showCreateMessage(`Creating room ${code}…`);
+      await Promise.race([
+        roomRef.set({
+          schemaVersion:3,
+          maxPlayers:4,
+          createdAt:firebase.database.ServerValue.TIMESTAMP,
+          members:{"0":{name}},
+          state:freshState
+        }),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error("Firebase did not respond within 12 seconds.")),12000))
+      ]);
+      players[0].name=name;
+      players[1].name="Player 2";
+      remoteRoomCode=code;
+      remotePlayerIndex=0;
+      remoteRoomRef=roomRef;
+      remoteMemberCount=1;
+      if(typeof clearLocalBoardAfterRoomCreated === "function") clearLocalBoardAfterRoomCreated();
+      if(typeof attachRemoteListeners === "function") attachRemoteListeners();
+      if(typeof saveRemoteSession === "function") saveRemoteSession();
+      if(typeof refreshOnlinePanel === "function") refreshOnlinePanel();
+      showCreateMessage(`Room ${code} is ready — 1 of 4 players joined.`);
+      if(typeof setStatus === "function") setStatus(`Online room ${code} created.`);
+    }catch(err){
+      console.error("Create room fallback failed",err);
+      showCreateMessage(`Could not create room: ${err && err.message ? err.message : err}`);
+    }
+  }
+  function wire(){
+    const btn=document.getElementById("createGameButton");
+    if(!btn) return;
+    btn.addEventListener("click", createRoomFallback);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded",wire); else wire();
+})();
+</script>
+
 </body>
 </html> 
