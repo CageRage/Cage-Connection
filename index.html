@@ -1291,7 +1291,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
           <label for="onlineJoinCode">Room code</label>
           <input id="onlineJoinCode" type="text" maxlength="6" placeholder="ABC123" autocapitalize="characters" />
           <label for="onlineJoinName">Your name</label>
-          <input id="onlineJoinName" type="text" maxlength="24" value="Player 2" />
+          <input id="onlineJoinName" type="text" maxlength="24" placeholder="Enter your name" autocomplete="off" />
           <button type="button" class="online-primary" onclick="joinRemoteGame()">Join Game</button>
         </section>
         <section class="online-card">
@@ -5868,7 +5868,37 @@ const CANONICAL_GAME_URL="https://cagerage.github.io/Cage-Connection/";
 function makeInviteLink(code=remoteRoomCode){const clean=cleanRoomCode(code);return clean?`${CANONICAL_GAME_URL}?room=${encodeURIComponent(clean)}`:CANONICAL_GAME_URL}
 function refreshInviteLink(){const el=document.getElementById("onlineInviteLink");if(el)el.value=remoteRoomCode?makeInviteLink(remoteRoomCode):""}
 async function copyInviteLink(){if(!remoteRoomCode){setOnlineMessage("Create or join a room first.");return}const link=makeInviteLink(remoteRoomCode);const el=document.getElementById("onlineInviteLink");if(el)el.value=link;let copied=false;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(link);copied=true}}catch{}if(!copied&&el){try{el.focus();el.select();copied=document.execCommand("copy")}catch{}}setOnlineMessage(copied?`Invite link copied for room ${remoteRoomCode}.`:`Invite link ready below. Copy it and send it to Player 2.`)}
-function applyInviteFromUrl(){try{const params=new URLSearchParams(window.location.search);const code=cleanRoomCode(params.get("room"));if(code.length!==6)return;const join=document.getElementById("onlineJoinCode");if(join)join.value=code;const resume=document.getElementById("onlineResumeCode");if(resume&&!resume.value)resume.value=code;openOnlinePanel();setOnlineMessage(`Invitation loaded for room ${code}. Enter your name and click Join Game.`);setTimeout(()=>{const name=document.getElementById("onlineJoinName");if(name)name.focus()},0)}catch(err){console.error("Invite link parsing failed",err)}}
+function applyInviteFromUrl(){
+  try{
+    const params=new URLSearchParams(window.location.search);
+    const code=cleanRoomCode(params.get("room"));
+    if(code.length!==6)return false;
+
+    // An invitation must ALWAYS be a fresh join, never an automatic resume of an old seat.
+    if(remoteRoomCode||remoteRoomRef){
+      try{disconnectRemoteLocally("Invitation opened. Choose your name and join the invited room.")}catch{}
+    }
+    try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}
+
+    const join=document.getElementById("onlineJoinCode");
+    if(join)join.value=code;
+    const joinName=document.getElementById("onlineJoinName");
+    if(joinName)joinName.value="";
+    const resume=document.getElementById("onlineResumeCode");
+    if(resume)resume.value="";
+
+    openOnlinePanel();
+    setOnlineMessage(`Invitation loaded for room ${code}. Enter your name and click Join Game.`);
+    setTimeout(()=>{
+      const name=document.getElementById("onlineJoinName");
+      if(name){name.value="";name.focus();}
+    },0);
+    return true;
+  }catch(err){
+    console.error("Invite link parsing failed",err);
+    return false;
+  }
+}
 function makeRoomCode(){const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let o="";for(let i=0;i<6;i++)o+=c[Math.floor(Math.random()*c.length)];return o}
 function saveRemoteSession(){if(!remoteRoomCode||!(remotePlayerIndex===0||remotePlayerIndex===1))return;try{localStorage.setItem(REMOTE_SESSION_KEY,JSON.stringify({code:remoteRoomCode,playerIndex:remotePlayerIndex,name:players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`}))}catch{}}
 function getRemoteSession(){try{const x=JSON.parse(localStorage.getItem(REMOTE_SESSION_KEY)||"null");return x&&typeof x.code==="string"?x:null}catch{return null}}
@@ -6228,7 +6258,7 @@ function guardTurnFunction(name){const original=window[name];if(typeof original!
 ["connectMode","openBonusRound","startCastLookup","startChallengeMode","startRemoveMovie","endTurn"].forEach(guardTurnFunction);
 refreshOnlinePanel();
 updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
-setTimeout(()=>{applyInviteFromUrl();setTimeout(autoResumeRemoteSession,80)},0);
+setTimeout(()=>{const invited=applyInviteFromUrl();if(!invited)setTimeout(autoResumeRemoteSession,80)},0);
 
 </script>
 </body>
