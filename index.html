@@ -5874,12 +5874,6 @@ function applyInviteFromUrl(){
     const code=cleanRoomCode(params.get("room"));
     if(code.length!==6)return false;
 
-    // An invitation must ALWAYS be a fresh join, never an automatic resume of an old seat.
-    if(remoteRoomCode||remoteRoomRef){
-      try{disconnectRemoteLocally("Invitation opened. Choose your name and join the invited room.")}catch{}
-    }
-    try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}
-
     const join=document.getElementById("onlineJoinCode");
     if(join)join.value=code;
     const joinName=document.getElementById("onlineJoinName");
@@ -6258,7 +6252,7 @@ function guardTurnFunction(name){const original=window[name];if(typeof original!
 ["connectMode","openBonusRound","startCastLookup","startChallengeMode","startRemoveMovie","endTurn"].forEach(guardTurnFunction);
 refreshOnlinePanel();
 updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
-setTimeout(()=>{const invited=applyInviteFromUrl();if(!invited)setTimeout(autoResumeRemoteSession,80)},0);
+setTimeout(()=>{applyInviteFromUrl();setTimeout(autoResumeRemoteSession,80)},0);
 
 </script>
 </body>
