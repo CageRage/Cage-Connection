@@ -6080,9 +6080,26 @@ async function endGameForEveryone(){
     const c=document.getElementById("onlineResumeCode");
     if(c)c.value="";
 
+    // Also clear the local saved game so opening the site does not
+    // bring the host back to the old board after the online room is gone.
+    try{localStorage.removeItem(STORAGE_KEY)}catch{}
+    try{localStorage.removeItem(TWO_PLAYER_STATE_KEY)}catch{}
+
+    // Reset the visible board and scores using the game's own reset state.
+    movies.length=0;
+    connections.length=0;
+    players[0].score=0;
+    players[1].score=0;
+    currentPlayerIndex=0;
+    bonusUsedThisTurn=false;
+    clearSelection();
+    draw();
+    updateScoreDisplay();
+    renderMovieList();
+
     refreshOnlinePanel();
-    setOnlineMessage(`Room ${endedCode} was permanently ended and deleted.`);
-    setStatus("Online game ended. Local mode active.");
+    setOnlineMessage(`Room ${endedCode} was permanently ended and the local game was cleared.`);
+    setStatus("Game ended. Start a new game from Online.");
   }catch(err){
     console.error("Could not end game for everyone",err);
     setOnlineMessage(`Could not end the game: ${err.message||err}`);
