@@ -636,6 +636,9 @@
 #bonusImage { display:block; width:min(250px,70vw); max-height:330px; object-fit:cover; margin:0 auto; border-radius:8px; border:1px solid #465a75; }
 #bonusAnswer { width:100%; box-sizing:border-box; padding:11px 12px; border-radius:8px; border:1px solid #3a4f6f; background:#182234; color:white; font-size:16px; margin-top:12px; }
 #bonusResult { min-height:22px; margin-top:10px; color:#ffd54a; font-weight:700; }
+#bonusReactionPanel { margin-top:14px; text-align:center; }
+#bonusReactionPanel.hidden { display:none; }
+#bonusReactionImage { display:block; width:min(420px,86vw); max-height:300px; object-fit:contain; margin:0 auto; border-radius:10px; border:1px solid #465a75; background:#0b0f14; }
 .bonus-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap; }
 .bonus-success { color:#7ee787 !important; }
 .bonus-fail { color:#ff9b9b !important; }
@@ -1449,6 +1452,9 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
       <label for="bonusAnswer">Which Nicolas Cage movie is it?</label>
       <input id="bonusAnswer" type="text" autocomplete="off" placeholder="Movie title">
       <div id="bonusResult" aria-live="polite"></div>
+      <div id="bonusReactionPanel" class="hidden" aria-live="polite">
+        <img id="bonusReactionImage" alt="Nicolas Cage reaction">
+      </div>
       <div class="bonus-actions">
         <button type="button" id="bonusCancelBtn">Cancel</button>
         <button type="button" id="bonusSubmitBtn">Submit Answer</button>
@@ -1511,6 +1517,8 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     const bonusImage = document.getElementById("bonusImage");
     const bonusAnswer = document.getElementById("bonusAnswer");
     const bonusResult = document.getElementById("bonusResult");
+    const bonusReactionPanel = document.getElementById("bonusReactionPanel");
+    const bonusReactionImage = document.getElementById("bonusReactionImage");
     const bonusQuoteChoice = document.getElementById("bonusQuoteChoice");
     const bonusPictureChoice = document.getElementById("bonusPictureChoice");
     const bonusCloseBtn = document.getElementById("bonusCloseBtn");
@@ -4705,10 +4713,9 @@ const BONUS_WRONG_REACTIONS = [
 function showRandomWrongBonusReaction() {
   if (!BONUS_WRONG_REACTIONS.length) return;
   const src = BONUS_WRONG_REACTIONS[Math.floor(Math.random() * BONUS_WRONG_REACTIONS.length)];
-  bonusQuote.classList.add("hidden");
-  bonusImage.src = src;
-  bonusImage.alt = "Nicolas Cage reaction to an incorrect Bonus Round answer";
-  bonusImage.classList.remove("hidden");
+  bonusReactionImage.src = `${src}?v=${Date.now()}`;
+  bonusReactionImage.alt = "Nicolas Cage reaction to an incorrect Bonus Round answer";
+  bonusReactionPanel.classList.remove("hidden");
 }
 
 function normalizeBonusAnswer(value) {
@@ -4737,6 +4744,8 @@ function closeBonusRound() {
   bonusAnswer.value = "";
   bonusResult.textContent = "";
   bonusResult.className = "";
+  bonusReactionPanel.classList.add("hidden");
+  bonusReactionImage.removeAttribute("src");
   activeBonus = null;
 }
 
@@ -4771,6 +4780,8 @@ function startBonus(mode) {
   bonusPlay.classList.remove("hidden");
   bonusResult.textContent = "";
   bonusResult.className = "";
+  bonusReactionPanel.classList.add("hidden");
+  bonusReactionImage.removeAttribute("src");
   bonusAnswer.value = "";
 
   if (mode === "quote") {
@@ -4808,13 +4819,15 @@ function submitBonusAnswer() {
     bonusResult.textContent = `Not this time. It was ${activeBonus.title}.`;
     bonusResult.className = "bonus-fail";
     showRandomWrongBonusReaction();
+    bonusQuote.classList.add("hidden");
+    bonusImage.classList.add("hidden");
     setStatus(`${players[currentPlayerIndex].name} missed the Bonus Round.`);
   }
   saveTwoPlayerState();
   updateScoreDisplay();
   bonusSubmitBtn.disabled = true;
   bonusAnswer.disabled = true;
-  const closeDelay = correct ? 1600 : 3000;
+  const closeDelay = correct ? 1600 : 4000;
   setTimeout(() => {
     bonusSubmitBtn.disabled = false;
     bonusAnswer.disabled = false;
