@@ -4812,27 +4812,23 @@ function closeBonusRound() {
 
 function openBonusRound() {
   const me = players[currentPlayerIndex];
-  const other = players[currentPlayerIndex === 0 ? 1 : 0];
-  if (Number(me.score || 0) >= Number(other.score || 0)) {
-    setStatus(`Bonus Round is only available while ${me.name} is behind.`);
-    return;
-  }
+
   if (bonusUsedThisTurn) {
-    setStatus(`${me.name} already used the Bonus Round this turn.`);
+    setStatus("Bonus Round has already been used this turn.");
     return;
   }
-  bonusSubtitle.textContent = `${me.name} is behind ${me.score}–${other.score}. Choose your +10 challenge.`;
+
+  bonusSubtitle.textContent = `${me.name}: choose a Bonus Round challenge.`;
   bonusChooser.classList.remove("hidden");
   bonusPlay.classList.add("hidden");
-  bonusOverlay.classList.remove("hidden");
+  bonusModal.classList.remove("hidden");
 }
 
 function startBonus(mode) {
   const me = players[currentPlayerIndex];
-  const other = players[currentPlayerIndex === 0 ? 1 : 0];
-  if (Number(me.score || 0) >= Number(other.score || 0) || bonusUsedThisTurn) {
+  if (bonusUsedThisTurn) {
     closeBonusRound();
-    setStatus("Bonus Round is no longer available.");
+    setStatus("Bonus Round has already been used this turn.");
     return;
   }
 
