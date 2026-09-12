@@ -4707,11 +4707,7 @@ function showConnectionDialog(first, second) {
 }
 
 const BONUS_WRONG_REACTIONS = [
-  "reactions/wrong/bonus_wrong_01.gif"
-];
-
-const BONUS_CORRECT_REACTIONS = [
-  "reactions/correct/bonus_correct_01.gif"
+  "reactions/wrong/bonus_wrong_03.gif"
 ];
 
 function showRandomWrongBonusReaction() {
@@ -4721,6 +4717,11 @@ function showRandomWrongBonusReaction() {
   bonusReactionImage.alt = "Nicolas Cage reaction to an incorrect Bonus Round answer";
   bonusReactionPanel.classList.remove("hidden");
 }
+
+const BONUS_CORRECT_REACTIONS = [
+  "reactions/correct/bonus_correct_03.gif",
+  "reactions/correct/bonus_correct_04.gif"
+];
 
 function showRandomCorrectBonusReaction() {
   if (!BONUS_CORRECT_REACTIONS.length) return;
