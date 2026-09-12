@@ -4710,11 +4710,23 @@ const BONUS_WRONG_REACTIONS = [
   "reactions/wrong/bonus_wrong_01.gif"
 ];
 
+const BONUS_CORRECT_REACTIONS = [
+  "reactions/correct/bonus_correct_01.gif"
+];
+
 function showRandomWrongBonusReaction() {
   if (!BONUS_WRONG_REACTIONS.length) return;
   const src = BONUS_WRONG_REACTIONS[Math.floor(Math.random() * BONUS_WRONG_REACTIONS.length)];
   bonusReactionImage.src = `${src}?v=${Date.now()}`;
   bonusReactionImage.alt = "Nicolas Cage reaction to an incorrect Bonus Round answer";
+  bonusReactionPanel.classList.remove("hidden");
+}
+
+function showRandomCorrectBonusReaction() {
+  if (!BONUS_CORRECT_REACTIONS.length) return;
+  const src = BONUS_CORRECT_REACTIONS[Math.floor(Math.random() * BONUS_CORRECT_REACTIONS.length)];
+  bonusReactionImage.src = `${src}?v=${Date.now()}`;
+  bonusReactionImage.alt = "Nicolas Cage reaction to a correct Bonus Round answer";
   bonusReactionPanel.classList.remove("hidden");
 }
 
@@ -4814,6 +4826,9 @@ function submitBonusAnswer() {
     players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) + 10;
     bonusResult.textContent = `Correct — ${activeBonus.title}. +10 points!`;
     bonusResult.className = "bonus-success";
+    showRandomCorrectBonusReaction();
+    bonusQuote.classList.add("hidden");
+    bonusImage.classList.add("hidden");
     setStatus(`${players[currentPlayerIndex].name} won the Bonus Round for +10.`);
   } else {
     bonusResult.textContent = `Not this time. It was ${activeBonus.title}.`;
@@ -4827,7 +4842,7 @@ function submitBonusAnswer() {
   updateScoreDisplay();
   bonusSubmitBtn.disabled = true;
   bonusAnswer.disabled = true;
-  const closeDelay = correct ? 1600 : 4000;
+  const closeDelay = 4000;
   setTimeout(() => {
     bonusSubmitBtn.disabled = false;
     bonusAnswer.disabled = false;
