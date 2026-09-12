@@ -4698,6 +4698,19 @@ function showConnectionDialog(first, second) {
   });
 }
 
+const BONUS_WRONG_REACTIONS = [
+  "reactions/wrong/bonus_wrong_01.gif"
+];
+
+function showRandomWrongBonusReaction() {
+  if (!BONUS_WRONG_REACTIONS.length) return;
+  const src = BONUS_WRONG_REACTIONS[Math.floor(Math.random() * BONUS_WRONG_REACTIONS.length)];
+  bonusQuote.classList.add("hidden");
+  bonusImage.src = src;
+  bonusImage.alt = "Nicolas Cage reaction to an incorrect Bonus Round answer";
+  bonusImage.classList.remove("hidden");
+}
+
 function normalizeBonusAnswer(value) {
   return String(value || "")
     .toLowerCase()
@@ -4794,17 +4807,19 @@ function submitBonusAnswer() {
   } else {
     bonusResult.textContent = `Not this time. It was ${activeBonus.title}.`;
     bonusResult.className = "bonus-fail";
+    showRandomWrongBonusReaction();
     setStatus(`${players[currentPlayerIndex].name} missed the Bonus Round.`);
   }
   saveTwoPlayerState();
   updateScoreDisplay();
   bonusSubmitBtn.disabled = true;
   bonusAnswer.disabled = true;
+  const closeDelay = correct ? 1600 : 3000;
   setTimeout(() => {
     bonusSubmitBtn.disabled = false;
     bonusAnswer.disabled = false;
     closeBonusRound();
-  }, 1600);
+  }, closeDelay);
 }
 
 bonusQuoteChoice.addEventListener("click", () => startBonus("quote"));
