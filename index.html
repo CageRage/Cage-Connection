@@ -1435,7 +1435,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
   
 <div id="bonusOverlay" class="hidden">
   <div id="bonusDialog" role="dialog" aria-modal="true" aria-labelledby="bonusTitle">
-    <h2 id="bonusTitle">Bonus Round</h2>
+    <h2 id="bonusTitle">Bonus Round <span style="font-size:12px;opacity:.65">(GIF FIX v3)</span></h2>
     <div id="bonusSubtitle" class="bonus-sub"></div>
     <div id="bonusChooser">
       <div class="bonus-choice-row">
@@ -1457,7 +1457,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
       </div>
       <div class="bonus-actions">
         <button type="button" id="bonusCancelBtn">Cancel</button>
-        <button type="button" id="bonusSubmitBtn">Submit Answer</button>
+        <button type="button" id="bonusSubmitBtn" onclick="submitBonusAnswer()">Submit Answer</button>
       </div>
     </div>
   </div>
@@ -4778,8 +4778,9 @@ function normalizeBonusAnswer(value) {
   return String(value || "")
     .toLowerCase()
     .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "")
+    .replace(/^(the|a|an)/, "");
 }
 
 function isBonusAnswerCorrect(answer, title) {
@@ -4859,46 +4860,69 @@ function startBonus(mode) {
 }
 
 function submitBonusAnswer() {
-  if (!activeBonus) return;
+  if (!activeBonus) {
+    bonusResult.textContent = "No active Bonus Round question.";
+    return;
+  }
+
   const answer = bonusAnswer.value.trim();
   if (!answer) {
     bonusResult.textContent = "Enter a movie title.";
     return;
   }
-  const correct = isBonusAnswerCorrect(answer, activeBonus.title);
+
+  // Give immediate feedback so Submit can never appear dead.
+  bonusSubmitBtn.disabled = true;
+  bonusAnswer.disabled = true;
+  bonusSubmitBtn.textContent = "Checking…";
+
+  let correct = false;
+  try {
+    correct = isBonusAnswerCorrect(answer, activeBonus.title);
+  } catch (err) {
+    console.error("Bonus answer check failed", err);
+  }
+
   if (correct) {
     players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) + 10;
     bonusResult.textContent = `Correct — ${activeBonus.title}. +10 points!`;
     bonusResult.className = "bonus-success";
-    showRandomCorrectBonusReaction();
-    bonusQuote.classList.add("hidden");
-    bonusImage.classList.add("hidden");
     setStatus(`${players[currentPlayerIndex].name} won the Bonus Round for +10.`);
+
+    // Reaction failure must never stop the score/result from appearing.
+    setTimeout(() => {
+      try { showRandomCorrectBonusReaction(); }
+      catch (err) { console.error("Correct Bonus reaction failed", err); }
+    }, 0);
   } else {
     bonusResult.textContent = `Not this time. It was ${activeBonus.title}.`;
     bonusResult.className = "bonus-fail";
-    showRandomWrongBonusReaction();
-    bonusQuote.classList.add("hidden");
-    bonusImage.classList.add("hidden");
     setStatus(`${players[currentPlayerIndex].name} missed the Bonus Round.`);
+
+    setTimeout(() => {
+      try { showRandomWrongBonusReaction(); }
+      catch (err) { console.error("Wrong Bonus reaction failed", err); }
+    }, 0);
   }
-  saveTwoPlayerState();
-  updateScoreDisplay();
-  bonusSubmitBtn.disabled = true;
-  bonusAnswer.disabled = true;
-  const closeDelay = 4000;
+
+  bonusQuote.classList.add("hidden");
+  bonusImage.classList.add("hidden");
+
+  try { saveTwoPlayerState(); } catch (err) { console.error("Bonus save failed", err); }
+  try { updateScoreDisplay(); } catch (err) { console.error("Bonus score display failed", err); }
+
   setTimeout(() => {
     bonusSubmitBtn.disabled = false;
     bonusAnswer.disabled = false;
+    bonusSubmitBtn.textContent = "Submit Answer";
     closeBonusRound();
-  }, closeDelay);
+  }, 4000);
 }
 
 bonusQuoteChoice.addEventListener("click", () => startBonus("quote"));
 bonusPictureChoice.addEventListener("click", () => startBonus("picture"));
 bonusCloseBtn.addEventListener("click", closeBonusRound);
 bonusCancelBtn.addEventListener("click", closeBonusRound);
-bonusSubmitBtn.addEventListener("click", submitBonusAnswer);
 bonusAnswer.addEventListener("keydown", e => { if (e.key === "Enter") submitBonusAnswer(); });
 bonusOverlay.addEventListener("click", e => { if (e.target === bonusOverlay) closeBonusRound(); });
 cheatOverlay.addEventListener("click", e => { if (e.target === cheatOverlay) closeCheatDialog(); });
