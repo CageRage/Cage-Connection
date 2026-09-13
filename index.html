@@ -1729,7 +1729,8 @@ let posterOverrides = loadPosterOverrides();
     let wrongBridgePenalty = Number(localStorage.getItem(WRONG_BRIDGE_PENALTY_KEY) || 0);
     let players = [
   { name: "Player 1", score: 0 },
-  { name: "Player 2", score: 0 }
+  { name: "Player 2", score: 0 },
+  { name: "Player 3", score: 0 }
 ];
 
 let currentPlayerIndex = 0;
@@ -1810,10 +1811,10 @@ function updateScoreDisplay() {
   }
 
   if (scoreDisplay) {
-    scoreDisplay.textContent =
-      `${players[0].name}: ${players[0].score} | ` +
-      `${players[1].name}: ${players[1].score} | ` +
-      `Board: ${calculateScore()}`;
+    const playerScores = players
+      .map(p => `${p.name}: ${Number(p.score || 0)}`)
+      .join(" | ");
+    scoreDisplay.textContent = `${playerScores} | Board: ${calculateScore()}`;
   }
 }
     function normalizeTitle(title) {
@@ -4095,8 +4096,7 @@ function findMovie() {
       castLookupMode = false;
       svg.innerHTML = "";
 
-      players[0].score = 0;
-      players[1].score = 0;
+      players.forEach(p => { p.score = 0; });
       currentPlayerIndex = 0;
       bonusUsedThisTurn = false;
       activeBonus = null;
@@ -5226,11 +5226,22 @@ function loadTwoPlayerState() {
   try {
     const saved = JSON.parse(raw);
 
-    if (Array.isArray(saved.players) && saved.players.length === 2) {
-      players = saved.players;
+    if (Array.isArray(saved.players)) {
+      if (saved.players.length === 3) {
+        players = saved.players;
+      } else if (saved.players.length === 2) {
+        // Preserve the existing two-player game and add a fresh third local seat.
+        players = [
+          saved.players[0],
+          saved.players[1],
+          { name: "Player 3", score: 0 }
+        ];
+      }
     }
 
-    if (saved.currentPlayerIndex === 0 || saved.currentPlayerIndex === 1) {
+    if (Number.isInteger(saved.currentPlayerIndex) &&
+        saved.currentPlayerIndex >= 0 &&
+        saved.currentPlayerIndex < players.length) {
       currentPlayerIndex = saved.currentPlayerIndex;
     }
     bonusUsedThisTurn = !!saved.bonusUsedThisTurn;
@@ -5239,7 +5250,7 @@ function loadTwoPlayerState() {
   }
 }
 function endTurn() {
-  currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
+  currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
   bonusUsedThisTurn = false;
   clearSelection();
   setStatus(`${players[currentPlayerIndex].name}'s turn.`);
@@ -5250,7 +5261,7 @@ function switchTurnAfterConnection(chainMergeBonus = 0) {
   autoArrangeAllComponents();
   saveBoard();
 
-  currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
+  currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
   bonusUsedThisTurn = false;
   clearSelection();
   setStatus(chainMergeBonus > 0
