@@ -1239,7 +1239,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
 
     <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
-    <button onclick="endTurn()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7L5 19zM18 5v14"/></svg><span>End Turn</span></button>
+    <button onclick="endTurn()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7L5 19zM18 5v14"/></svg><span>Skip Turn</span></button>
     <span id="turnDisplay" style="margin-left:15px;font-weight:bold;color:#ffd54a;font-size:16px;">Turn: Player 1</span>
     <span id="scoreDisplay" style="margin-left:10px;font-weight:bold;color:#ffd54a;font-size:16px;">Player 1: 0 | Player 2: 0 | Board: 0</span>
     <span id="statusText">Ready.</span>
@@ -4778,8 +4778,10 @@ const BONUS_WRONG_REACTIONS = [
 ];
 
 const BONUS_CORRECT_REACTIONS = [
-  ...Array.from({ length: 10 }, (_, i) => `reactions/correct/bonus_correct_${String(i + 1).padStart(2, "0")}.gif`),
-  ...Array.from({ length: 10 }, (_, i) => `bonus_correct_${String(i + 1).padStart(2, "0")}.gif`)
+  "reactions/correct/bonus_correct_03.gif",
+  "reactions/correct/bonus_correct_04.gif",
+  "bonus_correct_03.gif",
+  "bonus_correct_04.gif"
 ];
 
 function shuffleCopy(items) {
@@ -5044,29 +5046,30 @@ function submitBonusAnswer() {
 
   if (correct) {
     players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) + 10;
-    bonusResult.textContent = `CORRECT! ${activeBonus.title}. +10 points!`;
+    bonusResult.textContent = `CORRECT! ${activeBonus.title}. +10 points! Your turn is over.`;
     bonusResult.className = "bonus-success";
     setStatus(`${players[currentPlayerIndex].name} won the Bonus Round for +10.`);
 
-    setTimeout(() => {
-      try { showRandomCorrectBonusReaction(); }
-      catch (err) { console.error("Correct Bonus reaction failed", err); }
-    }, 0);
+    try { showRandomCorrectBonusReaction(); }
+    catch (err) { console.error("Correct Bonus reaction failed", err); }
   } else {
-    bonusResult.textContent = `INCORRECT. The answer was ${activeBonus.title}.`;
+    bonusResult.textContent = `INCORRECT. The answer was ${activeBonus.title}. Your turn is over.`;
     bonusResult.className = "bonus-fail";
     setStatus(`${players[currentPlayerIndex].name} missed the Bonus Round.`);
 
-    setTimeout(() => {
-      try { showRandomWrongBonusReaction(); }
-      catch (err) { console.error("Wrong Bonus reaction failed", err); }
-    }, 0);
+    try { showRandomWrongBonusReaction(); }
+    catch (err) { console.error("Wrong Bonus reaction failed", err); }
   }
 
   // Keep the original quote/picture, revealed answer, and reaction on screen.
   // The player closes the Bonus Round when finished reviewing it.
   try { saveTwoPlayerState(); } catch (err) { console.error("Bonus save failed", err); }
   try { updateScoreDisplay(); } catch (err) { console.error("Bonus score display failed", err); }
+
+  // A Bonus Round is the player's one action for the turn.
+  // Correct OR incorrect, the turn always moves to the next player.
+  try { endTurn(); }
+  catch (err) { console.error("Bonus end-turn failed", err); }
 }
 
 bonusQuoteChoice.addEventListener("click", () => startBonus("quote"));
@@ -6577,6 +6580,58 @@ function refreshOnlinePanel(){prefillRemoteResume();const b=document.getElementB
 function remoteTurnAllowed(){if(!remoteRoomCode)return true;if(remotePlayerIndex===currentPlayerIndex)return true;setStatus(`Waiting for ${players[currentPlayerIndex]?.name||`Player ${currentPlayerIndex+1}`}.`);return false}
 const _remoteSaveBoard=saveBoard;saveBoard=function(){_remoteSaveBoard();scheduleRemoteSync()};
 const _remoteSaveTwoPlayerState=saveTwoPlayerState;saveTwoPlayerState=function(){_remoteSaveTwoPlayerState();scheduleRemoteSync();scheduleOwnNameSync()};
+
+// ---- Authoritative turn advancement ----
+// Every completed action ends the turn: connection, Bonus Round, or manual End Turn (skip).
+// Push the new turn to Firebase immediately so an older remote snapshot cannot switch it back.
+function syncAuthoritativeTurnNow(endingPlayerIndex) {
+  if (!remoteRoomRef || !(endingPlayerIndex === 0 || endingPlayerIndex === 1)) return;
+  if (remotePlayerIndex !== endingPlayerIndex) return;
+
+  const nextPlayerIndex = currentPlayerIndex;
+  const localScores = [
+    Number(players[0]?.score || 0),
+    Number(players[1]?.score || 0)
+  ];
+  const boardSnapshot = getBoardData();
+  const recentSnapshot = dockRecentItems
+    .filter(x => x && x !== "Game ready.")
+    .slice(0, 4);
+
+  remoteRoomRef.child("state").transaction(current => {
+    const base = current || getRemoteState();
+    const scores = Array.isArray(base.scores) && base.scores.length >= 2
+      ? [Number(base.scores[0] || 0), Number(base.scores[1] || 0)]
+      : [0, 0];
+
+    scores[endingPlayerIndex] = localScores[endingPlayerIndex];
+
+    return {
+      ...base,
+      board: boardSnapshot,
+      scores,
+      currentPlayerIndex: nextPlayerIndex,
+      bonusUsedThisTurn: false,
+      recentActions: mergeRecentActions(base.recentActions, recentSnapshot),
+      updatedAt: Date.now()
+    };
+  }).catch(err => console.error("Authoritative turn sync failed", err));
+}
+
+const _authoritativeEndTurn = endTurn;
+endTurn = function() {
+  const endingPlayerIndex = currentPlayerIndex;
+  _authoritativeEndTurn();
+  syncAuthoritativeTurnNow(endingPlayerIndex);
+};
+
+const _authoritativeSwitchTurnAfterConnection = switchTurnAfterConnection;
+switchTurnAfterConnection = function(rowMergeBonus = false) {
+  const endingPlayerIndex = currentPlayerIndex;
+  _authoritativeSwitchTurnAfterConnection(rowMergeBonus);
+  syncAuthoritativeTurnNow(endingPlayerIndex);
+};
+
 function guardTurnFunction(name){const original=window[name];if(typeof original!=="function")return;window[name]=function(...args){if(!remoteTurnAllowed())return;return original.apply(this,args)}}
 ["connectMode","openBonusRound","startCastLookup","startChallengeMode","startRemoveMovie","endTurn"].forEach(guardTurnFunction);
 refreshOnlinePanel();
