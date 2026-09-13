@@ -1308,6 +1308,8 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
           <p>Start a shared room using the board currently on your screen.</p>
           <label for="onlineCreateName">Your name</label>
           <input id="onlineCreateName" type="text" maxlength="24" value="Player 1" />
+          <label for="onlineCreatePhone">Mobile number (optional)</label>
+          <input id="onlineCreatePhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For future turn notifications" />
           <button type="button" class="online-primary" onclick="createRemoteGame()">Create Game</button>
         </section>
         <section class="online-card">
@@ -1321,6 +1323,8 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
           </select>
           <label for="onlineJoinName">Your name</label>
           <input id="onlineJoinName" type="text" maxlength="24" value="Player 2" />
+          <label for="onlineJoinPhone">Mobile number (optional)</label>
+          <input id="onlineJoinPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For future turn notifications" />
           <button type="button" class="online-primary" onclick="joinRemoteGame()">Join Game</button>
         </section>
         <section class="online-card">
@@ -1360,6 +1364,9 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
         <button id="startFreshButton" type="button" onclick="startFreshLocalGame()">Start Fresh / Clear Saved Game</button>
       </section>
       <div id="onlineMessage" class="online-message" aria-live="polite">Create a room, join one, or resume a saved game. Remote games autosave continuously.</div>
+      <div style="margin-top:8px;color:#8f8b82;font-size:11px;line-height:1.35;">
+        Phone numbers are not used or saved yet. This field is only here so we can test the setup safely before enabling notifications.
+      </div>
     </div>
   </div>
 
