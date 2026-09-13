@@ -639,6 +639,26 @@
 #bonusReactionPanel { margin-top:14px; text-align:center; }
 #bonusReactionPanel.hidden { display:none; }
 #bonusReactionImage { display:block; width:min(420px,86vw); max-height:300px; object-fit:contain; margin:0 auto; border-radius:10px; border:1px solid #465a75; background:#0b0f14; }
+#bonusQuote.hidden, #bonusImage.hidden, #bonusPlay.hidden { display:none !important; }
+
+/* Real-time Cage Check failure popup */
+#cageCheckOverlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.80);
+  display:flex; align-items:center; justify-content:center;
+  z-index:28000; padding:20px;
+}
+#cageCheckOverlay.hidden { display:none; }
+#cageCheckCard {
+  width:min(560px,92vw); max-height:88vh; overflow:auto;
+  background:linear-gradient(180deg,#211814,#120f0d);
+  border:1px solid #7b5e38; border-top:4px solid #9e2d28;
+  padding:22px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.62);
+}
+#cageCheckCard h2 { margin:0 0 10px; color:#f0ce79; letter-spacing:.8px; }
+#cageCheckReason { font-size:16px; line-height:1.45; margin:10px 0 8px; color:#f3eadc; }
+#cageCheckPenalty { font-weight:800; color:#ff9b9b; margin:8px 0 14px; }
+#cageCheckGif { display:block; width:min(420px,86vw); max-height:300px; object-fit:contain; margin:0 auto 16px; border:1px solid #5b4a37; background:#0b0f14; }
+
 .bonus-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap; }
 .bonus-success { color:#7ee787 !important; }
 .bonus-fail { color:#ff9b9b !important; }
@@ -1473,6 +1493,17 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
   </div>
 </div>
 
+
+<div id="cageCheckOverlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="cageCheckTitle">
+  <div id="cageCheckCard">
+    <h2 id="cageCheckTitle">Cage Check: FAILED</h2>
+    <div id="cageCheckReason"></div>
+    <div id="cageCheckPenalty">-1 point</div>
+    <img id="cageCheckGif" alt="Nicolas Cage reaction" src="reactions/cage_check/cage_check_failed_01.gif">
+    <button type="button" id="cageCheckContinueBtn">Continue</button>
+  </div>
+</div>
+
 <div id="cheatOverlay" class="hidden">
   <div id="cheatDialog" role="dialog" aria-modal="true" aria-labelledby="cheatTitle">
     <h2 id="cheatTitle">Cheat</h2>
@@ -1524,6 +1555,11 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     const bonusCloseBtn = document.getElementById("bonusCloseBtn");
     const bonusCancelBtn = document.getElementById("bonusCancelBtn");
     const bonusSubmitBtn = document.getElementById("bonusSubmitBtn");
+    const cageCheckOverlay = document.getElementById("cageCheckOverlay");
+    const cageCheckReason = document.getElementById("cageCheckReason");
+    const cageCheckPenalty = document.getElementById("cageCheckPenalty");
+    const cageCheckGif = document.getElementById("cageCheckGif");
+    const cageCheckContinueBtn = document.getElementById("cageCheckContinueBtn");
     const connectionOverlay = document.getElementById("connectionOverlay");
     const connectionType = document.getElementById("connectionType");
     const bridgeFields = document.getElementById("bridgeFields");
@@ -4588,7 +4624,8 @@ function renderNode(nodeObj) {
       sharedWrongPenalty += 1;
       localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
       updateScoreDisplay();
-      setStatus(`Incorrect shared connection. Score -1. ${validation.message}`);
+      setStatus(`Cage Check: FAILED. Score -1. ${validation.message}`);
+      showCageCheckFailed(validation.message, "-1 point");
       return;
     }
     connections.push({
@@ -4821,8 +4858,7 @@ function openBonusRound() {
   bonusSubtitle.textContent = `${me.name}: choose a Bonus Round challenge.`;
   bonusChooser.classList.remove("hidden");
   bonusPlay.classList.add("hidden");
-  bonusModal.classList.remove("hidden");
-  const bonusModal = document.getElementById("bonusModal");
+  bonusOverlay.classList.remove("hidden");
 }
 
 function startBonus(mode) {
@@ -4842,19 +4878,32 @@ function startBonus(mode) {
   bonusReactionPanel.classList.add("hidden");
   bonusReactionImage.removeAttribute("src");
   bonusAnswer.value = "";
-  bonusAnswer.disabled = false;
-  bonusSubmitBtn.disabled = false;
-  bonusSubmitBtn.textContent = "Submit Answer";
   bonusCancelBtn.textContent = "Cancel";
 
-  const showQuoteBonus = () => {
+  const enableAnswer = () => {
+    bonusAnswer.disabled = false;
+    bonusSubmitBtn.disabled = false;
+    bonusSubmitBtn.textContent = "Submit Answer";
+    setTimeout(() => bonusAnswer.focus(), 0);
+  };
+
+  const disableAnswer = () => {
+    bonusAnswer.disabled = true;
+    bonusSubmitBtn.disabled = true;
+    bonusSubmitBtn.textContent = "Loading…";
+  };
+
+  const showQuoteBonus = (fallbackNotice = "") => {
     const item = BONUS_QUOTE_BANK[Math.floor(Math.random() * BONUS_QUOTE_BANK.length)];
     activeBonus = { mode: "quote", title: item.title };
     bonusQuote.textContent = `“${item.quote}”`;
     bonusQuote.classList.remove("hidden");
+    bonusQuote.style.display = "block";
     bonusImage.classList.add("hidden");
+    bonusImage.style.display = "none";
     bonusImage.removeAttribute("src");
-    setTimeout(() => bonusAnswer.focus(), 0);
+    bonusResult.textContent = fallbackNotice;
+    enableAnswer();
   };
 
   if (mode === "quote") {
@@ -4862,18 +4911,26 @@ function startBonus(mode) {
     return;
   }
 
-  // Picture mode: test poster files before displaying the round.
-  // Try several random movies; if none load, automatically give a quote instead.
+  // Picture mode: do not show the question as playable until an image has
+  // actually loaded into the visible Bonus Round image element.
+  activeBonus = null;
+  bonusQuote.classList.add("hidden");
+  bonusQuote.style.display = "none";
+  bonusImage.classList.add("hidden");
+  bonusImage.style.display = "none";
+  bonusImage.removeAttribute("src");
+  bonusResult.textContent = "Loading picture…";
+  disableAnswer();
+
   const pictureTitles = BUILT_IN_TITLES
     .filter(t => t && t !== "Madden")
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 15);
+    .sort(() => Math.random() - 0.5);
 
   let pictureIndex = 0;
 
   const tryNextPicture = () => {
     if (pictureIndex >= pictureTitles.length) {
-      showQuoteBonus();
+      showQuoteBonus("No picture was available, so this round switched to a quote.");
       return;
     }
 
@@ -4882,15 +4939,28 @@ function startBonus(mode) {
     const probe = new Image();
 
     probe.onload = () => {
-      activeBonus = { mode: "picture", title };
-      bonusImage.onload = () => {
+      const finishPicture = () => {
+        if (!bonusImage.naturalWidth) {
+          tryNextPicture();
+          return;
+        }
+        activeBonus = { mode: "picture", title };
         bonusImage.classList.remove("hidden");
+        bonusImage.style.display = "block";
         bonusQuote.classList.add("hidden");
-        setTimeout(() => bonusAnswer.focus(), 0);
+        bonusQuote.style.display = "none";
+        bonusResult.textContent = "";
+        enableAnswer();
       };
+
+      bonusImage.onload = finishPicture;
       bonusImage.onerror = tryNextPicture;
       bonusImage.alt = "Movie image for Bonus Round";
       bonusImage.src = probe.src;
+
+      if (bonusImage.complete && bonusImage.naturalWidth > 0) {
+        finishPicture();
+      }
     };
 
     probe.onerror = tryNextPicture;
@@ -4958,6 +5028,27 @@ bonusCancelBtn.addEventListener("click", closeBonusRound);
 bonusAnswer.addEventListener("keydown", e => { if (e.key === "Enter") submitBonusAnswer(); });
 bonusOverlay.addEventListener("click", e => { if (e.target === bonusOverlay) closeBonusRound(); });
 cheatOverlay.addEventListener("click", e => { if (e.target === cheatOverlay) closeCheatDialog(); });
+
+
+function showCageCheckFailed(message, penaltyText = "-1 point") {
+  cageCheckReason.textContent = message;
+  cageCheckPenalty.textContent = penaltyText;
+
+  // Restart the GIF each time.
+  const base = "reactions/cage_check/cage_check_failed_01.gif";
+  cageCheckGif.src = `${base}?v=${Date.now()}`;
+
+  cageCheckOverlay.classList.remove("hidden");
+}
+
+function closeCageCheckFailed() {
+  cageCheckOverlay.classList.add("hidden");
+}
+
+cageCheckContinueBtn.addEventListener("click", closeCageCheckFailed);
+cageCheckOverlay.addEventListener("click", e => {
+  if (e.target === cageCheckOverlay) closeCageCheckFailed();
+});
 
     function connectMode() {
       connectModeActive = true;
@@ -5161,7 +5252,7 @@ function clearFocus() {
       localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
       updateScoreDisplay();
 
-      alert(`Incorrect shared connection:\n\n${validation.message}\n\nScore -1.`);
+      showCageCheckFailed(validation.message, "-1 point");
       return;
     }
 
