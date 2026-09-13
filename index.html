@@ -4772,15 +4772,15 @@ function showConnectionDialog(first, second) {
   });
 }
 
-const BONUS_WRONG_REACTIONS = Array.from(
-  { length: 10 },
-  (_, i) => `reactions/wrong/bonus_wrong_${String(i + 1).padStart(2, "0")}.gif`
-);
+const BONUS_WRONG_REACTIONS = [
+  ...Array.from({ length: 10 }, (_, i) => `reactions/wrong/bonus_wrong_${String(i + 1).padStart(2, "0")}.gif`),
+  ...Array.from({ length: 10 }, (_, i) => `bonus_wrong_${String(i + 1).padStart(2, "0")}.gif`)
+];
 
-const BONUS_CORRECT_REACTIONS = Array.from(
-  { length: 10 },
-  (_, i) => `reactions/correct/bonus_correct_${String(i + 1).padStart(2, "0")}.gif`
-);
+const BONUS_CORRECT_REACTIONS = [
+  ...Array.from({ length: 10 }, (_, i) => `reactions/correct/bonus_correct_${String(i + 1).padStart(2, "0")}.gif`),
+  ...Array.from({ length: 10 }, (_, i) => `bonus_correct_${String(i + 1).padStart(2, "0")}.gif`)
+];
 
 function shuffleCopy(items) {
   const a = items.slice();
@@ -4791,8 +4791,15 @@ function shuffleCopy(items) {
   return a;
 }
 
+let lastBonusReactionSrc = "";
+
 function showBonusReaction(candidates, altText) {
   const queue = shuffleCopy(candidates);
+  if (lastBonusReactionSrc && queue.length > 1) {
+    const same = queue.filter(src => src === lastBonusReactionSrc);
+    const different = queue.filter(src => src !== lastBonusReactionSrc);
+    queue.splice(0, queue.length, ...different, ...same);
+  }
   bonusReactionPanel.classList.add("hidden");
   bonusReactionImage.removeAttribute("src");
   bonusReactionImage.alt = "";
@@ -4815,6 +4822,7 @@ function showBonusReaction(candidates, altText) {
         tryNext();
       };
       bonusReactionImage.alt = altText;
+      lastBonusReactionSrc = src;
       bonusReactionImage.src = probe.src;
     };
 
@@ -4873,20 +4881,32 @@ function closeBonusRound() {
   bonusSubmitBtn.disabled = false;
   bonusSubmitBtn.textContent = "Submit Answer";
   bonusCancelBtn.textContent = "Close Bonus Round";
+  bonusQuoteChoice.disabled = false;
+  bonusPictureChoice.disabled = false;
+  bonusCloseBtn.textContent = "Cancel";
 }
 
 function openBonusRound() {
   const me = players[currentPlayerIndex];
 
+  // Always open the panel so the button never appears dead.
+  bonusOverlay.classList.remove("hidden");
+  bonusPlay.classList.add("hidden");
+  bonusChooser.classList.remove("hidden");
+
   if (bonusUsedThisTurn) {
+    bonusSubtitle.textContent = `${me.name}: Bonus Round has already been used this turn.`;
+    bonusQuoteChoice.disabled = true;
+    bonusPictureChoice.disabled = true;
+    bonusCloseBtn.textContent = "Close Bonus Round";
     setStatus("Bonus Round has already been used this turn.");
     return;
   }
 
+  bonusQuoteChoice.disabled = false;
+  bonusPictureChoice.disabled = false;
+  bonusCloseBtn.textContent = "Cancel";
   bonusSubtitle.textContent = `${me.name}: choose a Bonus Round challenge.`;
-  bonusChooser.classList.remove("hidden");
-  bonusPlay.classList.add("hidden");
-  bonusOverlay.classList.remove("hidden");
 }
 
 function startBonus(mode) {
