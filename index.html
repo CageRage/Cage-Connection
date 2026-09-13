@@ -4773,8 +4773,10 @@ function showConnectionDialog(first, second) {
 }
 
 const BONUS_WRONG_REACTIONS = [
-  ...Array.from({ length: 10 }, (_, i) => `reactions/wrong/bonus_wrong_${String(i + 1).padStart(2, "0")}.gif`),
-  ...Array.from({ length: 10 }, (_, i) => `bonus_wrong_${String(i + 1).padStart(2, "0")}.gif`)
+  "bonus_wrong_03.gif",
+  "bonus_wrong_05.gif",
+  "reactions/wrong/bonus_wrong_03.gif",
+  "reactions/wrong/bonus_wrong_05.gif"
 ];
 
 const BONUS_CORRECT_REACTIONS = [
@@ -4836,10 +4838,26 @@ function showBonusReaction(candidates, altText) {
 }
 
 function showRandomWrongBonusReaction() {
-  showBonusReaction(
-    BONUS_WRONG_REACTIONS,
-    "Nicolas Cage reaction to an incorrect Bonus Round answer"
-  );
+  // Baby-step fix: use one known existing root-level negative GIF directly.
+  bonusReactionImage.onload = () => {
+    bonusReactionImage.style.display = "block";
+    bonusReactionPanel.classList.remove("hidden");
+  };
+
+  bonusReactionImage.onerror = () => {
+    // Fallback to the other known root-level negative GIF.
+    bonusReactionImage.onerror = () => {
+      bonusReactionPanel.classList.remove("hidden");
+      bonusReactionImage.style.display = "none";
+      bonusResult.textContent += " (Negative reaction image could not be loaded.)";
+    };
+    bonusReactionImage.src = `/Cage-Connection/bonus_wrong_05.gif?v=${Date.now()}`;
+  };
+
+  bonusReactionPanel.classList.remove("hidden");
+  bonusReactionImage.style.display = "block";
+  bonusReactionImage.alt = "Nicolas Cage reaction to an incorrect Bonus Round answer";
+  bonusReactionImage.src = `/Cage-Connection/bonus_wrong_03.gif?v=${Date.now()}`;
 }
 
 function showRandomCorrectBonusReaction() {
