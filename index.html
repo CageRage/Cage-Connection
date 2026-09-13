@@ -6269,7 +6269,11 @@ function getRemoteMembers(){return{
   "1":{name:cleanPlayerName(players[1]?.name,"Player 2"),occupied:false},
   "2":{name:cleanPlayerName(players[2]?.name,"Player 3"),occupied:false}
 }}
-function getRemoteState(){return{version:2,board:getBoardData(),scores:[Number(players[0]?.score||0),Number(players[1]?.score||0)],currentPlayerIndex,bonusUsedThisTurn:!!bonusUsedThisTurn,recentActions:dockRecentItems.filter(x=>x&&x!=="Game ready.").slice(0,4),updatedAt:window.firebase?firebase.database.ServerValue.TIMESTAMP:Date.now()}}
+function getRemoteState(){return{version:2,board:getBoardData(),scores:[
+  Number(players[0]?.score||0),
+  Number(players[1]?.score||0),
+  Number(players[2]?.score||0)
+],currentPlayerIndex,bonusUsedThisTurn:!!bonusUsedThisTurn,recentActions:dockRecentItems.filter(x=>x&&x!=="Game ready.").slice(0,4),updatedAt:window.firebase?firebase.database.ServerValue.TIMESTAMP:Date.now()}}
 function mergeRemoteBoards(remoteBoard, localBoard) {
   const remoteNodes = Array.isArray(remoteBoard?.nodes) ? remoteBoard.nodes : [];
   const localNodes = Array.isArray(localBoard?.nodes) ? localBoard.nodes : [];
@@ -6390,7 +6394,38 @@ function applyRemoteMembers(members){
   updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);
   refreshOnlinePanel();
 }
-function applyRemoteState(state){if(!state||!state.board)return;applyingRemoteState=true;try{loadBoardFromData(state.board);if(Array.isArray(state.scores)&&state.scores.length>=2){players[0].score=Number(state.scores[0]||0);players[1].score=Number(state.scores[1]||0)}else if(Array.isArray(state.players)&&state.players.length===2){players=state.players.map((p,i)=>({name:cleanPlayerName(p&&p.name,players[i]?.name||`Player ${i+1}`),score:Number(p&&p.score||0)}))}if(state.currentPlayerIndex===0||state.currentPlayerIndex===1)currentPlayerIndex=state.currentPlayerIndex;bonusUsedThisTurn=!!state.bonusUsedThisTurn;if(Array.isArray(state.recentActions))renderDockRecent(state.recentActions);localStorage.setItem(STORAGE_KEY,JSON.stringify(state.board));localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn}));updateScoreDisplay();updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);refreshOnlinePanel()}finally{applyingRemoteState=false}}
+function applyRemoteState(state){
+  if(!state||!state.board)return;
+  applyingRemoteState=true;
+  try{
+    loadBoardFromData(state.board);
+
+    if(Array.isArray(state.scores)){
+      for(let i=0;i<3;i++){
+        if(state.scores[i] !== undefined){
+          players[i].score=Number(state.scores[i]||0);
+        }
+      }
+    }
+
+    if(Number.isInteger(state.currentPlayerIndex) &&
+       state.currentPlayerIndex >= 0 &&
+       state.currentPlayerIndex < 3){
+      currentPlayerIndex=state.currentPlayerIndex;
+    }
+
+    bonusUsedThisTurn=!!state.bonusUsedThisTurn;
+    if(Array.isArray(state.recentActions))renderDockRecent(state.recentActions);
+
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(state.board));
+    localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn}));
+    updateScoreDisplay();
+    updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);
+    refreshOnlinePanel();
+  }finally{
+    applyingRemoteState=false;
+  }
+}
 async function ensureRemoteMembers(roomValue){
   if(!remoteRoomRef)return;
 
@@ -6557,7 +6592,7 @@ async function joinRemoteGame(){
     setOnlineMessage(`Could not join room: ${err.message||err}`);
   }
 }
-async function saveRemoteGameNow(){if(!remoteRoomRef){setOnlineMessage("Create, join, or resume a remote game first.");return}setOnlineMessage("Saving game…");try{const localState=getRemoteState();await remoteRoomRef.child("state").transaction(current=>{if(!current)return localState;const scores=Array.isArray(current.scores)&&current.scores.length>=2?[Number(current.scores[0]||0),Number(current.scores[1]||0)]:[0,0];if(remotePlayerIndex===0||remotePlayerIndex===1)scores[remotePlayerIndex]=Number(localState.scores?.[remotePlayerIndex]||0);return{...current,...localState,scores,board:mergeRemoteBoards(current.board,localState.board),recentActions:mergeRecentActions(current.recentActions,localState.recentActions),updatedAt:Date.now()}});await remoteRoomRef.child("savedAt").set(firebase.database.ServerValue.TIMESTAMP);if(remotePlayerIndex===0||remotePlayerIndex===1)await remoteRoomRef.child(`members/${remotePlayerIndex}/name`).set(cleanPlayerName(players[remotePlayerIndex]?.name,`Player ${remotePlayerIndex+1}`));saveRemoteSession();setOnlineMessage(`Game ${remoteRoomCode} saved. You can close the browser and resume later with this room code.`);setStatus(`Game ${remoteRoomCode} saved.`)}catch(err){console.error(err);setOnlineMessage(`Could not save game: ${err.message||err}`)}}
+async function saveRemoteGameNow(){if(!remoteRoomRef){setOnlineMessage("Create, join, or resume a remote game first.");return}setOnlineMessage("Saving game…");try{const localState=getRemoteState();await remoteRoomRef.child("state").transaction(current=>{if(!current)return localState;const scores=Array.isArray(current.scores)?[Number(current.scores[0]||0),Number(current.scores[1]||0),Number(current.scores[2]||0)]:[0,0,0];if([0,1,2].includes(remotePlayerIndex))scores[remotePlayerIndex]=Number(localState.scores?.[remotePlayerIndex]||0);return{...current,...localState,scores,board:mergeRemoteBoards(current.board,localState.board),recentActions:mergeRecentActions(current.recentActions,localState.recentActions),updatedAt:Date.now()}});await remoteRoomRef.child("savedAt").set(firebase.database.ServerValue.TIMESTAMP);if([0,1,2].includes(remotePlayerIndex))await remoteRoomRef.child(`members/${remotePlayerIndex}/name`).set(cleanPlayerName(players[remotePlayerIndex]?.name,`Player ${remotePlayerIndex+1}`));saveRemoteSession();setOnlineMessage(`Game ${remoteRoomCode} saved. You can close the browser and resume later with this room code.`);setStatus(`Game ${remoteRoomCode} saved.`)}catch(err){console.error(err);setOnlineMessage(`Could not save game: ${err.message||err}`)}}
 async function resumeRemoteGame(sessionOverride=null){if(!remoteDb){setOnlineMessage("Firebase did not load. Refresh the page and try again.");return}const code=cleanRoomCode(sessionOverride?.code||document.getElementById("onlineResumeCode")?.value);const roleRaw=sessionOverride?.playerIndex??document.getElementById("onlineResumeRole")?.value;const role=Number(roleRaw);const typedName=String(sessionOverride?.name??document.getElementById("onlineResumeName")?.value??"").trim();if(code.length!==6){setOnlineMessage("Enter the 6-character room code.");return}if(![0,1,2].includes(role)){setOnlineMessage("Choose Player 1, Player 2, or Player 3.");return}setOnlineMessage("Resuming saved game…");try{const roomRef=remoteDb.ref(`games/${code}`),snap=await roomRef.once("value");if(!snap.exists()||!snap.val().state){setOnlineMessage("That saved room was not found.");return}remoteRoomCode=code;remotePlayerIndex=role;remoteRoomRef=roomRef;const roomValue=snap.val();let members=await ensureRemoteMembers(roomValue);if(typedName){const nm=cleanPlayerName(typedName,`Player ${role+1}`);await remoteRoomRef.child(`members/${role}/name`).set(nm);members={...members,[String(role)]:{name:nm}}}applyRemoteState(roomValue.state);applyRemoteMembers(members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();setOnlineMessage(`Resumed room ${code} as ${players[role]?.name||`Player ${role+1}`}. Live sync is on.`);setStatus(`Resumed online room ${code}.`)}catch(err){console.error(err);setOnlineMessage(`Could not resume game: ${err.message||err}`)}}
 function resumeLastRemoteGame(){const x=getRemoteSession();if(!x){setOnlineMessage("No previously saved room was found on this browser.");return}resumeRemoteGame(x)}
 async function autoResumeRemoteSession(){
@@ -6763,13 +6798,14 @@ const _remoteSaveTwoPlayerState=saveTwoPlayerState;saveTwoPlayerState=function()
 // Every completed action ends the turn: connection, Bonus Round, or manual End Turn (skip).
 // Push the new turn to Firebase immediately so an older remote snapshot cannot switch it back.
 function syncAuthoritativeTurnNow(endingPlayerIndex) {
-  if (!remoteRoomRef || !(endingPlayerIndex === 0 || endingPlayerIndex === 1)) return;
+  if (!remoteRoomRef || ![0,1,2].includes(endingPlayerIndex)) return;
   if (remotePlayerIndex !== endingPlayerIndex) return;
 
   const nextPlayerIndex = currentPlayerIndex;
   const localScores = [
     Number(players[0]?.score || 0),
-    Number(players[1]?.score || 0)
+    Number(players[1]?.score || 0),
+    Number(players[2]?.score || 0)
   ];
   const boardSnapshot = getBoardData();
   const recentSnapshot = dockRecentItems
@@ -6778,9 +6814,13 @@ function syncAuthoritativeTurnNow(endingPlayerIndex) {
 
   remoteRoomRef.child("state").transaction(current => {
     const base = current || getRemoteState();
-    const scores = Array.isArray(base.scores) && base.scores.length >= 2
-      ? [Number(base.scores[0] || 0), Number(base.scores[1] || 0)]
-      : [0, 0];
+    const scores = Array.isArray(base.scores)
+      ? [
+          Number(base.scores[0] || 0),
+          Number(base.scores[1] || 0),
+          Number(base.scores[2] || 0)
+        ]
+      : [0, 0, 0];
 
     scores[endingPlayerIndex] = localScores[endingPlayerIndex];
 
