@@ -4851,13 +4851,13 @@ function showRandomWrongBonusReaction() {
       bonusReactionImage.style.display = "none";
       bonusResult.textContent += " (Negative reaction image could not be loaded.)";
     };
-    bonusReactionImage.src = `/Cage-Connection/bonus_wrong_05.gif?v=${Date.now()}`;
+    bonusReactionImage.src = `/Cage-Connection/reactions/wrong/bonus_wrong_1.gif?v=${Date.now()}`;
   };
 
   bonusReactionPanel.classList.remove("hidden");
   bonusReactionImage.style.display = "block";
   bonusReactionImage.alt = "Nicolas Cage reaction to an incorrect Bonus Round answer";
-  bonusReactionImage.src = `/Cage-Connection/bonus_wrong_03.gif?v=${Date.now()}`;
+  bonusReactionImage.src = `/Cage-Connection/reactions/wrong/bonus_wrong_1.gif?v=${Date.now()}`;
 }
 
 function showRandomCorrectBonusReaction() {
