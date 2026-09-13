@@ -1187,6 +1187,125 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
 
 /* Remote multiplayer */
 .online-status-badge{display:inline-flex;align-items:center;min-height:30px;padding:0 8px;border:1px solid #5b513c;color:#b9ab8c;font-size:12px;letter-spacing:.04em;background:#0d0e10}.online-status-badge.live{color:#95e6b2;border-color:#34684a}#onlineOverlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;z-index:12000}#onlineOverlay.hidden{display:none}#onlineModal{width:min(760px,94vw);max-height:88vh;overflow:auto;background:#111319;border:1px solid #6c5b39;padding:18px;box-shadow:0 18px 48px rgba(0,0,0,.55)}.online-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.online-card{background:#17191f;border:1px solid #343842;padding:14px}.online-card h3{margin:0 0 8px;color:#d8b96f}.online-card p{margin:0 0 12px;color:#b9b6ad;font-size:13px}.online-card label{display:block;margin:9px 0 5px;color:#d8d2c3;font-size:12px;font-weight:700}.online-card input,.online-card select{width:100%;box-sizing:border-box;padding:10px;background:#0c0e12;color:#fff;border:1px solid #4a4f59;font-size:16px}.online-card button,.online-connected button{margin-top:12px}.online-primary{border-color:#8a6a2b!important;color:#f1d48a!important}.online-connected{margin-top:14px;border:1px solid #34684a;background:#101a15;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.online-connected.hidden{display:none}.online-kicker{display:block;font-size:10px;color:#8ca597;letter-spacing:.14em}#onlineRoomCode{display:block;font-size:28px;letter-spacing:.12em;color:#95e6b2}#onlineRoleText{color:#d8d2c3;font-weight:700}.online-message{margin-top:12px;min-height:20px;color:#d8b96f;font-size:13px}@media(max-width:700px){.online-grid{grid-template-columns:1fr}}
+
+/* ===== Cinematic toolbar refresh — visual/layout only ===== */
+.cinema-toolbar {
+  align-items: stretch !important;
+  gap: 2px !important;
+  padding: 0 10px !important;
+  min-height: 76px;
+  background:
+    linear-gradient(180deg, #17100d 0%, #0b0908 74%, #160b08 100%) !important;
+  border-bottom: 2px solid #9f281f !important;
+}
+.cinema-brand {
+  min-width: 300px;
+  gap: 10px !important;
+  padding: 8px 18px 8px 4px !important;
+  margin-right: 6px !important;
+  border-right: 1px solid #60472b !important;
+  text-transform: none !important;
+}
+.brand-film { width: 58px; height: 42px; display:block; flex:0 0 58px; }
+.brand-film svg { width:100%; height:100%; fill:none; stroke:#c9a25a; stroke-width:1.6; }
+.brand-copy { display:flex; flex-direction:column; justify-content:center; }
+.brand-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 24px;
+  line-height: .95;
+  color: #f1d384;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+.brand-tagline {
+  margin-top: 5px;
+  max-width: 250px;
+  color: #bca97e;
+  font: 10px/1.2 Georgia, 'Times New Roman', serif;
+  letter-spacing: .03em;
+  white-space: normal;
+}
+#toolbar > .cinema-action,
+.toolbar-menu > .cinema-action {
+  min-width: 82px !important;
+  min-height: 74px !important;
+  padding: 7px 9px 6px !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  border: 0 !important;
+  border-left: 1px solid rgba(145,110,64,.22) !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #eee2cf !important;
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+#toolbar > .cinema-action:hover,
+.toolbar-menu > .cinema-action:hover {
+  background: linear-gradient(180deg, rgba(205,163,86,.08), rgba(255,255,255,.015)) !important;
+  border-bottom-color: #c9a25a !important;
+}
+.cinema-icon {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  color: #d6ad5f;
+}
+.cinema-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ouroboros-icon svg { stroke-width: 2; }
+.bonus-action {
+  min-width: 102px !important;
+  color: #f6dc8a !important;
+  background: radial-gradient(circle at 50% 42%, rgba(216,171,77,.14), transparent 65%) !important;
+}
+.bonus-action .cinema-icon { width: 42px; height: 42px; color:#f0c861; }
+.menu-caret { width:12px !important; height:12px !important; position:absolute; right:5px; bottom:8px; }
+.toolbar-menu { position: relative; }
+.toolbar-menu > summary { position: relative; }
+.settings-menu-panel { min-width: 175px !important; }
+.settings-section-label {
+  padding: 7px 10px 5px;
+  color: #c9a25a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.settings-divider { height:1px; background:#3e3122; margin:5px 6px; }
+.skip-action { color:#d7c7ad !important; }
+#onlineStatusBadge {
+  align-self:center;
+  margin: 0 2px 0 -5px;
+  min-height: 20px !important;
+  padding: 1px 5px !important;
+  font-size: 9px !important;
+  border-radius: 8px;
+}
+#turnDisplay, #scoreDisplay, #statusText {
+  align-self:center;
+}
+@media (max-width: 1200px) {
+  .cinema-brand { min-width: 220px; }
+  .brand-tagline { display:none; }
+  .brand-title { font-size:20px; }
+  #toolbar > .cinema-action, .toolbar-menu > .cinema-action {
+    min-width: 68px !important;
+    padding-left:6px !important;
+    padding-right:6px !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1194,19 +1313,86 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
 <div class="cc-theme-mark mansion">⌂ NIGHT HOUSE</div>
 <div class="cc-theme-mark cobra">〰 COBRA</div>
 <div class="cc-theme-mark vegas">★ VEGAS</div>
-  <div id="toolbar">
-    <span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span>Cage Connection</span></span>
+  <div id="toolbar" class="cinema-toolbar">
+    <div class="brand-lockup cinema-brand">
+      <span class="brand-film" aria-hidden="true">
+        <svg viewBox="0 0 52 30">
+          <path d="M3 8c8-7 19-7 27-1 7 5 12 5 19 0" />
+          <path d="M3 22c8-7 19-7 27-1 7 5 12 5 19 0" />
+          <path d="M7 5v20M17 3v20M27 4v20M37 6v20M47 4v20" />
+        </svg>
+      </span>
+      <span class="brand-copy">
+        <span class="brand-title">Cage Connection</span>
+        <span class="brand-tagline">Everything we do impacts someone else's life.</span>
+      </span>
+    </div>
 
-    <button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
-    <button id="mainChallengeButton" class="challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span>Challenge</span></button>
-    <button onclick="connectMode()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15"/><path d="M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15"/></svg><span>Connect</span></button>
-    <button onclick="openBonusRound()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg><span>Bonus Round</span></button>
-    <button id="onlineButton" type="button" onclick="openOnlinePanel()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 16 0"/><path d="M7 12a5 5 0 0 1 10 0"/><path d="M10 12a2 2 0 0 1 4 0"/><circle cx="12" cy="16" r="1"/></svg><span>Online</span></button>
-    <button id="mainStartFreshButton" type="button" onclick="hardStartFresh()"><span>Start Fresh</span></button>
+    <button class="cinema-action" onclick="openMoviePicker()" title="Add Movie">
+      <span class="cinema-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <circle cx="13" cy="14" r="8"/><circle cx="13" cy="14" r="2"/>
+          <circle cx="10" cy="10" r="1.3"/><circle cx="16" cy="10" r="1.3"/>
+          <circle cx="10" cy="17.5" r="1.3"/><circle cx="16" cy="17.5" r="1.3"/>
+          <path d="M20 17c4 0 6 2 8 5M24 17v10M19 22h10"/>
+        </svg>
+      </span>
+      <span>Add Movie</span>
+    </button>
+
+    <button id="mainChallengeButton" class="cinema-action challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection">
+      <span class="cinema-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <path d="M8 23l12-12M17 7l8 8M5 20l7 7M19 5l8 8"/>
+          <path d="M4 27h13"/>
+        </svg>
+      </span>
+      <span>Challenge</span>
+    </button>
+
+    <button class="cinema-action" onclick="connectMode()" title="Connect">
+      <span class="cinema-icon ouroboros-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <path d="M24.7 8.2A10.6 10.6 0 1 0 26 21"/>
+          <path d="M23.2 5.4l5.5 1.2-2 5.2"/>
+          <circle cx="25.6" cy="7.4" r=".8"/>
+          <path d="M24.9 8.8l-2.5 1.4"/>
+        </svg>
+      </span>
+      <span>Connect</span>
+    </button>
+
+    <button class="cinema-action bonus-action" onclick="openBonusRound()" title="Bonus Round">
+      <span class="cinema-icon oscar-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <circle cx="16" cy="6" r="2.6"/>
+          <path d="M13.5 10h5l1.2 7-2.2 5h-3l-2.2-5z"/>
+          <path d="M11 12l3 5M21 12l-3 5M12 25h8M10 28h12"/>
+        </svg>
+      </span>
+      <span>Bonus Round</span>
+    </button>
+
+    <button id="onlineButton" class="cinema-action" type="button" onclick="openOnlinePanel()" title="Online">
+      <span class="cinema-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <path d="M6 11h20v15H6z"/><path d="M6 11l5-6 5 6 5-6 5 6"/>
+          <path d="M7 16h18M11 20h10"/>
+        </svg>
+      </span>
+      <span>Online</span>
+    </button>
+
     <span id="onlineStatusBadge" class="online-status-badge">Offline</span>
 
     <details class="toolbar-menu">
-      <summary><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h7l-1 8 8-12h-7z"/></svg><span>Cheats</span><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
+      <summary class="cinema-action">
+        <span class="cinema-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M16 4l3 7 7 1-5 5 1 8-6-4-6 4 1-8-5-5 7-1z"/></svg>
+        </span>
+        <span>Cheats</span>
+        <svg class="toolbar-icon menu-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>
+      </summary>
       <div class="toolbar-menu-panel">
         <button onclick="this.closest('details').removeAttribute('open'); startCastLookup()">Cast Lookup (-2)</button>
         <button onclick="this.closest('details').removeAttribute('open'); openPathFinder()">Find Path</button>
@@ -1214,34 +1400,58 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
       </div>
     </details>
 
-    <details class="toolbar-menu size-menu">
-      <summary><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 4v6M4 17h16M17 14v6"/></svg><span>Size</span><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
-      <div class="toolbar-menu-panel size-menu-panel">
+    <details class="toolbar-menu tools-menu">
+      <summary class="cinema-action">
+        <span class="cinema-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M20 7a6 6 0 0 0-7.5 7.5L5 22l5 5 7.5-7.5A6 6 0 0 0 25 12l-4 4-5-5z"/></svg>
+        </span>
+        <span>Tools</span>
+        <svg class="toolbar-icon menu-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>
+      </summary>
+      <div class="toolbar-menu-panel tools-menu-panel">
+        <div class="tools-find-row">
+          <input type="text" id="movieSearchBox" class="toolbar-search tools-search" placeholder="Find movie..." onkeydown="if(event.key==='Enter'){findMovie();this.closest('details').removeAttribute('open');}">
+          <button type="button" onclick="findMovie(); this.closest('details').removeAttribute('open');"><span>Find</span></button>
+        </div>
+        <button type="button" onclick="this.closest('details').removeAttribute('open'); clearSelection()">Clear Selection</button>
+        <button type="button" onclick="this.closest('details').removeAttribute('open'); startRemoveMovie()">Remove Movie</button>
+      </div>
+    </details>
+
+    <details class="toolbar-menu settings-menu">
+      <summary class="cinema-action">
+        <span class="cinema-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32">
+            <circle cx="16" cy="16" r="5"/>
+            <path d="M16 4v4M16 24v4M4 16h4M24 16h4M7.5 7.5l3 3M21.5 21.5l3 3M24.5 7.5l-3 3M10.5 21.5l-3 3"/>
+          </svg>
+        </span>
+        <span>Settings</span>
+        <svg class="toolbar-icon menu-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg>
+      </summary>
+      <div class="toolbar-menu-panel settings-menu-panel">
+        <div class="settings-section-label">Card Size</div>
         <button type="button" data-card-size-choice="overview" onclick="setCardSize('overview')">Overview</button>
         <button type="button" data-card-size-choice="compact" onclick="setCardSize('compact')">Compact</button>
         <button type="button" data-card-size-choice="normal" onclick="setCardSize('normal')">Normal</button>
         <button type="button" data-card-size-choice="large" onclick="setCardSize('large')">Large</button>
-      </div>
-    </details>
-
-    <details class="toolbar-menu tools-menu">
-      <summary><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5-5l2.1 2.1-2.8 2.8-2.1-2.1a4 4 0 0 0 5 5L20 17.2 17.2 20l-8.1-8.1a4 4 0 0 0-5-5l2.1 2.1"/></svg><span>Tools</span><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
-      <div class="toolbar-menu-panel tools-menu-panel">
-        <div class="tools-find-row">
-          <input type="text" id="movieSearchBox" class="toolbar-search tools-search" placeholder="Find movie..." onkeydown="if(event.key==='Enter'){findMovie();this.closest('details').removeAttribute('open');}">
-          <button type="button" onclick="findMovie(); this.closest('details').removeAttribute('open');"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><span>Find</span></button>
-        </div>
-        <button type="button" onclick="this.closest('details').removeAttribute('open'); clearSelection()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg><span>Clear Selection</span></button>
-        <button type="button" onclick="this.closest('details').removeAttribute('open'); startRemoveMovie()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12h8"/></svg><span>Remove Movie</span></button>
-        <button type="button" class="menu-danger" onclick="this.closest('details').removeAttribute('open'); resetBoard()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5"/><path d="M18.5 16A8 8 0 1 1 20 12"/></svg><span>Reset Game</span></button>
+        <div class="settings-divider"></div>
+        <button id="mainStartFreshButton" type="button" onclick="this.closest('details').removeAttribute('open'); hardStartFresh()">Start Fresh</button>
+        <button type="button" class="menu-danger" onclick="this.closest('details').removeAttribute('open'); resetBoard()">Reset Game</button>
       </div>
     </details>
 
     <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
-    <button onclick="endTurn()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7L5 19zM18 5v14"/></svg><span>Skip Turn</span></button>
-    <span id="turnDisplay" style="margin-left:15px;font-weight:bold;color:#ffd54a;font-size:16px;">Turn: Player 1</span>
-    <span id="scoreDisplay" style="margin-left:10px;font-weight:bold;color:#ffd54a;font-size:16px;">Player 1: 0 | Player 2: 0 | Board: 0</span>
+    <button class="cinema-action skip-action" onclick="endTurn()" title="Skip Turn">
+      <span class="cinema-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><path d="M7 7l13 9L7 25zM23 7v18"/></svg>
+      </span>
+      <span>Skip Turn</span>
+    </button>
+
+    <span id="turnDisplay" style="margin-left:10px;font-weight:bold;color:#ffd54a;font-size:14px;">Turn: Player 1</span>
+    <span id="scoreDisplay" style="margin-left:6px;font-weight:bold;color:#ffd54a;font-size:14px;">Player 1: 0 | Player 2: 0 | Board: 0</span>
     <span id="statusText">Ready.</span>
   </div>
 
