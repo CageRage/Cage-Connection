@@ -4578,6 +4578,38 @@ function renderNode(nodeObj) {
       });
     }
 
+
+function getDynamicChainMergeBaseline(firstNode, secondNode) {
+  const firstIds = getConnectedComponentNodeIds(firstNode.id);
+  const secondIds = getConnectedComponentNodeIds(secondNode.id);
+
+  // If already in the same connected component, the current main spine is the baseline.
+  if (firstIds.has(secondNode.id)) {
+    const spine = chooseMainSpine(firstIds);
+    return new Set(spine.map(n => n.id));
+  }
+
+  // If they are separate components, the larger current main spine is treated
+  // as the existing "full line"; movies newly brought onto the new main spine
+  // are the bonus movies.
+  const firstSpine = chooseMainSpine(firstIds);
+  const secondSpine = chooseMainSpine(secondIds);
+  const baselineSpine =
+    firstSpine.length >= secondSpine.length ? firstSpine : secondSpine;
+
+  return new Set(baselineSpine.map(n => n.id));
+}
+
+function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
+  const mergedIds = getConnectedComponentNodeIds(mergedStartNodeId);
+  const mergedSpine = chooseMainSpine(mergedIds);
+  const newlyOnMainLine = mergedSpine.filter(n => !baselineSpineIds.has(n.id)).length;
+
+  // Extending the line by a single movie is just a normal connection.
+  // The Chain Merge Bonus begins when at least 2 movies are newly absorbed.
+  return newlyOnMainLine >= 2 ? newlyOnMainLine : 0;
+}
+
    async function handleConnectClick(obj) {
   if (!connectFirstNode) {
     clearNodeStates();
@@ -4601,16 +4633,10 @@ function renderNode(nodeObj) {
 
   const first = connectFirstNode;
 
-  // A +3 row bonus is earned only when this new connection joins two
-  // already-established, separate rows/chains (not when extending a row
-  // with a single unconnected movie). Capture that state before adding
-  // the new connection.
-  const firstComponentBefore = getConnectedComponentNodeIds(first.id);
-  const secondComponentBefore = getConnectedComponentNodeIds(obj.id);
-  const earnsRowMergeBonus =
-    !firstComponentBefore.has(obj.id) &&
-    firstComponentBefore.size >= 2 &&
-    secondComponentBefore.size >= 2;
+  // Capture the current main-line membership before this connection.
+  // After the connection is added, any 2+ movies newly absorbed into the
+  // resulting main continuous line earn +1 point each.
+  const chainMergeBaseline = getDynamicChainMergeBaseline(first, obj);
 
   const result = await showConnectionDialog(first, obj);
   if (!result) {
@@ -4639,7 +4665,7 @@ function renderNode(nodeObj) {
       id: crypto.randomUUID(), type:"shared", a:first, b:obj,
       bridgeTitle:"", leftActor:"", rightActor:"",
       sharedActor:result.sharedActor, owner:currentPlayerIndex,
-      rowMergeBonus: earnsRowMergeBonus ? 3 : 0
+      rowMergeBonus: 0
     });
     players[currentPlayerIndex].score += 1;
   } else {
@@ -4669,19 +4695,29 @@ function renderNode(nodeObj) {
       id: crypto.randomUUID(), type:"bridge", a:first, b:obj,
       bridgeTitle:result.bridgeTitle, leftActor:result.leftActor, rightActor:result.rightActor,
       sharedActor:"", owner:currentPlayerIndex,
-      rowMergeBonus: earnsRowMergeBonus ? 3 : 0
+      rowMergeBonus: 0
     });
     players[currentPlayerIndex].score += 2;
   }
 
-  if (earnsRowMergeBonus) {
-    players[currentPlayerIndex].score += 3;
+  // The new connection now exists, so calculate how many movies it
+  // newly brought onto the main continuous line.
+  const newConnection = connections[connections.length - 1];
+  const chainMergeBonus = calculateDynamicChainMergeBonus(chainMergeBaseline, first.id);
+
+  if (chainMergeBonus > 0) {
+    newConnection.rowMergeBonus = chainMergeBonus;
+    players[currentPlayerIndex].score += chainMergeBonus;
+
     if (typeof addDockRecent === "function") {
-      addDockRecent(`${players[currentPlayerIndex].name} earned a +3 row bonus for joining two separate chains.`);
+      addDockRecent(
+        `${players[currentPlayerIndex].name} earned a +${chainMergeBonus} Chain Merge Bonus ` +
+        `for bringing ${chainMergeBonus} movies onto the main line.`
+      );
     }
   }
 
-  // Show the full score immediately, including any +3 row-merge bonus.
+  // Show the full score immediately, including any dynamic Chain Merge Bonus.
   updateScoreDisplay();
 
   // A connection is a turn-owned board change. Save the board AND the
@@ -4715,7 +4751,7 @@ function renderNode(nodeObj) {
     }
   }
 
-  switchTurnAfterConnection(earnsRowMergeBonus);
+  switchTurnAfterConnection(chainMergeBonus);
 }
 
 function showConnectionDialog(first, second) {
@@ -5210,15 +5246,15 @@ function endTurn() {
   saveTwoPlayerState();
   updateScoreDisplay();
 }
-function switchTurnAfterConnection(rowMergeBonus = false) {
+function switchTurnAfterConnection(chainMergeBonus = 0) {
   autoArrangeAllComponents();
   saveBoard();
 
   currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
   bonusUsedThisTurn = false;
   clearSelection();
-  setStatus(rowMergeBonus
-    ? `Connection saved. +3 row bonus awarded for joining two separate chains. ${players[currentPlayerIndex].name}'s turn.`
+  setStatus(chainMergeBonus > 0
+    ? `Connection saved. +${chainMergeBonus} Chain Merge Bonus. ${players[currentPlayerIndex].name}'s turn.`
     : `Connection saved. ${players[currentPlayerIndex].name}'s turn.`);
   saveTwoPlayerState();
   updateScoreDisplay();
@@ -6647,9 +6683,9 @@ endTurn = function() {
 };
 
 const _authoritativeSwitchTurnAfterConnection = switchTurnAfterConnection;
-switchTurnAfterConnection = function(rowMergeBonus = false) {
+switchTurnAfterConnection = function(chainMergeBonus = 0) {
   const endingPlayerIndex = currentPlayerIndex;
-  _authoritativeSwitchTurnAfterConnection(rowMergeBonus);
+  _authoritativeSwitchTurnAfterConnection(chainMergeBonus);
   syncAuthoritativeTurnNow(endingPlayerIndex);
 };
 
