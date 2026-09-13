@@ -1476,7 +1476,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
         <img id="bonusReactionImage" alt="Nicolas Cage reaction">
       </div>
       <div class="bonus-actions">
-        <button type="button" id="bonusCancelBtn">Cancel</button>
+        <button type="button" id="bonusCancelBtn">Close Bonus Round</button>
         <button type="button" id="bonusSubmitBtn" onclick="submitBonusAnswer()">Submit Answer</button>
       </div>
     </div>
@@ -4620,6 +4620,7 @@ function renderNode(nodeObj) {
 
   if (result.type === "SHARED") {
     const validation = validateSharedActor(first.name, obj.name, result.sharedActor);
+
     if (validation.status === "invalid") {
       sharedWrongPenalty += 1;
       localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
@@ -4628,6 +4629,12 @@ function renderNode(nodeObj) {
       showCageCheckFailed(validation.message, "-1 point");
       return;
     }
+
+    if (validation.status === "unknown") {
+      setStatus(`Cage Check: UNCONFIRMED. ${validation.message}`);
+      showCageCheckUnknown(validation.message);
+    }
+
     connections.push({
       id: crypto.randomUUID(), type:"shared", a:first, b:obj,
       bridgeTitle:"", leftActor:"", rightActor:"",
@@ -4636,6 +4643,28 @@ function renderNode(nodeObj) {
     });
     players[currentPlayerIndex].score += 1;
   } else {
+    const validation = validateBridgeConnection(
+      first.name,
+      result.bridgeTitle,
+      obj.name,
+      result.leftActor,
+      result.rightActor
+    );
+
+    if (validation.status === "invalid") {
+      sharedWrongPenalty += 1;
+      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+      updateScoreDisplay();
+      setStatus(`Cage Check: FAILED. Score -1. ${validation.message}`);
+      showCageCheckFailed(validation.message, "-1 point");
+      return;
+    }
+
+    if (validation.status === "unknown") {
+      setStatus(`Cage Check: UNCONFIRMED. ${validation.message}`);
+      showCageCheckUnknown(validation.message);
+    }
+
     connections.push({
       id: crypto.randomUUID(), type:"bridge", a:first, b:obj,
       bridgeTitle:result.bridgeTitle, leftActor:result.leftActor, rightActor:result.rightActor,
@@ -4743,16 +4772,15 @@ function showConnectionDialog(first, second) {
   });
 }
 
-const BONUS_WRONG_REACTIONS = [
-  "reactions/wrong/bonus_wrong_03.gif"
-];
+const BONUS_WRONG_REACTIONS = Array.from(
+  { length: 10 },
+  (_, i) => `reactions/wrong/bonus_wrong_${String(i + 1).padStart(2, "0")}.gif`
+);
 
-const BONUS_CORRECT_REACTIONS = [
-  "reactions/correct/bonus_correct_03.gif",
-  "reactions/correct/bonus_correct_04.gif",
-  // Fallback for the earlier accidentally nested copy.
-  "reactions/wrong/reactions/correct/bonus_correct_01.gif"
-];
+const BONUS_CORRECT_REACTIONS = Array.from(
+  { length: 10 },
+  (_, i) => `reactions/correct/bonus_correct_${String(i + 1).padStart(2, "0")}.gif`
+);
 
 function shuffleCopy(items) {
   const a = items.slice();
@@ -4844,7 +4872,7 @@ function closeBonusRound() {
   bonusAnswer.disabled = false;
   bonusSubmitBtn.disabled = false;
   bonusSubmitBtn.textContent = "Submit Answer";
-  bonusCancelBtn.textContent = "Cancel";
+  bonusCancelBtn.textContent = "Close Bonus Round";
 }
 
 function openBonusRound() {
@@ -4878,7 +4906,7 @@ function startBonus(mode) {
   bonusReactionPanel.classList.add("hidden");
   bonusReactionImage.removeAttribute("src");
   bonusAnswer.value = "";
-  bonusCancelBtn.textContent = "Cancel";
+  bonusCancelBtn.textContent = "Close Bonus Round";
 
   const enableAnswer = () => {
     bonusAnswer.disabled = false;
@@ -4996,7 +5024,7 @@ function submitBonusAnswer() {
 
   if (correct) {
     players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) + 10;
-    bonusResult.textContent = `Correct — ${activeBonus.title}. +10 points!`;
+    bonusResult.textContent = `CORRECT! ${activeBonus.title}. +10 points!`;
     bonusResult.className = "bonus-success";
     setStatus(`${players[currentPlayerIndex].name} won the Bonus Round for +10.`);
 
@@ -5005,7 +5033,7 @@ function submitBonusAnswer() {
       catch (err) { console.error("Correct Bonus reaction failed", err); }
     }, 0);
   } else {
-    bonusResult.textContent = `Not this time. It was ${activeBonus.title}.`;
+    bonusResult.textContent = `INCORRECT. The answer was ${activeBonus.title}.`;
     bonusResult.className = "bonus-fail";
     setStatus(`${players[currentPlayerIndex].name} missed the Bonus Round.`);
 
@@ -5030,15 +5058,46 @@ bonusOverlay.addEventListener("click", e => { if (e.target === bonusOverlay) clo
 cheatOverlay.addEventListener("click", e => { if (e.target === cheatOverlay) closeCheatDialog(); });
 
 
-function showCageCheckFailed(message, penaltyText = "-1 point") {
+function showCageCheckResult({
+  title = "Cage Check: FAILED",
+  message = "",
+  penaltyText = "",
+  gifSrc = "reactions/cage_check/cage_check_failed_01.gif"
+} = {}) {
+  const titleEl = document.getElementById("cageCheckTitle");
+  if (titleEl) titleEl.textContent = title;
+
   cageCheckReason.textContent = message;
   cageCheckPenalty.textContent = penaltyText;
+  cageCheckPenalty.style.display = penaltyText ? "block" : "none";
 
-  // Restart the GIF each time.
-  const base = "reactions/cage_check/cage_check_failed_01.gif";
-  cageCheckGif.src = `${base}?v=${Date.now()}`;
+  if (gifSrc) {
+    cageCheckGif.style.display = "block";
+    cageCheckGif.src = `${gifSrc}?v=${Date.now()}`;
+  } else {
+    cageCheckGif.style.display = "none";
+    cageCheckGif.removeAttribute("src");
+  }
 
   cageCheckOverlay.classList.remove("hidden");
+}
+
+function showCageCheckFailed(message, penaltyText = "-1 point") {
+  showCageCheckResult({
+    title: "Cage Check: FAILED",
+    message,
+    penaltyText,
+    gifSrc: "reactions/cage_check/cage_check_failed_01.gif"
+  });
+}
+
+function showCageCheckUnknown(message) {
+  showCageCheckResult({
+    title: "Cage Check: UNCONFIRMED",
+    message: `${message} Cage Check can neither confirm nor deny this connection.`,
+    penaltyText: "No penalty",
+    gifSrc: null
+  });
 }
 
 function closeCageCheckFailed() {
@@ -5227,6 +5286,26 @@ function clearFocus() {
     const rightActor = prompt(`Actor from "${c.b.name}":`, c.rightActor || "");
     if (!rightActor || !rightActor.trim()) return;
 
+    const validation = validateBridgeConnection(
+      c.a.name,
+      bridgeTitle.trim(),
+      c.b.name,
+      leftActor.trim(),
+      rightActor.trim()
+    );
+
+    if (validation.status === "invalid") {
+      sharedWrongPenalty += 1;
+      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+      updateScoreDisplay();
+      showCageCheckFailed(validation.message, "-1 point");
+      return;
+    }
+
+    if (validation.status === "unknown") {
+      showCageCheckUnknown(validation.message);
+    }
+
     c.type = "bridge";
     c.bridgeTitle = bridgeTitle.trim();
     c.leftActor = leftActor.trim();
@@ -5254,6 +5333,10 @@ function clearFocus() {
 
       showCageCheckFailed(validation.message, "-1 point");
       return;
+    }
+
+    if (validation.status === "unknown") {
+      showCageCheckUnknown(validation.message);
     }
 
     c.type = "shared";
