@@ -1352,6 +1352,8 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button type="button" class="online-primary" onclick="copyInviteLink()">Copy Invite Link</button>
           <button type="button" class="online-primary" onclick="saveRemoteGameNow()">Save Game</button>
+          <button id="skipCurrentPlayerButton" type="button" onclick="skipCurrentPlayerForThem()">Skip Current Player's Turn</button>
+          <button id="removePlayerButton" type="button" onclick="removeRemotePlayer()" style="display:none">Remove Player 2</button>
           <button type="button" onclick="leaveRemoteGame()">Leave Game</button>
           <button id="endGameForEveryoneButton" type="button" onclick="endGameForEveryone()" style="display:none">End Game for Everyone</button>
         </div>
@@ -5290,8 +5292,16 @@ function loadTwoPlayerState() {
     // If saved two-player state is bad, ignore it and use defaults.
   }
 }
+function nextPlayablePlayerIndex(fromIndex) {
+  if(!remoteRoomRef) return (Number(fromIndex) + 1) % players.length;
+  for(let step=1;step<=players.length;step++){
+    const candidate=(Number(fromIndex)+step)%players.length;
+    if(remoteOccupiedSeats[candidate]) return candidate;
+  }
+  return Number(fromIndex)||0;
+}
 function endTurn() {
-  currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+  currentPlayerIndex = nextPlayablePlayerIndex(currentPlayerIndex);
   bonusUsedThisTurn = false;
   clearSelection();
   setStatus(`${players[currentPlayerIndex].name}'s turn.`);
@@ -5302,7 +5312,7 @@ function switchTurnAfterConnection(chainMergeBonus = 0) {
   autoArrangeAllComponents();
   saveBoard();
 
-  currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+  currentPlayerIndex = nextPlayablePlayerIndex(currentPlayerIndex);
   bonusUsedThisTurn = false;
   clearSelection();
   setStatus(chainMergeBonus > 0
@@ -6282,6 +6292,7 @@ submitBonusAnswer = function() {
 const FIREBASE_CONFIG={apiKey:"AIzaSyCW9X7o1xr-hmB1Xf1vp6J77BP8FZDaanM",authDomain:"cage-connection.firebaseapp.com",databaseURL:"https://cage-connection-default-rtdb.firebaseio.com",projectId:"cage-connection",storageBucket:"cage-connection.firebasestorage.app",messagingSenderId:"1090463742722",appId:"1:1090463742722:web:055ab8586c3d95305be01b"};
 const REMOTE_SESSION_KEY="cage-connection-remote-session-v2";
 let remoteDb=null,remoteRoomCode=null,remotePlayerIndex=null,remoteRoomRef=null,remoteOwnPhone="";
+let remoteOccupiedSeats=[true,true];
 let remoteStateHandler=null,remoteMembersHandler=null,remoteChatQuery=null,remoteChatHandler=null,remoteChallengeHandler=null,applyingRemoteState=false;
 let remoteSyncTimer=null,remoteNameSyncTimer=null;
 try{if(window.firebase&&!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);if(window.firebase){remoteDb=firebase.database();try{if(remoteDb&&remoteDb.INTERNAL&&typeof remoteDb.INTERNAL.forceLongPolling==="function")remoteDb.INTERNAL.forceLongPolling()}catch(lpErr){console.warn("Could not force Firebase long polling",lpErr)}}}catch(err){console.error("Firebase initialization failed",err)}
@@ -6420,8 +6431,10 @@ function applyRemoteMembers(members){
   const getMember=i=>Array.isArray(members)?members[i]:(members[String(i)]||members[i]);
   for(let i=0;i<2;i++){
     const member=getMember(i);
+    remoteOccupiedSeats[i]=i===0 ? true : !!member?.occupied;
     if(member&&member.name)players[i].name=cleanPlayerName(member.name,`Player ${i+1}`);
   }
+  if(remoteRoomRef && !remoteOccupiedSeats[currentPlayerIndex]) currentPlayerIndex=nextPlayablePlayerIndex(currentPlayerIndex);
   localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn}));
   updateScoreDisplay();
   updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);
@@ -6540,6 +6553,7 @@ async function createRemoteGame(){
     remoteRoomCode=code;
     remotePlayerIndex=0;
     remoteRoomRef=roomRef;
+    remoteOccupiedSeats=[true,false];
     clearLocalBoardAfterRoomCreated();
     attachRemoteListeners();
     saveRemoteSession();
@@ -6606,6 +6620,7 @@ async function joinRemoteGame(){
     }
 
     members={...members,[String(role)]:claim.snapshot.val()};
+    remoteOccupiedSeats=[true,true];
 
     applyRemoteState(roomValue.state);
     applyRemoteMembers(members);
@@ -6816,8 +6831,88 @@ async function endGameForEveryone(){
   }
 }
 
-function leaveRemoteGame(){detachRemoteListeners();clearDockChat();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);remoteRoomCode=null;remotePlayerIndex=null;remoteRoomRef=null;try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}try{const u=new URL(window.location.href);u.searchParams.delete("room");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch{}const c=document.getElementById("onlineResumeCode");if(c)c.value="";refreshOnlinePanel();setOnlineMessage("You left the remote room. It is no longer marked as your active/resume-last game.");setStatus("Remote game disconnected. Local mode active.")}
-function refreshOnlinePanel(){prefillRemoteResume();const b=document.getElementById("onlineStatusBadge"),c=document.getElementById("onlineConnectedPanel"),r=document.getElementById("onlineRoomCode"),role=document.getElementById("onlineRoleText"),endBtn=document.getElementById("endGameForEveryoneButton");if(remoteRoomCode){if(b){b.textContent=remoteRoomCode;b.classList.add("live")}if(c)c.classList.remove("hidden");if(r)r.textContent=remoteRoomCode;if(role)role.textContent=`You are ${players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`} (Player ${remotePlayerIndex+1})`;if(endBtn)endBtn.style.display=remotePlayerIndex===0?"inline-block":"none";refreshInviteLink()}else{if(b){b.textContent="Offline";b.classList.remove("live")}if(c)c.classList.add("hidden");if(endBtn){endBtn.style.display="none";endBtn.textContent="End Game for Everyone"}refreshInviteLink()}}
+function leaveRemoteGame(){detachRemoteListeners();clearDockChat();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);remoteRoomCode=null;remotePlayerIndex=null;remoteRoomRef=null;remoteOccupiedSeats=[true,true];try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}try{const u=new URL(window.location.href);u.searchParams.delete("room");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch{}const c=document.getElementById("onlineResumeCode");if(c)c.value="";refreshOnlinePanel();setOnlineMessage("You left the remote room. It is no longer marked as your active/resume-last game.");setStatus("Remote game disconnected. Local mode active.")}
+
+async function skipCurrentPlayerForThem(){
+  if(!remoteRoomRef){setOnlineMessage("Join an online room first.");return;}
+  const skipped=currentPlayerIndex;
+  const skippedName=players[skipped]?.name||`Player ${skipped+1}`;
+  const next=nextPlayablePlayerIndex(skipped);
+  if(next===skipped){setOnlineMessage("There is no other active player to receive the turn.");return;}
+  try{
+    await remoteRoomRef.child("state").transaction(state=>{
+      if(!state)return state;
+      return {...state,currentPlayerIndex:next,bonusUsedThisTurn:false,updatedAt:Date.now()};
+    });
+    addDockRecent(`${skippedName}'s turn was skipped.`);
+    setOnlineMessage(`${skippedName}'s turn was skipped. ${players[next]?.name||`Player ${next+1}`} is now up.`);
+    setStatus(`${skippedName}'s turn was skipped.`);
+  }catch(err){console.error("Could not skip player turn",err);setOnlineMessage(`Could not skip the turn: ${err.message||err}`);}
+}
+
+let removePlayerArmedUntil=0;
+async function removeRemotePlayer(){
+  if(!remoteRoomRef||![0,1].includes(remotePlayerIndex)){setOnlineMessage("Join an online room first.");return;}
+  const target=1;
+  if(remotePlayerIndex!==0 && remotePlayerIndex!==target){setOnlineMessage("Only the host can remove another player.");return;}
+  if(remotePlayerIndex===0 && !remoteOccupiedSeats[target]){setOnlineMessage("Player 2's seat is already open.");return;}
+  const targetName=players[target]?.name||"Player 2";
+  const now=Date.now();
+  const btn=document.getElementById("removePlayerButton");
+  if(now>removePlayerArmedUntil){
+    removePlayerArmedUntil=now+5000;
+    if(btn)btn.textContent=remotePlayerIndex===target?"Confirm Remove Me":"Confirm Remove Player 2";
+    setOnlineMessage(`Click the remove button again within 5 seconds to remove ${remotePlayerIndex===target?"yourself":targetName} from this room.`);
+    setTimeout(()=>{if(Date.now()>removePlayerArmedUntil)refreshOnlinePanel();},5200);
+    return;
+  }
+  removePlayerArmedUntil=0;
+  try{
+    const updates={};
+    updates[`members/${target}/name`]="Player 2";
+    updates[`members/${target}/occupied`]=false;
+    if(currentPlayerIndex===target){
+      updates["state/currentPlayerIndex"]=0;
+      updates["state/bonusUsedThisTurn"]=false;
+      updates["state/updatedAt"]=firebase.database.ServerValue.TIMESTAMP;
+    }
+    await remoteRoomRef.update(updates);
+    setOnlineMessage(`${targetName} was removed. Player 2's seat is open again.`);
+    setStatus(`${targetName} was removed from the game.`);
+    if(remotePlayerIndex===target){
+      detachRemoteListeners();clearDockChat();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);
+      remoteRoomCode=null;remotePlayerIndex=null;remoteRoomRef=null;remoteOccupiedSeats=[true,true];
+      try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}
+      refreshOnlinePanel();
+    }
+  }catch(err){console.error("Could not remove player",err);setOnlineMessage(`Could not remove the player: ${err.message||err}`);}
+}
+
+function refreshOnlinePanel(){
+  prefillRemoteResume();
+  const b=document.getElementById("onlineStatusBadge"),c=document.getElementById("onlineConnectedPanel"),r=document.getElementById("onlineRoomCode"),role=document.getElementById("onlineRoleText"),endBtn=document.getElementById("endGameForEveryoneButton"),removeBtn=document.getElementById("removePlayerButton"),skipBtn=document.getElementById("skipCurrentPlayerButton");
+  if(remoteRoomCode){
+    if(b){b.textContent=remoteRoomCode;b.classList.add("live")}
+    if(c)c.classList.remove("hidden");
+    if(r)r.textContent=remoteRoomCode;
+    if(role)role.textContent=`You are ${players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`} (Player ${remotePlayerIndex+1})`;
+    if(endBtn)endBtn.style.display=remotePlayerIndex===0?"inline-block":"none";
+    if(skipBtn){skipBtn.style.display="inline-block";skipBtn.textContent=`Skip ${players[currentPlayerIndex]?.name||`Player ${currentPlayerIndex+1}`}'s Turn`;}
+    if(removeBtn){
+      const canRemove=remotePlayerIndex===0 ? remoteOccupiedSeats[1] : remotePlayerIndex===1;
+      removeBtn.style.display=canRemove?"inline-block":"none";
+      removeBtn.textContent=remotePlayerIndex===1?"Remove Me From Game":`Remove ${players[1]?.name||"Player 2"}`;
+    }
+    refreshInviteLink();
+  }else{
+    if(b){b.textContent="Offline";b.classList.remove("live")}
+    if(c)c.classList.add("hidden");
+    if(endBtn){endBtn.style.display="none";endBtn.textContent="End Game for Everyone"}
+    if(removeBtn)removeBtn.style.display="none";
+    if(skipBtn)skipBtn.style.display="none";
+    refreshInviteLink();
+  }
+}
 function remoteTurnAllowed(){if(!remoteRoomCode)return true;if(remotePlayerIndex===currentPlayerIndex)return true;setStatus(`Waiting for ${players[currentPlayerIndex]?.name||`Player ${currentPlayerIndex+1}`}.`);return false}
 const _remoteSaveBoard=saveBoard;saveBoard=function(){_remoteSaveBoard();scheduleRemoteSync()};
 const _remoteSaveTwoPlayerState=saveTwoPlayerState;saveTwoPlayerState=function(){_remoteSaveTwoPlayerState();scheduleRemoteSync();scheduleOwnNameSync()};
