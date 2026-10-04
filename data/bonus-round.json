@@ -1,0 +1,1088 @@
+[
+  {
+    "id": "CF006",
+    "category": "Cage Fact",
+    "question": "What is Nicolas Cage's birth surname?",
+    "answer": "Coppola",
+    "answerType": "Single Choice",
+    "points": 1,
+    "choices": [
+      "Coppola",
+      "Corleone",
+      "Coppelius",
+      "Capra"
+    ],
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "CF007",
+    "category": "Cage Fact",
+    "question": "Why did Cage begin using a different surname professionally?",
+    "answer": "To distance himself from the Coppola family name",
+    "answerType": "Single Choice",
+    "points": 1,
+    "choices": [
+      "His agent told him it was easier to spell",
+      "Another actor already used Coppola",
+      "He lost a bet",
+      "To distance himself from the Coppola family name"
+    ],
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "CF009",
+    "category": "Cage Fact",
+    "question": "Which comic-book character helped inspire the name \"Cage\"?",
+    "answer": "Luke Cage",
+    "answerType": "Single Choice",
+    "points": 1,
+    "choices": [
+      "Johnny Blaze",
+      "Bruce Wayne",
+      "Peter Parker",
+      "Luke Cage"
+    ],
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "MQ003",
+    "category": "Movie Quote",
+    "question": "My name is Castor Troy",
+    "answer": "Face/Off",
+    "answerType": "Single Choice",
+    "points": 1,
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "MQ006",
+    "category": "Movie Quote",
+    "question": "What do you say we cut the chit-chat, A-hole?",
+    "answer": "The Rock",
+    "answerType": "Single Choice",
+    "points": 1,
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "MQ007",
+    "category": "Movie Quote",
+    "question": "Sorry Boss, but there's only two men I trust.  One of them's me.  The other's not you.",
+    "answer": "Con Air",
+    "answerType": "Single Choice",
+    "points": 1,
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "PI002",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "Face/Off",
+    "answerType": "Free text",
+    "points": 1,
+    "image": "bonus-images/photo_002.png",
+    "hint": {
+      "type": "Quote",
+      "text": "My name is Castor Troy"
+    },
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "PI006",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "Con Air",
+    "answerType": "Free text",
+    "points": 1,
+    "image": "bonus-images/photo_006.png",
+    "hint": {
+      "type": "Quote",
+      "text": "Sorry Boss, but there's only two men I trust.  One of them's me.  The other's not you."
+    },
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "TF001",
+    "category": "True or False",
+    "question": "Cage won the Oscar for Leaving Las Vegas",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 1,
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "TF005",
+    "category": "True or False",
+    "question": "Former co-star Sean Penn once said \"Nic Cage is no longer an actor. He’s more like a performer.”",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 1,
+    "answerExplanation": "Sean Penn is a pretentious jerk",
+    "scoring": {
+      "correctNoHint": 1,
+      "correctAfterHint": 0,
+      "wrong": -1
+    }
+  },
+  {
+    "id": "CF001",
+    "category": "Cage Fact",
+    "question": "What did Nicolas Cage do when he discovered his cat ate his magic mushrooms?",
+    "answer": "Took some as well and they stared at each others eyes for eight hours",
+    "answerType": "Single Choice",
+    "points": 3,
+    "choices": [
+      "Took him for a walk",
+      "Personally pumped his stomach",
+      "Took some as well and they stared at each others eyes for eight hours",
+      "All of the above"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF002",
+    "category": "Cage Fact",
+    "question": "About how much did Cage say he once owed the IRS and creditors?",
+    "answer": "$6 million",
+    "answerType": "Single Choice",
+    "points": 3,
+    "choices": [
+      "$2 million",
+      "$6 million",
+      "$12 million",
+      "$20 million"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF004",
+    "category": "Cage Fact",
+    "question": "What type of venomous snakes did Cage own?",
+    "answer": "King cobras",
+    "answerType": "Single Choice",
+    "points": 3,
+    "choices": [
+      "King cobras",
+      "Rattlesnakes",
+      "Coral snakes",
+      "Black mambas"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF005",
+    "category": "Cage Fact",
+    "question": "What happened to Cage's two-headed snake?",
+    "answer": "He donated it to a zoo",
+    "answerType": "Single Choice",
+    "points": 3,
+    "choices": [
+      "It escaped",
+      "He sold it at auction",
+      "He donated it to a zoo",
+      "It died during filming"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF008",
+    "category": "Cage Fact",
+    "question": "What eventually happened to Cage's dinosaur skull?",
+    "answer": "He returned it after learning it had been illegally removed from Mongolia",
+    "answerType": "Single Choice",
+    "points": 3,
+    "choices": [
+      "He donated it to the Smithsonian",
+      "He returned it after learning it had been illegally removed from Mongolia",
+      "He gave it to Leonardo DiCaprio",
+      "It was destroyed in a fire"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF010",
+    "category": "Cage Fact",
+    "question": "He briefly owned a vintage hearse that he used as his everyday car in the early 1990s.",
+    "answer": "No",
+    "answerType": "Yes/No",
+    "points": 3,
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF011",
+    "category": "Cage Fact",
+    "question": "How many times has Nicolas Cage been married?",
+    "answer": "Five",
+    "answerType": "Single Choice",
+    "points": 3,
+    "choices": [
+      "Three",
+      "Four",
+      "Five",
+      "Six"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF012",
+    "category": "Cage Fact",
+    "question": "Cage keeps a handwritten journal ranking every movie he has made by how physically exhausting it was.",
+    "answer": "No",
+    "answerType": "Yes/No",
+    "points": 3,
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF013",
+    "category": "Cage Fact",
+    "question": "Why did Cage say his two-headed snake was difficult to feed?",
+    "answer": "The heads fought over food",
+    "answerType": "Single Choice",
+    "points": 3,
+    "choices": [
+      "It would only eat live fish",
+      "It refused to eat indoors",
+      "The heads fought over food",
+      "It had to be hand-fed"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF014",
+    "category": "Cage Fact",
+    "question": "Nicolas Cage once bought a decommissioned lighthouse because he wanted a private place to read scripts.",
+    "answer": "No",
+    "answerType": "Yes/No",
+    "points": 3,
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF015",
+    "category": "Cage Fact",
+    "question": "What prehistoric object did Cage buy at auction?",
+    "answer": "A dinosaur skull",
+    "answerType": "Single Choice",
+    "points": 3,
+    "choices": [
+      "A mammoth tusk",
+      "A dinosaur skull",
+      "A fossilized dinosaur egg",
+      "A saber-toothed tiger skull"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "MC001",
+    "category": "Multiple Choice",
+    "question": "Which came first?",
+    "answer": "The Rock",
+    "answerType": "Multiple Choice",
+    "points": 3,
+    "choices": [
+      "The Rock",
+      "Con Air",
+      "Face/Off",
+      "Snake Eyes"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "MC003",
+    "category": "Multiple Choice",
+    "question": "How many movies has Nicolas Cage appeared in with Sean Penn",
+    "answer": 2,
+    "answerType": "Multiple Choice",
+    "points": 3,
+    "choices": [
+      1,
+      2,
+      3,
+      0
+    ],
+    "answerExplanation": "Cage had a minor role in Fast Times at Ridgemont High.  He also worked with Penn's brother Chris in Rumble Fish",
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "MC004",
+    "category": "Multiple Choice",
+    "question": "What did The Family Man character Jack insist be returned so he could buy a $2,000 suit?",
+    "answer": "His daughter's Mary Janes",
+    "answerType": "Multiple Choice",
+    "points": 3,
+    "choices": [
+      "His wife's new car",
+      "His daughter's Mary Janes",
+      "All of his Christmas gifts",
+      "None of the above - the suit was $3000"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "MQ002",
+    "category": "Movie Quote",
+    "question": "You aren't a true internationalist until you've supplied weapons to kill your own countrymen.",
+    "answer": "Lord of War",
+    "answerType": "Multiple Choice",
+    "points": 3,
+    "choices": [
+      "Trapped in Paradise",
+      "The Rock",
+      "Face/Off",
+      "Lord of War"
+    ],
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "MQ004",
+    "category": "Movie Quote",
+    "question": "I'll be taking these Huggies, and whatever cash you got.",
+    "answer": "Raising Arizona",
+    "answerType": "Single Choice",
+    "points": 3,
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "MQ005",
+    "category": "Movie Quote",
+    "question": "This here is a snakeskin jacket.  It represents a symbol of my individuality, and my believe in personal freedom.",
+    "answer": "Wild at Heart",
+    "answerType": "Free text",
+    "points": 3,
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "MQ008",
+    "category": "Movie Quote",
+    "question": "Coffee and a muffin.  OK, so I need to establish the themes.  Maybe a banana-nut.  That's a good muffin.",
+    "answer": "Adaptation",
+    "answerType": "Free text",
+    "points": 3,
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "MQ010",
+    "category": "Movie Quote",
+    "question": "I'm Nicolas FRIGGIN' Cage!",
+    "answer": "The Unbearable Weight of Massive Talent",
+    "answerType": "Free text",
+    "points": 3,
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "PI003",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "Raising Arizona",
+    "answerType": "Free text",
+    "points": 3,
+    "image": "bonus-images/photo_003.png",
+    "hint": {
+      "type": "Quote",
+      "text": "I'll be taking these Huggies, and whatever cash you got."
+    },
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "PI004",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "Wild at Heart",
+    "answerType": "Free text",
+    "points": 3,
+    "image": "bonus-images/photo_004.png",
+    "hint": {
+      "type": "Quote",
+      "text": "This here is a snakeskin jacket.  It represents a symbol of my individuality, and my believe in personal freedom."
+    },
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "PI005",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "The Rock",
+    "answerType": "Free text",
+    "points": 3,
+    "image": "bonus-images/photo_005.png",
+    "hint": {
+      "type": "Quote",
+      "text": "What do you say we cut the chit-chat, A-hole?"
+    },
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "PI007",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "Adaptation",
+    "answerType": "Free text",
+    "points": 3,
+    "image": "bonus-images/photo_007.png",
+    "hint": {
+      "type": "Quote",
+      "text": "Coffee and a muffin.  OK, so I need to establish the themes.  Maybe a banana-nut.  That's a good muffin."
+    },
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "PI008",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "The Weather Man",
+    "answerType": "Free text",
+    "points": 3,
+    "image": "bonus-images/photo_008.png",
+    "hint": {
+      "type": "Quote",
+      "text": "People don't throw things at me anymore.  Maybe because I carry a bow around."
+    },
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "PI009",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "The Unbearable Weight of Massive Talent",
+    "answerType": "Free text",
+    "points": 3,
+    "image": "bonus-images/photo_009.png",
+    "hint": {
+      "type": "Quote",
+      "text": "I'm Nicolas FRIGGIN' Cage!"
+    },
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "TF002",
+    "category": "True or False",
+    "question": "He was originally cast as Brad in Fast Times at Ridgemont High",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 3,
+    "answerExplanation": "He was too young to work the hours",
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "TF003",
+    "category": "True or False",
+    "question": "He appeared in a single season of The Best of Times in the 70s",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 3,
+    "answerExplanation": "The variety show starred Crispin Glover",
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "TF004",
+    "category": "True or False",
+    "question": "Nicolas Cage once said that his crow would insult him after he left the room.",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 3,
+    "answerExplanation": "He described his crow calling after him and then insulting him, which he found funny. Los Angeles Times",
+    "scoring": {
+      "correctNoHint": 3,
+      "correctAfterHint": 2,
+      "wrong": -3
+    }
+  },
+  {
+    "id": "CF003",
+    "category": "Cage Fact",
+    "question": "Which exotic animal did Cage once own?",
+    "answer": "An octopus",
+    "answerType": "Single Choice",
+    "points": 5,
+    "choices": [
+      "A kangaroo",
+      "A llama",
+      "A capuchin monkey",
+      "An octopus"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ001",
+    "category": "Cage Quote",
+    "question": "Which of these did Nicolas Cage actually say? Select all that apply.",
+    "answer": "A, B, and C",
+    "answerType": "Multiple Select",
+    "points": 5,
+    "choices": [
+      "There's a fine line between the Method actor and the schizophrenic",
+      "Sometimes people think I'm wearing a wig when I'm not wearing a wig, and then sometimes they think I'm not wering a wig when I am wearing a wig",
+      "A good performance should make at least one person slightly uncomfortable.",
+      "You can’t negotiate with a peacock. I’ve tried."
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ002",
+    "category": "Cage Quote",
+    "question": "Did Nicolas Cage really say this?",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 5,
+    "choices": [
+      "To be a good actor you have to be something like a criminal, to be willing to break the rules to strive for something new."
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ003",
+    "category": "Cage Quote",
+    "question": "Did Nicolas Cage really say this?",
+    "answer": "No",
+    "answerType": "Yes/No",
+    "points": 5,
+    "choices": [
+      "I believe every room has a ghost. Sometimes the ghost is you."
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ004",
+    "category": "Cage Quote",
+    "question": "Which of these did Nicolas Cage actually say?",
+    "answer": "I do like to move and get physical in my movies",
+    "answerType": "Single Choice",
+    "points": 5,
+    "choices": [
+      "I do like to move and get physical in my movies",
+      "If you’re going to steal a car, spiritually speaking, it should probably be a convertible.",
+      "There’s a very thin line between genius and wearing the wrong jacket.",
+      "I don’t prepare for chaos. I invite it in and see what it wants."
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ005",
+    "category": "Cage Quote",
+    "question": "Which of these did Nicolas Cage actually say?",
+    "answer": "I like both Blue-Ray and DVD but Blue-Ray gives you more options.",
+    "answerType": "Single Choice",
+    "points": 5,
+    "choices": [
+      "I like both Blue-Ray and DVD but Blue-Ray gives you more options.",
+      "Sometimes the only way out is to become more confusing than the problem.",
+      "I don’t trust a man who owns more than three lamps.",
+      "I once ate an entire lemon because I needed to understand bitterness."
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ006",
+    "category": "Cage Quote",
+    "question": "Did Nicolas Cage really say this?",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 5,
+    "choices": [
+      "I think I've become more relaxed throughout my career.  I don't feel the need to jump up and down and make a big noise to get people to pay attention to me.  I don't need to do punk rock gestures or eat a cockroach or do something weird to say I exist."
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ007",
+    "category": "Cage Quote",
+    "question": "Which of these did Nicolas Cage actually say?",
+    "answer": "All of the above",
+    "answerType": "Multiple Choice",
+    "points": 5,
+    "choices": [
+      "I was always shocked when I went to the doctor's office and they did my X-ray and didn't find that I had eight more ribs than I should have or tht my blood was the color green.",
+      "I always add a year to myself, so I'm prepared for my next birthday.  So when I was 39, I was already 40",
+      "If you're really special meaning you're doing something unique and original, it could scare people.",
+      "All of the above"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ008",
+    "category": "Cage Quote",
+    "question": "Which of these did Nicolas Cage actually say?",
+    "answer": "All of the above",
+    "answerType": "Multiple Choice",
+    "points": 5,
+    "choices": [
+      "I have eclectic tastes in the movies I want to do.",
+      "I am not a demon. I am a lizard, a shark, a heat-seeking panther.  I want to be Bob Denver on acid playing the accordion.",
+      "Every great story seems to begin with a snake",
+      "All of the above"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ009",
+    "category": "Cage Quote",
+    "question": "Did Nicolas Cage really say this?",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 5,
+    "choices": [
+      "Nobody wants to watch perfection"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ010",
+    "category": "Cage Quote",
+    "question": "Did Nicolas Cage really say this?",
+    "answer": "No",
+    "answerType": "Yes/No",
+    "points": 5,
+    "choices": [
+      "Sometimes the most honest thing you can do is make an unnecessarily dramatic entrance."
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ011",
+    "category": "Cage Quote",
+    "question": "Did Nicolas Cage really say this?",
+    "answer": "No",
+    "answerType": "Yes/No",
+    "points": 5,
+    "choices": [
+      "I don’t believe in bad luck. I believe in badly timed confidence."
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "CQ012",
+    "category": "Cage Quote",
+    "question": "Did Nicolas Cage really say this?",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 5,
+    "choices": [
+      "I don't believe in the term ‘over the top.’ I believe in the term ‘outside of the box.’"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "MC002",
+    "category": "Multiple Choice",
+    "question": "Which of these did Cage do to help prepare for Leaving Las Vegas?",
+    "answer": "Recorded himself binge drinking for two weeks",
+    "answerType": "Multiple Choice",
+    "points": 5,
+    "choices": [
+      "Attended AA meetings for a month",
+      "Recorded himself binge drinking for two weeks",
+      "Nothing.  He's Nicolas Cage"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "MQ009",
+    "category": "Movie Quote",
+    "question": "People don't throw things at me anymore.  Maybe because I carry a bow around.",
+    "answer": "The Weather Man",
+    "answerType": "Multiple Choice",
+    "points": 5,
+    "choices": [
+      "Racing with the Moon",
+      "Madden",
+      "Pig",
+      "The Weather Man"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "MQ011",
+    "category": "Movie Quote",
+    "question": "Shoot him again…his soul's still dancing",
+    "answer": "Bad Lieutenant: Port of Call - New Orleans",
+    "answerType": "Multiple Choice",
+    "points": 5,
+    "choices": [
+      "Bringing out the Dead",
+      "Longlegs",
+      "Face/Off",
+      "Bad Lieutenant: Port of Call - New Orleans"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "MQ012",
+    "category": "Movie Quote",
+    "question": "I never disrobe before gunplay",
+    "answer": "Drive Angry",
+    "answerType": "Multiple Choice",
+    "points": 5,
+    "choices": [
+      "Gunslingers",
+      "Drive Angry",
+      "Sympathy for the Devil",
+      "Adaptation"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "MQ013",
+    "category": "Movie Quote",
+    "question": "I have an acronym for myself.  B.A.D.  Balls, Attitude, Direction.  You should give yourself an acronym…'cause it helps you visualize your goals",
+    "answer": "Kiss of Death",
+    "answerType": "Multiple Choice",
+    "points": 5,
+    "choices": [
+      "Wild at Heart",
+      "Red Rock West",
+      "City of Angels",
+      "Kiss of Death"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "MQ014",
+    "category": "Movie Quote",
+    "question": "Nobody ever thinks clearly at the airport",
+    "answer": "The Family Man",
+    "answerType": "Multiple Choice",
+    "points": 5,
+    "choices": [
+      "Pig",
+      "It Could Happen to You",
+      "The Family Man",
+      "Madden"
+    ],
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "PI001",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "Lord of War",
+    "answerType": "Free text",
+    "points": 5,
+    "image": "bonus-images/photo_001.png",
+    "hint": {
+      "type": "Quote",
+      "text": "You aren't a true internationalist until you've supplied weapons to kill your own countrymen."
+    },
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "PI010",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "Bad Lieutenant: Port of Call - New Orleans",
+    "answerType": "Free text",
+    "points": 5,
+    "image": "bonus-images/photo_010.png",
+    "hint": {
+      "type": "Quote",
+      "text": "Shoot him again…his soul's stil dancing"
+    },
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "PI011",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "Drive Angry",
+    "answerType": "Free text",
+    "points": 5,
+    "image": "bonus-images/photo_011.png",
+    "hint": {
+      "type": "Quote",
+      "text": "I never disrobe before gunplay"
+    },
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "PI012",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "Kiss of Death",
+    "answerType": "Free text",
+    "points": 5,
+    "image": "bonus-images/photo_012.png",
+    "hint": {
+      "type": "Quote",
+      "text": "I have an acronym for myself.  B.A.D.  Balls, Attitude, Direction.  You should give yourself an acronym…'cause it helps you visualize your goals"
+    },
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "PI013",
+    "category": "Photo Identification",
+    "question": "Name the movie",
+    "answer": "The Family Man",
+    "answerType": "Free text",
+    "points": 5,
+    "image": "bonus-images/photo_013.png",
+    "hint": {
+      "type": "Quote",
+      "text": "Nobody ever thinks clearly at the airport"
+    },
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "TF009",
+    "category": "True or False",
+    "question": "Nicolas Cage has filed for bankruptcy three times",
+    "answer": "No",
+    "answerType": "Yes/No",
+    "points": 5,
+    "answerExplanation": "Cage had serious financial and tax problems and reportedly owed millions, but he has said he never filed for bankruptcy.",
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  },
+  {
+    "id": "TF010",
+    "category": "True or False",
+    "question": "Nicolas Cage's first credited film role was as Brad's Bud in Fast Times at Ridgemont High",
+    "answer": "Yes",
+    "answerType": "Yes/No",
+    "points": 5,
+    "answerExplanation": "He appeared in the 1982 film while still using the Coppola surname.",
+    "scoring": {
+      "correctNoHint": 5,
+      "correctAfterHint": 4,
+      "wrong": -5
+    }
+  }
+]
