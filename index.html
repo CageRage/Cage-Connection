@@ -631,8 +631,14 @@
 #bonusDialog .bonus-sub { color:#b9c8db; margin-bottom:16px; line-height:1.4; }
 .bonus-choice-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:14px 0; }
 .bonus-choice-row button { min-height:44px; }
+.bonus-point-row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.bonus-step-title { font-size:18px; font-weight:800; color:#ffd54a; margin:8px 0 10px; }
+#bonusPointChoices button.selected { outline:3px solid #ffd54a; background:#2a3951; }
+#bonusCategoryChoices button:disabled { opacity:.42; cursor:not-allowed; }
+#bonusPointStep.hidden, #bonusCategoryStep.hidden { display:none !important; }
 #bonusChallenge { margin:14px 0; padding:16px; background:#182234; border:1px solid #314763; border-radius:10px; text-align:center; }
 #bonusCategoryLabel { color:#ffd54a; font-weight:800; margin-bottom:8px; }
+#bonusCategoryLabel:empty { display:none; }
 #bonusQuestion { font-size:18px; line-height:1.45; margin-bottom:12px; }
 #bonusQuote { font-size:20px; line-height:1.45; font-style:italic; }
 #bonusImage { display:block; width:min(360px,78vw); max-height:390px; object-fit:contain; margin:10px auto 0; border-radius:8px; border:1px solid #465a75; background:#0b0f14; }
@@ -641,13 +647,24 @@
 #bonusChoices { display:grid; gap:9px; margin-top:12px; }
 .bonus-option { display:flex; gap:10px; align-items:flex-start; text-align:left; padding:11px 12px; border:1px solid #3a4f6f; background:#182234; border-radius:8px; cursor:pointer; }
 .bonus-option:hover { background:#21304a; }
+.bonus-option.correct-answer { border:2px solid #4caf50; background:rgba(76,175,80,.16); font-weight:800; }
+.bonus-option.wrong-answer { border:2px solid #d45b5b; background:rgba(212,91,91,.12); }
+#bonusChallenge.answered-hidden,
+#bonusAnswerLabel.answered-hidden,
+#bonusAnswer.answered-hidden,
+#bonusChoices.answered-hidden,
+#bonusHintPanel.answered-hidden,
+#bonusHintBtn.answered-hidden,
+#bonusSubmitBtn.answered-hidden { display:none !important; }
 .bonus-option input { margin-top:3px; }
 #bonusHintPanel { margin-top:12px; padding:12px; border:1px solid #6b5b2d; background:#241f12; border-radius:8px; }
 #bonusHintText { line-height:1.45; }
 #bonusHintImage { display:block; width:min(300px,72vw); max-height:300px; object-fit:contain; margin:10px auto 0; border-radius:8px; }
 #bonusExplanation { margin-top:12px; padding:12px; border-left:3px solid #6f8fb7; background:#172133; line-height:1.45; }
 #bonusHintBtn.hidden, #bonusChoices.hidden, #bonusAnswer.hidden, #bonusAnswerLabel.hidden, #bonusHintPanel.hidden, #bonusExplanation.hidden { display:none !important; }
-#bonusResult { min-height:22px; margin-top:10px; color:#ffd54a; font-weight:700; line-height:1.4; }
+#bonusResult { min-height:22px; margin-top:10px; font-weight:700; line-height:1.4; }
+#bonusResult.bonus-success { color:#39c46a; }
+#bonusResult.bonus-fail { color:#ff5b5b; }
 #bonusReactionPanel { margin-top:14px; text-align:center; }
 #bonusReactionPanel.hidden { display:none; }
 #bonusReactionImage { display:block; width:min(420px,86vw); max-height:300px; object-fit:contain; margin:0 auto; border-radius:10px; border:1px solid #465a75; background:#0b0f14; }
@@ -673,8 +690,8 @@
 #cageCheckGif { display:block; width:min(420px,86vw); max-height:300px; object-fit:contain; margin:0 auto 16px; border:1px solid #5b4a37; background:#0b0f14; }
 
 .bonus-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap; }
-.bonus-success { color:#7ee787 !important; }
-.bonus-fail { color:#ff9b9b !important; }
+.bonus-success { color:#ffd54a !important; }
+.bonus-fail { color:#ffd54a !important; }
 
 /* In-game cheat dialogs */
 #cheatOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.74); display:flex; align-items:center; justify-content:center; z-index:22000; padding:20px; }
@@ -1486,15 +1503,30 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     <div id="bonusSubtitle" class="bonus-sub"></div>
 
     <div id="bonusChooser">
-      <div class="bonus-choice-row" id="bonusCategoryChoices">
-        <button type="button" data-bonus-category="True or False">True or False</button>
-        <button type="button" data-bonus-category="Multiple Choice">Multiple Choice</button>
-        <button type="button" data-bonus-category="Photo Identification">Photo Identification</button>
-        <button type="button" data-bonus-category="Movie Quote">Movie Quote</button>
-        <button type="button" data-bonus-category="Cage Quote">Cage Quote</button>
-        <button type="button" data-bonus-category="Cage Fact">Cage Fact</button>
+      <div id="bonusPointStep">
+        <div class="bonus-step-title">Choose a Point Level</div>
+        <div class="bonus-choice-row bonus-point-row" id="bonusPointChoices">
+          <button type="button" data-bonus-points="1">1 Point</button>
+          <button type="button" data-bonus-points="3">3 Points</button>
+          <button type="button" data-bonus-points="5">5 Points</button>
+        </div>
       </div>
-      <div class="bonus-actions"><button type="button" id="bonusCloseBtn">Cancel</button></div>
+
+      <div id="bonusCategoryStep">
+        <div class="bonus-step-title">Choose a Category</div>
+        <div class="bonus-choice-row" id="bonusCategoryChoices">
+          <button type="button" data-bonus-category="True or False" disabled>True or False</button>
+          <button type="button" data-bonus-category="Multiple Choice" disabled>Multiple Choice</button>
+          <button type="button" data-bonus-category="Photo Identification" disabled>Photo Identification</button>
+          <button type="button" data-bonus-category="Movie Quote" disabled>Movie Quote</button>
+          <button type="button" data-bonus-category="Cage Quote" disabled>Cage Quote</button>
+          <button type="button" data-bonus-category="Cage Fact" disabled>Cage Fact</button>
+        </div>
+      </div>
+
+      <div class="bonus-actions">
+        <button type="button" id="bonusCloseBtn">Cancel</button>
+      </div>
     </div>
 
     <div id="bonusPlay" class="hidden">
@@ -1515,11 +1547,12 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
       </div>
 
       <div id="bonusResult" aria-live="polite"></div>
-      <div id="bonusExplanation" class="hidden"></div>
 
       <div id="bonusReactionPanel" class="hidden" aria-live="polite">
         <img id="bonusReactionImage" alt="Nicolas Cage reaction">
       </div>
+
+      <div id="bonusExplanation" class="hidden"></div>
 
       <div class="bonus-actions">
         <button type="button" id="bonusHintBtn" class="hidden">Use Hint (-1 point)</button>
@@ -1590,6 +1623,9 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     const bonusSubtitle = document.getElementById("bonusSubtitle");
     const bonusChooser = document.getElementById("bonusChooser");
     const bonusPlay = document.getElementById("bonusPlay");
+    const bonusPointStep = document.getElementById("bonusPointStep");
+    const bonusPointChoices = document.getElementById("bonusPointChoices");
+    const bonusCategoryStep = document.getElementById("bonusCategoryStep");
     const bonusCategoryChoices = document.getElementById("bonusCategoryChoices");
     const bonusCategoryLabel = document.getElementById("bonusCategoryLabel");
     const bonusQuestion = document.getElementById("bonusQuestion");
@@ -1793,6 +1829,7 @@ let bonusQuestionBank = [];
 let bonusQuestionBankPromise = null;
 let usedBonusQuestionIds = [];
 let bonusHintUsed = false;
+let selectedBonusPointLevel = null;
 
 const BONUS_DATA_URL = "data/bonus-round.json";
 
@@ -4990,33 +5027,25 @@ function showBonusReaction(candidates, altText) {
     };
 
     probe.onerror = tryNext;
-    probe.src = `${src}?v=${Date.now()}`;
+    probe.src = `${bonusAssetUrl(src)}?v=${Date.now()}`;
   };
 
   tryNext();
 }
 
 function showRandomWrongBonusReaction() {
-  // Baby-step fix: use one known existing root-level negative GIF directly.
+  const wrongSrc = bonusAssetUrl("reactions/wrong/bonus_wrong_1.gif");
   bonusReactionImage.onload = () => {
     bonusReactionImage.style.display = "block";
     bonusReactionPanel.classList.remove("hidden");
   };
-
   bonusReactionImage.onerror = () => {
-    // Fallback to the other known root-level negative GIF.
-    bonusReactionImage.onerror = () => {
-      bonusReactionPanel.classList.remove("hidden");
-      bonusReactionImage.style.display = "none";
-      bonusResult.textContent += " (Negative reaction image could not be loaded.)";
-    };
-    bonusReactionImage.src = `/Cage-Connection/reactions/wrong/bonus_wrong_1.gif?v=${Date.now()}`;
+    bonusReactionPanel.classList.add("hidden");
+    bonusReactionImage.style.display = "none";
+    console.warn("Bonus Round negative reaction image could not be loaded.");
   };
-
-  bonusReactionPanel.classList.remove("hidden");
-  bonusReactionImage.style.display = "block";
   bonusReactionImage.alt = "Nicolas Cage reaction to an incorrect Bonus Round answer";
-  bonusReactionImage.src = `/Cage-Connection/reactions/wrong/bonus_wrong_1.gif?v=${Date.now()}`;
+  bonusReactionImage.src = `${wrongSrc}?v=${Date.now()}`;
 }
 
 function showRandomCorrectBonusReaction() {
@@ -5073,16 +5102,31 @@ function setBonusImage(imgEl, path) {
   imgEl.src = src;
 }
 
-function closeBonusRound(event) {
-  if (event && event.target !== bonusOverlay) return;
+function closeBonusRound() {
   bonusOverlay.classList.add("hidden");
   bonusChooser.classList.remove("hidden");
+  bonusChooser.style.display = "block";
+  bonusPointStep.style.display = "block";
+  bonusCategoryStep.style.display = "block";
   bonusPlay.classList.add("hidden");
+  bonusPlay.style.display = "none";
+  bonusPointStep.classList.remove("hidden");
+  bonusCategoryStep.classList.remove("hidden");
+  selectedBonusPointLevel = null;
+  bonusPointChoices.querySelectorAll("button").forEach(btn => btn.classList.remove("selected"));
+  bonusCategoryChoices.querySelectorAll("button").forEach(btn => btn.disabled = true);
   activeBonus = null;
   bonusHintUsed = false;
 }
 
 function resetBonusPlayUi() {
+  bonusChallenge.classList.remove("answered-hidden");
+  bonusAnswerLabel.classList.remove("answered-hidden");
+  bonusAnswer.classList.remove("answered-hidden");
+  bonusChoices.classList.remove("answered-hidden");
+  bonusHintPanel.classList.remove("answered-hidden");
+  bonusHintBtn.classList.remove("answered-hidden");
+  bonusSubmitBtn.classList.remove("answered-hidden");
   bonusCategoryLabel.textContent = "";
   bonusQuestion.textContent = "";
   bonusQuote.textContent = "";
@@ -5090,6 +5134,8 @@ function resetBonusPlayUi() {
   bonusImage.classList.add("hidden");
   bonusImage.removeAttribute("src");
   bonusAnswer.value = "";
+  bonusAnswer.disabled = false;
+  bonusAnswer.readOnly = false;
   bonusAnswer.classList.add("hidden");
   bonusAnswerLabel.classList.add("hidden");
   bonusAnswerLabel.textContent = "Your answer";
@@ -5115,34 +5161,53 @@ function resetBonusPlayUi() {
 
 async function openBonusRound() {
   const me = players[currentPlayerIndex];
-  bonusOverlay.classList.remove("hidden");
-  bonusPlay.classList.add("hidden");
-  bonusChooser.classList.remove("hidden");
 
   if (bonusUsedThisTurn) {
+    bonusOverlay.classList.remove("hidden");
+    bonusChooser.classList.remove("hidden");
+    bonusChooser.style.display = "block";
+    bonusPlay.classList.add("hidden");
+    bonusPlay.style.display = "none";
     bonusSubtitle.textContent = `${me.name}: Bonus Round has already been used this turn.`;
+    bonusPointChoices.querySelectorAll("button").forEach(btn => btn.disabled = true);
     bonusCategoryChoices.querySelectorAll("button").forEach(btn => btn.disabled = true);
     bonusCloseBtn.textContent = "Close Bonus Round";
-    setStatus("Bonus Round has already been used this turn.");
     return;
   }
 
-  bonusSubtitle.textContent = "Loading Bonus Round questions…";
-  bonusCategoryChoices.querySelectorAll("button").forEach(btn => btn.disabled = true);
+  bonusOverlay.classList.remove("hidden");
+  bonusPlay.classList.add("hidden");
+  bonusPlay.style.display = "none";
+  bonusChooser.classList.remove("hidden");
+  bonusChooser.style.display = "block";
+  bonusPointStep.classList.remove("hidden");
+  bonusPointStep.style.display = "block";
+  bonusCategoryStep.classList.remove("hidden");
+  bonusCategoryStep.style.display = "block";
+  selectedBonusPointLevel = null;
+
+  bonusSubtitle.textContent = "";
+  bonusPointChoices.querySelectorAll("button").forEach(btn => {
+    btn.disabled = true;
+    btn.classList.remove("selected");
+  });
+  bonusCategoryChoices.querySelectorAll("button").forEach(btn => {
+    btn.disabled = true;
+    btn.title = "Choose a point level first.";
+  });
 
   try {
     await loadBonusQuestionBank();
     const unused = bonusQuestionBank.filter(q => !usedBonusQuestionIds.includes(String(q.id)));
-    bonusSubtitle.textContent = `${me.name}: choose a category. ${unused.length} unused question${unused.length === 1 ? "" : "s"} remain.`;
 
-    bonusCategoryChoices.querySelectorAll("button").forEach(btn => {
-      const category = btn.dataset.bonusCategory;
-      const available = unused.some(q => q.category === category);
+    bonusPointChoices.querySelectorAll("button").forEach(btn => {
+      const points = Number(btn.dataset.bonusPoints);
+      const available = unused.some(q => Number(q.points) === points);
       btn.disabled = !available;
-      btn.title = available ? "" : "No unused questions remain in this category.";
+      btn.title = available ? "" : `No unused ${points}-point questions remain.`;
     });
   } catch (err) {
-    bonusSubtitle.textContent = "Could not load data/bonus-round.json. Check that the file is in the GitHub data folder.";
+    bonusSubtitle.textContent = "Could not load Bonus Round data.";
     setStatus("Bonus Round data could not be loaded.");
   }
 }
@@ -5150,6 +5215,7 @@ async function openBonusRound() {
 function pickUnusedBonusQuestion(category) {
   const available = bonusQuestionBank.filter(q =>
     q.category === category &&
+    Number(q.points) === Number(selectedBonusPointLevel) &&
     !usedBonusQuestionIds.includes(String(q.id))
   );
   if (!available.length) return null;
@@ -5188,7 +5254,7 @@ function renderBonusChoices(item) {
       input.name = "bonusChoice";
       input.value = String(index);
       const text = document.createElement("span");
-      text.textContent = `${String.fromCharCode(65 + index)}. ${choice}`;
+      text.textContent = choice;
       label.append(input, text);
       bonusChoices.appendChild(label);
     });
@@ -5205,11 +5271,57 @@ function renderBonusChoices(item) {
   setTimeout(() => bonusAnswer.focus(), 0);
 }
 
+function getBonusAssist(item) {
+  if (!item) return null;
+
+  // Prefer an explicitly supplied assist from the spreadsheet.
+  if (item.hint && (item.hint.text || item.hint.image)) {
+    return {
+      type: String(item.hint.type || "").trim(),
+      text: item.hint.text || "",
+      image: item.hint.image || ""
+    };
+  }
+
+  const targetAnswer = normalizeBonusText(item.answer);
+  if (!targetAnswer) return null;
+
+  // Movie Quote -> find a Photo Identification image for the same movie.
+  if (item.category === "Movie Quote") {
+    const photoMatch = bonusQuestionBank.find(q =>
+      q &&
+      q.category === "Photo Identification" &&
+      normalizeBonusText(q.answer) === targetAnswer &&
+      q.image
+    );
+    if (photoMatch) {
+      return { type: "Photo", text: "", image: photoMatch.image };
+    }
+  }
+
+  // Photo Identification -> find a Movie Quote for the same movie.
+  if (item.category === "Photo Identification") {
+    const quoteMatch = bonusQuestionBank.find(q =>
+      q &&
+      q.category === "Movie Quote" &&
+      normalizeBonusText(q.answer) === targetAnswer &&
+      q.question
+    );
+    if (quoteMatch) {
+      return { type: "Quote", text: quoteMatch.question, image: "" };
+    }
+  }
+
+  return null;
+}
+
 function renderBonusQuestion(item) {
   resetBonusPlayUi();
+  bonusAnswer.disabled = false;
+  bonusAnswer.readOnly = false;
   activeBonus = item;
   bonusHintUsed = false;
-  bonusCategoryLabel.textContent = `${item.category} • ${Number(item.points || 0)} point${Number(item.points || 0) === 1 ? "" : "s"}`;
+  bonusCategoryLabel.textContent = "";
   bonusQuestion.textContent = item.question || "";
 
   if (item.category === "Cage Quote" && String(item.answerType || "").toLowerCase() === "yes/no" && Array.isArray(item.choices) && item.choices[0]) {
@@ -5221,22 +5333,32 @@ function renderBonusQuestion(item) {
 
   renderBonusChoices(item);
 
-  if (item.hint && (item.hint.text || item.hint.image)) {
+  const assist = getBonusAssist(item);
+  if (assist && (assist.text || assist.image)) {
+    item._resolvedAssist = assist;
     bonusHintBtn.classList.remove("hidden");
     const afterHint = Math.max(0, Number(item.points || 0) - 1);
-    bonusHintBtn.textContent = `Use Hint (-1 point; correct = +${afterHint})`;
+    bonusHintBtn.textContent = "Use Assist";
+    bonusHintBtn.disabled = false;
+  } else {
+    item._resolvedAssist = null;
   }
 
   bonusChooser.classList.add("hidden");
+  bonusChooser.style.display = "none";
+  bonusPointStep.style.display = "none";
+  bonusCategoryStep.style.display = "none";
   bonusPlay.classList.remove("hidden");
+  bonusPlay.style.display = "block";
 }
 
 async function startBonusCategory(category) {
   if (bonusUsedThisTurn) {
-    closeBonusRound();
-    setStatus("Bonus Round has already been used this turn.");
+    bonusSubtitle.textContent = "Bonus Round has already been used this turn.";
     return;
   }
+
+  if (![1, 3, 5].includes(Number(selectedBonusPointLevel))) return;
 
   try {
     await loadBonusQuestionBank();
@@ -5246,7 +5368,7 @@ async function startBonusCategory(category) {
 
   const item = pickUnusedBonusQuestion(category);
   if (!item) {
-    bonusSubtitle.textContent = `No unused ${category} questions remain. Choose another category.`;
+    bonusSubtitle.textContent = `No unused ${selectedBonusPointLevel}-point ${category} questions remain.`;
     return;
   }
 
@@ -5261,21 +5383,30 @@ async function startBonusCategory(category) {
 }
 
 function useBonusHint() {
-  if (!activeBonus || !activeBonus.hint || bonusHintUsed) return;
+  if (!activeBonus || bonusHintUsed) return;
+
+  const hint = activeBonus._resolvedAssist || getBonusAssist(activeBonus);
+  if (!hint) return;
+
+  const hasText = !!String(hint.text || "").trim();
+  const hasImage = !!String(hint.image || "").trim();
+  if (!hasText && !hasImage) return;
+
   bonusHintUsed = true;
   bonusHintBtn.disabled = true;
-  bonusHintBtn.textContent = "Hint used (-1 point)";
+  bonusHintBtn.textContent = "Assist used";
   bonusHintPanel.classList.remove("hidden");
+  bonusHintPanel.classList.remove("answered-hidden");
 
-  const hint = activeBonus.hint || {};
-  if (hint.text) {
-    const prefix = hint.type ? `${hint.type} hint: ` : "Hint: ";
-    bonusHintText.textContent = `${prefix}${hint.text}`;
+  bonusHintText.textContent = hasText ? String(hint.text).trim() : "";
+
+  if (hasImage) {
+    setBonusImage(bonusHintImage, hint.image);
+    bonusHintImage.classList.remove("hidden");
   } else {
-    bonusHintText.textContent = hint.type ? `${hint.type} hint` : "Hint";
+    bonusHintImage.classList.add("hidden");
+    bonusHintImage.removeAttribute("src");
   }
-
-  if (hint.image) setBonusImage(bonusHintImage, hint.image);
 }
 
 function selectedBonusAnswer(item) {
@@ -5321,12 +5452,76 @@ function isBonusAnswerCorrectV2(item, given) {
   return normalizeBonusText(given) === normalizeBonusText(item.answer);
 }
 
+function revealCorrectBonusChoices(item, given) {
+  const answerType = String(item.answerType || "").toLowerCase();
+  const labels = [...bonusChoices.querySelectorAll(".bonus-option")];
+  if (!labels.length) return;
+
+  const markCorrectIndex = index => {
+    if (labels[index]) labels[index].classList.add("correct-answer");
+  };
+
+  if (answerType === "multiple select") {
+    const expected = parseExpectedMultipleSelect(
+      item.answer,
+      Array.isArray(item.choices) ? item.choices.length : 0
+    );
+    expected.forEach(markCorrectIndex);
+
+    const selected = Array.isArray(given) ? given.map(Number) : [];
+    selected.forEach(index => {
+      if (!expected.includes(index) && labels[index]) {
+        labels[index].classList.add("wrong-answer");
+      }
+    });
+    return;
+  }
+
+  if (answerType === "yes/no") {
+    const expectedText = normalizeBonusText(item.answer);
+    const inputs = [...bonusChoices.querySelectorAll('input[name="bonusChoice"]')];
+    inputs.forEach((input, index) => {
+      if (normalizeBonusText(input.value) === expectedText) markCorrectIndex(index);
+      if (input.checked && normalizeBonusText(input.value) !== expectedText && labels[index]) {
+        labels[index].classList.add("wrong-answer");
+      }
+    });
+    return;
+  }
+
+  if ((answerType === "single choice" || answerType === "multiple choice") && Array.isArray(item.choices)) {
+    const expectedText = normalizeBonusText(item.answer);
+    const correctIndex = item.choices.findIndex(choice => normalizeBonusText(choice) === expectedText);
+    if (correctIndex >= 0) markCorrectIndex(correctIndex);
+
+    const inputs = [...bonusChoices.querySelectorAll('input[name="bonusChoice"]')];
+    inputs.forEach((input, index) => {
+      if (input.checked && index !== correctIndex && labels[index]) {
+        labels[index].classList.add("wrong-answer");
+      }
+    });
+  }
+}
+
+function collapseAnsweredBonusQuestion() {
+  bonusChallenge.classList.add("answered-hidden");
+  bonusAnswerLabel.classList.add("answered-hidden");
+  bonusAnswer.classList.add("answered-hidden");
+  bonusHintPanel.classList.add("answered-hidden");
+  bonusHintBtn.classList.add("answered-hidden");
+  bonusSubmitBtn.classList.add("answered-hidden");
+
+  // Keep choice answers visible when they exist so the highlighted correct
+  // answer(s) are the reveal. Typed-answer questions have no choices to show.
+  const hasChoices = bonusChoices.querySelector(".bonus-option");
+  if (!hasChoices) bonusChoices.classList.add("answered-hidden");
+}
+
 function lockBonusInputs() {
   bonusAnswer.disabled = true;
   bonusChoices.querySelectorAll("input").forEach(input => input.disabled = true);
   bonusHintBtn.disabled = true;
   bonusSubmitBtn.disabled = true;
-  bonusSubmitBtn.textContent = "Answered";
 }
 
 function submitBonusAnswer() {
@@ -5356,14 +5551,19 @@ function submitBonusAnswer() {
 
   players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) + scoreChange;
 
+  const hasChoiceReveal = bonusChoices.querySelector(".bonus-option");
+  if (hasChoiceReveal) revealCorrectBonusChoices(item, given);
+
   if (correct) {
     bonusResult.textContent = earned > 0
-      ? `CORRECT! +${earned} point${earned === 1 ? "" : "s"}.`
-      : "CORRECT! The hint reduced this question to 0 points.";
+      ? `CORRECT! +${earned}`
+      : "CORRECT!";
     bonusResult.className = "bonus-success";
     try { showRandomCorrectBonusReaction(); } catch (err) { console.error("Correct Bonus reaction failed", err); }
   } else {
-    bonusResult.textContent = `INCORRECT. The answer was ${item.answer}. ${scoreChange} point${fullPoints === 1 ? "" : "s"}.`;
+    bonusResult.textContent = hasChoiceReveal
+      ? `INCORRECT. ${scoreChange}`
+      : `INCORRECT. The answer was ${item.answer}. ${scoreChange}`;
     bonusResult.className = "bonus-fail";
     try { showRandomWrongBonusReaction(); } catch (err) { console.error("Wrong Bonus reaction failed", err); }
   }
@@ -5373,6 +5573,7 @@ function submitBonusAnswer() {
     bonusExplanation.classList.remove("hidden");
   }
 
+  collapseAnsweredBonusQuestion();
   bonusCancelBtn.textContent = "Close Bonus Round";
 
   try { saveTwoPlayerState(); } catch (err) { console.error("Bonus save failed", err); }
@@ -5382,14 +5583,40 @@ function submitBonusAnswer() {
   try { endTurn(); } catch (err) { console.error("Bonus end-turn failed", err); }
 }
 
+bonusPointChoices.addEventListener("click", e => {
+  const btn = e.target.closest("[data-bonus-points]");
+  if (!btn || btn.disabled) return;
+
+  selectedBonusPointLevel = Number(btn.dataset.bonusPoints);
+  bonusSubtitle.textContent = "";
+
+  bonusPointChoices.querySelectorAll("button").forEach(pointBtn => {
+    pointBtn.classList.toggle("selected", pointBtn === btn);
+  });
+
+  const unused = bonusQuestionBank.filter(q =>
+    Number(q.points) === selectedBonusPointLevel &&
+    !usedBonusQuestionIds.includes(String(q.id))
+  );
+
+  bonusCategoryChoices.querySelectorAll("button").forEach(categoryBtn => {
+    const category = categoryBtn.dataset.bonusCategory;
+    const available = unused.some(q => q.category === category);
+    categoryBtn.disabled = !available;
+    categoryBtn.title = available
+      ? ""
+      : `No unused ${selectedBonusPointLevel}-point questions remain in this category.`;
+  });
+});
+
 bonusCategoryChoices.addEventListener("click", e => {
   const btn = e.target.closest("[data-bonus-category]");
-  if (!btn || btn.disabled) return;
+  if (!btn || btn.disabled || !selectedBonusPointLevel) return;
   startBonusCategory(btn.dataset.bonusCategory);
 });
 bonusHintBtn.addEventListener("click", useBonusHint);
-bonusCloseBtn.addEventListener("click", closeBonusRound);
-bonusCancelBtn.addEventListener("click", closeBonusRound);
+bonusCloseBtn.addEventListener("click", () => closeBonusRound());
+bonusCancelBtn.addEventListener("click", () => closeBonusRound());
 bonusSubmitBtn.addEventListener("click", submitBonusAnswer);
 bonusAnswer.addEventListener("keydown", e => { if (e.key === "Enter") submitBonusAnswer(); });
 bonusOverlay.addEventListener("click", e => { if (e.target === bonusOverlay) closeBonusRound(); });
