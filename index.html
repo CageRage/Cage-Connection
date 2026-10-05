@@ -626,20 +626,33 @@
 /* Bonus round */
 #bonusOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.74); display:flex; align-items:center; justify-content:center; z-index:21000; padding:20px; }
 #bonusOverlay.hidden { display:none; }
-#bonusDialog { width:min(560px,94vw); background:#111826; border:1px solid #3b4e68; border-radius:12px; padding:20px; box-shadow:0 18px 50px rgba(0,0,0,.48); }
+#bonusDialog { width:min(650px,94vw); max-height:90vh; overflow:auto; background:#111826; border:1px solid #3b4e68; border-radius:12px; padding:20px; box-shadow:0 18px 50px rgba(0,0,0,.48); }
 #bonusDialog h2 { margin:0 0 6px; color:#ffd54a; }
 #bonusDialog .bonus-sub { color:#b9c8db; margin-bottom:16px; line-height:1.4; }
-.bonus-choice-row { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
-.bonus-choice-row button { flex:1 1 180px; min-height:44px; }
+.bonus-choice-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:14px 0; }
+.bonus-choice-row button { min-height:44px; }
 #bonusChallenge { margin:14px 0; padding:16px; background:#182234; border:1px solid #314763; border-radius:10px; text-align:center; }
+#bonusCategoryLabel { color:#ffd54a; font-weight:800; margin-bottom:8px; }
+#bonusQuestion { font-size:18px; line-height:1.45; margin-bottom:12px; }
 #bonusQuote { font-size:20px; line-height:1.45; font-style:italic; }
-#bonusImage { display:block; width:min(250px,70vw); max-height:330px; object-fit:cover; margin:0 auto; border-radius:8px; border:1px solid #465a75; }
-#bonusAnswer { width:100%; box-sizing:border-box; padding:11px 12px; border-radius:8px; border:1px solid #3a4f6f; background:#182234; color:white; font-size:16px; margin-top:12px; }
-#bonusResult { min-height:22px; margin-top:10px; color:#ffd54a; font-weight:700; }
+#bonusImage { display:block; width:min(360px,78vw); max-height:390px; object-fit:contain; margin:10px auto 0; border-radius:8px; border:1px solid #465a75; background:#0b0f14; }
+#bonusAnswerLabel { display:block; margin-top:12px; color:#dfe8f5; font-weight:700; }
+#bonusAnswer { width:100%; box-sizing:border-box; padding:11px 12px; border-radius:8px; border:1px solid #3a4f6f; background:#182234; color:white; font-size:16px; margin-top:8px; }
+#bonusChoices { display:grid; gap:9px; margin-top:12px; }
+.bonus-option { display:flex; gap:10px; align-items:flex-start; text-align:left; padding:11px 12px; border:1px solid #3a4f6f; background:#182234; border-radius:8px; cursor:pointer; }
+.bonus-option:hover { background:#21304a; }
+.bonus-option input { margin-top:3px; }
+#bonusHintPanel { margin-top:12px; padding:12px; border:1px solid #6b5b2d; background:#241f12; border-radius:8px; }
+#bonusHintText { line-height:1.45; }
+#bonusHintImage { display:block; width:min(300px,72vw); max-height:300px; object-fit:contain; margin:10px auto 0; border-radius:8px; }
+#bonusExplanation { margin-top:12px; padding:12px; border-left:3px solid #6f8fb7; background:#172133; line-height:1.45; }
+#bonusHintBtn.hidden, #bonusChoices.hidden, #bonusAnswer.hidden, #bonusAnswerLabel.hidden, #bonusHintPanel.hidden, #bonusExplanation.hidden { display:none !important; }
+#bonusResult { min-height:22px; margin-top:10px; color:#ffd54a; font-weight:700; line-height:1.4; }
 #bonusReactionPanel { margin-top:14px; text-align:center; }
 #bonusReactionPanel.hidden { display:none; }
 #bonusReactionImage { display:block; width:min(420px,86vw); max-height:300px; object-fit:contain; margin:0 auto; border-radius:10px; border:1px solid #465a75; background:#0b0f14; }
 #bonusQuote.hidden, #bonusImage.hidden, #bonusPlay.hidden { display:none !important; }
+@media (max-width:560px){ .bonus-choice-row { grid-template-columns:1fr; } }
 
 /* Real-time Cage Check failure popup */
 #cageCheckOverlay {
@@ -1232,6 +1245,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
           <button type="button" onclick="findMovie(); this.closest('details').removeAttribute('open');"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><span>Find</span></button>
         </div>
         <button type="button" onclick="this.closest('details').removeAttribute('open'); clearSelection()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg><span>Clear Selection</span></button>
+        <button type="button" onclick="this.closest('details').removeAttribute('open'); showSortedLinks()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h12M4 18h8"/></svg><span>Inspect Links</span></button>
         <button type="button" onclick="this.closest('details').removeAttribute('open'); startRemoveMovie()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12h8"/></svg><span>Remove Movie</span></button>
         <button type="button" class="menu-danger" onclick="this.closest('details').removeAttribute('open'); resetBoard()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5"/><path d="M18.5 16A8 8 0 1 1 20 12"/></svg><span>Reset Game</span></button>
       </div>
@@ -1468,34 +1482,53 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
   
 <div id="bonusOverlay" class="hidden">
   <div id="bonusDialog" role="dialog" aria-modal="true" aria-labelledby="bonusTitle">
-    <h2 id="bonusTitle">Bonus Round <span style="font-size:12px;opacity:.65">(BONUS FIX v4)</span></h2>
+    <h2 id="bonusTitle">Bonus Round</h2>
     <div id="bonusSubtitle" class="bonus-sub"></div>
+
     <div id="bonusChooser">
-      <div class="bonus-choice-row">
-        <button type="button" id="bonusQuoteChoice">Quote</button>
-        <button type="button" id="bonusPictureChoice">Picture</button>
+      <div class="bonus-choice-row" id="bonusCategoryChoices">
+        <button type="button" data-bonus-category="True or False">True or False</button>
+        <button type="button" data-bonus-category="Multiple Choice">Multiple Choice</button>
+        <button type="button" data-bonus-category="Photo Identification">Photo Identification</button>
+        <button type="button" data-bonus-category="Movie Quote">Movie Quote</button>
+        <button type="button" data-bonus-category="Cage Quote">Cage Quote</button>
+        <button type="button" data-bonus-category="Cage Fact">Cage Fact</button>
       </div>
       <div class="bonus-actions"><button type="button" id="bonusCloseBtn">Cancel</button></div>
     </div>
+
     <div id="bonusPlay" class="hidden">
       <div id="bonusChallenge">
+        <div id="bonusCategoryLabel"></div>
+        <div id="bonusQuestion"></div>
         <div id="bonusQuote" class="hidden"></div>
-        <img id="bonusImage" class="hidden" alt="Bonus round movie image">
+        <img id="bonusImage" class="hidden" alt="Bonus round image">
       </div>
-      <label for="bonusAnswer">Which Nicolas Cage movie is it?</label>
-      <input id="bonusAnswer" type="text" autocomplete="off" placeholder="Movie title">
+
+      <label id="bonusAnswerLabel" for="bonusAnswer">Your answer</label>
+      <input id="bonusAnswer" type="text" autocomplete="off">
+      <div id="bonusChoices" class="hidden"></div>
+
+      <div id="bonusHintPanel" class="hidden">
+        <div id="bonusHintText"></div>
+        <img id="bonusHintImage" class="hidden" alt="Bonus round hint">
+      </div>
+
       <div id="bonusResult" aria-live="polite"></div>
+      <div id="bonusExplanation" class="hidden"></div>
+
       <div id="bonusReactionPanel" class="hidden" aria-live="polite">
         <img id="bonusReactionImage" alt="Nicolas Cage reaction">
       </div>
+
       <div class="bonus-actions">
+        <button type="button" id="bonusHintBtn" class="hidden">Use Hint (-1 point)</button>
         <button type="button" id="bonusCancelBtn">Close Bonus Round</button>
-        <button type="button" id="bonusSubmitBtn" onclick="submitBonusAnswer()">Submit Answer</button>
+        <button type="button" id="bonusSubmitBtn">Submit Answer</button>
       </div>
     </div>
   </div>
 </div>
-
 
 <div id="challengeEventOverlay" class="hidden">
   <div id="challengeEventCard" role="dialog" aria-modal="true" aria-labelledby="challengeEventTitle">
@@ -1557,14 +1590,22 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     const bonusSubtitle = document.getElementById("bonusSubtitle");
     const bonusChooser = document.getElementById("bonusChooser");
     const bonusPlay = document.getElementById("bonusPlay");
+    const bonusCategoryChoices = document.getElementById("bonusCategoryChoices");
+    const bonusCategoryLabel = document.getElementById("bonusCategoryLabel");
+    const bonusQuestion = document.getElementById("bonusQuestion");
     const bonusQuote = document.getElementById("bonusQuote");
     const bonusImage = document.getElementById("bonusImage");
+    const bonusAnswerLabel = document.getElementById("bonusAnswerLabel");
     const bonusAnswer = document.getElementById("bonusAnswer");
+    const bonusChoices = document.getElementById("bonusChoices");
+    const bonusHintPanel = document.getElementById("bonusHintPanel");
+    const bonusHintText = document.getElementById("bonusHintText");
+    const bonusHintImage = document.getElementById("bonusHintImage");
+    const bonusHintBtn = document.getElementById("bonusHintBtn");
     const bonusResult = document.getElementById("bonusResult");
+    const bonusExplanation = document.getElementById("bonusExplanation");
     const bonusReactionPanel = document.getElementById("bonusReactionPanel");
     const bonusReactionImage = document.getElementById("bonusReactionImage");
-    const bonusQuoteChoice = document.getElementById("bonusQuoteChoice");
-    const bonusPictureChoice = document.getElementById("bonusPictureChoice");
     const bonusCloseBtn = document.getElementById("bonusCloseBtn");
     const bonusCancelBtn = document.getElementById("bonusCancelBtn");
     const bonusSubmitBtn = document.getElementById("bonusSubmitBtn");
@@ -1748,16 +1789,42 @@ let posterOverrides = loadPosterOverrides();
 let currentPlayerIndex = 0;
 let bonusUsedThisTurn = false;
 let activeBonus = null;
-const BONUS_QUOTE_BANK = [
-  { title: "Con Air", quote: "Put the bunny back in the box." },
-  { title: "Face/Off", quote: "I want to take his face... off." },
-  { title: "National Treasure", quote: "I'm going to steal the Declaration of Independence." },
-  { title: "Moonstruck", quote: "Snap out of it!" },
-  { title: "The Wicker Man", quote: "Not the bees!" },
-  { title: "Vampire's Kiss", quote: "I'm a vampire! I'm a vampire!" },
-  { title: "Gone in 60 Seconds", quote: "Let's ride." },
-  { title: "The Rock", quote: "I'm only borrowing your Humvee." }
-];
+let bonusQuestionBank = [];
+let bonusQuestionBankPromise = null;
+let usedBonusQuestionIds = [];
+let bonusHintUsed = false;
+
+const BONUS_DATA_URL = "data/bonus-round.json";
+
+function loadBonusQuestionBank(force = false) {
+  if (bonusQuestionBank.length && !force) return Promise.resolve(bonusQuestionBank);
+  if (bonusQuestionBankPromise && !force) return bonusQuestionBankPromise;
+
+  bonusQuestionBankPromise = fetch(`${BONUS_DATA_URL}?v=${Date.now()}`, { cache: "no-store" })
+    .then(response => {
+      if (!response.ok) throw new Error(`Bonus data returned ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      if (!Array.isArray(data)) throw new Error("Bonus data is not an array.");
+      const seen = new Set();
+      bonusQuestionBank = data.filter(item => {
+        const id = String(item?.id || "").trim();
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+      return bonusQuestionBank;
+    })
+    .catch(err => {
+      console.error("Could not load Bonus Round data", err);
+      bonusQuestionBank = [];
+      throw err;
+    })
+    .finally(() => { bonusQuestionBankPromise = null; });
+
+  return bonusQuestionBankPromise;
+}
 
   loadTwoPlayerState();
 loadCardSize();
@@ -4119,6 +4186,7 @@ function findMovie() {
         scores: [0, 0],
         currentPlayerIndex: 0,
         bonusUsedThisTurn: false,
+        usedBonusQuestionIds: [],
         recentActions: [],
         updatedAt: (window.firebase && firebase.database) ? firebase.database.ServerValue.TIMESTAMP : Date.now()
       };
@@ -4150,6 +4218,7 @@ function findMovie() {
       players.forEach(p => { p.score = 0; });
       currentPlayerIndex = 0;
       bonusUsedThisTurn = false;
+      usedBonusQuestionIds = [];
       activeBonus = null;
       castPenalty = 0;
       sharedWrongPenalty = 0;
@@ -4161,7 +4230,7 @@ function findMovie() {
         localStorage.removeItem(CAST_PENALTY_KEY);
         localStorage.removeItem(SHARED_WRONG_PENALTY_KEY);
         localStorage.removeItem(WRONG_BRIDGE_PENALTY_KEY);
-        localStorage.setItem(TWO_PLAYER_STATE_KEY, JSON.stringify({ players, currentPlayerIndex, bonusUsedThisTurn }));
+        localStorage.setItem(TWO_PLAYER_STATE_KEY, JSON.stringify({ players, currentPlayerIndex, bonusUsedThisTurn, usedBonusQuestionIds }));
       } catch {}
 
       closeIndex();
@@ -4975,157 +5044,289 @@ function isBonusAnswerCorrect(answer, title) {
   return a === withoutThe;
 }
 
-function closeBonusRound() {
+function normalizeBonusText(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function bonusAssetUrl(path) {
+  const value = String(path || "").trim();
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return value.replace(/^\/+/, "");
+}
+
+function setBonusImage(imgEl, path) {
+  const src = bonusAssetUrl(path);
+  if (!src) {
+    imgEl.classList.add("hidden");
+    imgEl.removeAttribute("src");
+    return;
+  }
+  imgEl.classList.remove("hidden");
+  imgEl.src = src;
+}
+
+function closeBonusRound(event) {
+  if (event && event.target !== bonusOverlay) return;
   bonusOverlay.classList.add("hidden");
   bonusChooser.classList.remove("hidden");
   bonusPlay.classList.add("hidden");
+  activeBonus = null;
+  bonusHintUsed = false;
+}
+
+function resetBonusPlayUi() {
+  bonusCategoryLabel.textContent = "";
+  bonusQuestion.textContent = "";
+  bonusQuote.textContent = "";
   bonusQuote.classList.add("hidden");
   bonusImage.classList.add("hidden");
+  bonusImage.removeAttribute("src");
   bonusAnswer.value = "";
+  bonusAnswer.classList.add("hidden");
+  bonusAnswerLabel.classList.add("hidden");
+  bonusAnswerLabel.textContent = "Your answer";
+  bonusChoices.innerHTML = "";
+  bonusChoices.classList.add("hidden");
+  bonusHintPanel.classList.add("hidden");
+  bonusHintText.textContent = "";
+  bonusHintImage.classList.add("hidden");
+  bonusHintImage.removeAttribute("src");
+  bonusHintBtn.classList.add("hidden");
+  bonusHintBtn.disabled = false;
+  bonusHintBtn.textContent = "Use Hint (-1 point)";
   bonusResult.textContent = "";
   bonusResult.className = "";
+  bonusExplanation.textContent = "";
+  bonusExplanation.classList.add("hidden");
   bonusReactionPanel.classList.add("hidden");
   bonusReactionImage.removeAttribute("src");
-  activeBonus = null;
-  bonusAnswer.disabled = false;
   bonusSubmitBtn.disabled = false;
   bonusSubmitBtn.textContent = "Submit Answer";
   bonusCancelBtn.textContent = "Close Bonus Round";
-  bonusQuoteChoice.disabled = false;
-  bonusPictureChoice.disabled = false;
-  bonusCloseBtn.textContent = "Cancel";
 }
 
-function openBonusRound() {
+async function openBonusRound() {
   const me = players[currentPlayerIndex];
-
-  // Always open the panel so the button never appears dead.
   bonusOverlay.classList.remove("hidden");
   bonusPlay.classList.add("hidden");
   bonusChooser.classList.remove("hidden");
 
   if (bonusUsedThisTurn) {
     bonusSubtitle.textContent = `${me.name}: Bonus Round has already been used this turn.`;
-    bonusQuoteChoice.disabled = true;
-    bonusPictureChoice.disabled = true;
+    bonusCategoryChoices.querySelectorAll("button").forEach(btn => btn.disabled = true);
     bonusCloseBtn.textContent = "Close Bonus Round";
     setStatus("Bonus Round has already been used this turn.");
     return;
   }
 
-  bonusQuoteChoice.disabled = false;
-  bonusPictureChoice.disabled = false;
-  bonusCloseBtn.textContent = "Cancel";
-  bonusSubtitle.textContent = `${me.name}: choose a Bonus Round challenge.`;
+  bonusSubtitle.textContent = "Loading Bonus Round questions…";
+  bonusCategoryChoices.querySelectorAll("button").forEach(btn => btn.disabled = true);
+
+  try {
+    await loadBonusQuestionBank();
+    const unused = bonusQuestionBank.filter(q => !usedBonusQuestionIds.includes(String(q.id)));
+    bonusSubtitle.textContent = `${me.name}: choose a category. ${unused.length} unused question${unused.length === 1 ? "" : "s"} remain.`;
+
+    bonusCategoryChoices.querySelectorAll("button").forEach(btn => {
+      const category = btn.dataset.bonusCategory;
+      const available = unused.some(q => q.category === category);
+      btn.disabled = !available;
+      btn.title = available ? "" : "No unused questions remain in this category.";
+    });
+  } catch (err) {
+    bonusSubtitle.textContent = "Could not load data/bonus-round.json. Check that the file is in the GitHub data folder.";
+    setStatus("Bonus Round data could not be loaded.");
+  }
 }
 
-function startBonus(mode) {
-  const me = players[currentPlayerIndex];
+function pickUnusedBonusQuestion(category) {
+  const available = bonusQuestionBank.filter(q =>
+    q.category === category &&
+    !usedBonusQuestionIds.includes(String(q.id))
+  );
+  if (!available.length) return null;
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+function renderBonusChoices(item) {
+  const answerType = String(item.answerType || "").toLowerCase();
+  const choices = Array.isArray(item.choices) ? item.choices : [];
+
+  if (answerType === "yes/no") {
+    bonusChoices.classList.remove("hidden");
+    ["Yes", "No"].forEach((choice, index) => {
+      const label = document.createElement("label");
+      label.className = "bonus-option";
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "bonusChoice";
+      input.value = choice;
+      const text = document.createElement("span");
+      text.textContent = choice;
+      label.append(input, text);
+      bonusChoices.appendChild(label);
+    });
+    return;
+  }
+
+  const isMulti = answerType === "multiple select";
+  if ((answerType === "single choice" || answerType === "multiple choice" || isMulti) && choices.length) {
+    bonusChoices.classList.remove("hidden");
+    choices.forEach((choice, index) => {
+      const label = document.createElement("label");
+      label.className = "bonus-option";
+      const input = document.createElement("input");
+      input.type = isMulti ? "checkbox" : "radio";
+      input.name = "bonusChoice";
+      input.value = String(index);
+      const text = document.createElement("span");
+      text.textContent = `${String.fromCharCode(65 + index)}. ${choice}`;
+      label.append(input, text);
+      bonusChoices.appendChild(label);
+    });
+    return;
+  }
+
+  // A few Movie Quote rows are tagged Single Choice but intentionally have no
+  // supplied choices. Treat those as typed-answer questions.
+  bonusAnswer.classList.remove("hidden");
+  bonusAnswerLabel.classList.remove("hidden");
+  bonusAnswer.placeholder = item.category === "Photo Identification" || item.category === "Movie Quote"
+    ? "Movie title"
+    : "Type your answer";
+  setTimeout(() => bonusAnswer.focus(), 0);
+}
+
+function renderBonusQuestion(item) {
+  resetBonusPlayUi();
+  activeBonus = item;
+  bonusHintUsed = false;
+  bonusCategoryLabel.textContent = `${item.category} • ${Number(item.points || 0)} point${Number(item.points || 0) === 1 ? "" : "s"}`;
+  bonusQuestion.textContent = item.question || "";
+
+  if (item.category === "Cage Quote" && String(item.answerType || "").toLowerCase() === "yes/no" && Array.isArray(item.choices) && item.choices[0]) {
+    bonusQuote.textContent = `“${item.choices[0]}”`;
+    bonusQuote.classList.remove("hidden");
+  }
+
+  if (item.image) setBonusImage(bonusImage, item.image);
+
+  renderBonusChoices(item);
+
+  if (item.hint && (item.hint.text || item.hint.image)) {
+    bonusHintBtn.classList.remove("hidden");
+    const afterHint = Math.max(0, Number(item.points || 0) - 1);
+    bonusHintBtn.textContent = `Use Hint (-1 point; correct = +${afterHint})`;
+  }
+
+  bonusChooser.classList.add("hidden");
+  bonusPlay.classList.remove("hidden");
+}
+
+async function startBonusCategory(category) {
   if (bonusUsedThisTurn) {
     closeBonusRound();
     setStatus("Bonus Round has already been used this turn.");
     return;
   }
 
-  bonusUsedThisTurn = true;
-  saveTwoPlayerState();
-  bonusChooser.classList.add("hidden");
-  bonusPlay.classList.remove("hidden");
-  bonusResult.textContent = "";
-  bonusResult.className = "";
-  bonusReactionPanel.classList.add("hidden");
-  bonusReactionImage.removeAttribute("src");
-  bonusAnswer.value = "";
-  bonusCancelBtn.textContent = "Close Bonus Round";
-
-  const enableAnswer = () => {
-    bonusAnswer.disabled = false;
-    bonusSubmitBtn.disabled = false;
-    bonusSubmitBtn.textContent = "Submit Answer";
-    setTimeout(() => bonusAnswer.focus(), 0);
-  };
-
-  const disableAnswer = () => {
-    bonusAnswer.disabled = true;
-    bonusSubmitBtn.disabled = true;
-    bonusSubmitBtn.textContent = "Loading…";
-  };
-
-  const showQuoteBonus = (fallbackNotice = "") => {
-    const item = BONUS_QUOTE_BANK[Math.floor(Math.random() * BONUS_QUOTE_BANK.length)];
-    activeBonus = { mode: "quote", title: item.title };
-    bonusQuote.textContent = `“${item.quote}”`;
-    bonusQuote.classList.remove("hidden");
-    bonusQuote.style.display = "block";
-    bonusImage.classList.add("hidden");
-    bonusImage.style.display = "none";
-    bonusImage.removeAttribute("src");
-    bonusResult.textContent = fallbackNotice;
-    enableAnswer();
-  };
-
-  if (mode === "quote") {
-    showQuoteBonus();
+  try {
+    await loadBonusQuestionBank();
+  } catch {
     return;
   }
 
-  // Picture mode: do not show the question as playable until an image has
-  // actually loaded into the visible Bonus Round image element.
-  activeBonus = null;
-  bonusQuote.classList.add("hidden");
-  bonusQuote.style.display = "none";
-  bonusImage.classList.add("hidden");
-  bonusImage.style.display = "none";
-  bonusImage.removeAttribute("src");
-  bonusResult.textContent = "Loading picture…";
-  disableAnswer();
+  const item = pickUnusedBonusQuestion(category);
+  if (!item) {
+    bonusSubtitle.textContent = `No unused ${category} questions remain. Choose another category.`;
+    return;
+  }
 
-  const pictureTitles = BUILT_IN_TITLES
-    .filter(t => t && t !== "Madden")
-    .sort(() => Math.random() - 0.5);
+  // A question counts as used as soon as it is drawn. Closing it cannot cause
+  // it to reappear later in the same game.
+  if (!usedBonusQuestionIds.includes(String(item.id))) {
+    usedBonusQuestionIds.push(String(item.id));
+  }
+  bonusUsedThisTurn = true;
+  saveTwoPlayerState();
+  renderBonusQuestion(item);
+}
 
-  let pictureIndex = 0;
+function useBonusHint() {
+  if (!activeBonus || !activeBonus.hint || bonusHintUsed) return;
+  bonusHintUsed = true;
+  bonusHintBtn.disabled = true;
+  bonusHintBtn.textContent = "Hint used (-1 point)";
+  bonusHintPanel.classList.remove("hidden");
 
-  const tryNextPicture = () => {
-    if (pictureIndex >= pictureTitles.length) {
-      showQuoteBonus("No picture was available, so this round switched to a quote.");
-      return;
-    }
+  const hint = activeBonus.hint || {};
+  if (hint.text) {
+    const prefix = hint.type ? `${hint.type} hint: ` : "Hint: ";
+    bonusHintText.textContent = `${prefix}${hint.text}`;
+  } else {
+    bonusHintText.textContent = hint.type ? `${hint.type} hint` : "Hint";
+  }
 
-    const title = pictureTitles[pictureIndex++];
-    const src = posterSrcForMovie(title);
-    const probe = new Image();
+  if (hint.image) setBonusImage(bonusHintImage, hint.image);
+}
 
-    probe.onload = () => {
-      const finishPicture = () => {
-        if (!bonusImage.naturalWidth) {
-          tryNextPicture();
-          return;
-        }
-        activeBonus = { mode: "picture", title };
-        bonusImage.classList.remove("hidden");
-        bonusImage.style.display = "block";
-        bonusQuote.classList.add("hidden");
-        bonusQuote.style.display = "none";
-        bonusResult.textContent = "";
-        enableAnswer();
-      };
+function selectedBonusAnswer(item) {
+  const answerType = String(item.answerType || "").toLowerCase();
 
-      bonusImage.onload = finishPicture;
-      bonusImage.onerror = tryNextPicture;
-      bonusImage.alt = "Movie image for Bonus Round";
-      bonusImage.src = probe.src;
+  if (answerType === "yes/no") {
+    const selected = bonusChoices.querySelector('input[name="bonusChoice"]:checked');
+    return selected ? selected.value : null;
+  }
 
-      if (bonusImage.complete && bonusImage.naturalWidth > 0) {
-        finishPicture();
-      }
-    };
+  if (answerType === "multiple select") {
+    return [...bonusChoices.querySelectorAll('input[name="bonusChoice"]:checked')].map(x => Number(x.value));
+  }
 
-    probe.onerror = tryNextPicture;
-    probe.src = src;
-  };
+  if ((answerType === "single choice" || answerType === "multiple choice") && Array.isArray(item.choices) && item.choices.length) {
+    const selected = bonusChoices.querySelector('input[name="bonusChoice"]:checked');
+    return selected ? item.choices[Number(selected.value)] : null;
+  }
 
-  tryNextPicture();
+  return bonusAnswer.value.trim();
+}
+
+function parseExpectedMultipleSelect(answer, choiceCount) {
+  const text = String(answer || "").toUpperCase();
+  const letters = [...new Set((text.match(/[A-D]/g) || []))];
+  return letters
+    .map(letter => letter.charCodeAt(0) - 65)
+    .filter(index => index >= 0 && index < choiceCount)
+    .sort((a, b) => a - b);
+}
+
+function isBonusAnswerCorrectV2(item, given) {
+  const answerType = String(item.answerType || "").toLowerCase();
+
+  if (answerType === "multiple select") {
+    if (!Array.isArray(given) || !given.length) return false;
+    const expected = parseExpectedMultipleSelect(item.answer, Array.isArray(item.choices) ? item.choices.length : 0);
+    const actual = [...new Set(given.map(Number))].sort((a, b) => a - b);
+    return expected.length === actual.length && expected.every((value, index) => value === actual[index]);
+  }
+
+  if (given === null || given === undefined || String(given).trim() === "") return false;
+  return normalizeBonusText(given) === normalizeBonusText(item.answer);
+}
+
+function lockBonusInputs() {
+  bonusAnswer.disabled = true;
+  bonusChoices.querySelectorAll("input").forEach(input => input.disabled = true);
+  bonusHintBtn.disabled = true;
+  bonusSubmitBtn.disabled = true;
+  bonusSubmitBtn.textContent = "Answered";
 }
 
 function submitBonusAnswer() {
@@ -5134,56 +5335,62 @@ function submitBonusAnswer() {
     return;
   }
 
-  const answer = bonusAnswer.value.trim();
-  if (!answer) {
-    bonusResult.textContent = "Enter a movie title.";
+  const item = activeBonus;
+  const given = selectedBonusAnswer(item);
+  const answerType = String(item.answerType || "").toLowerCase();
+  const noAnswer = answerType === "multiple select"
+    ? !Array.isArray(given) || !given.length
+    : given === null || given === undefined || String(given).trim() === "";
+
+  if (noAnswer) {
+    bonusResult.textContent = "Choose or enter an answer first.";
     return;
   }
 
-  bonusSubmitBtn.disabled = true;
-  bonusAnswer.disabled = true;
-  bonusSubmitBtn.textContent = "Answered";
-  bonusCancelBtn.textContent = "Close Bonus Round";
+  lockBonusInputs();
 
-  let correct = false;
-  try {
-    correct = isBonusAnswerCorrect(answer, activeBonus.title);
-  } catch (err) {
-    console.error("Bonus answer check failed", err);
-  }
+  const correct = isBonusAnswerCorrectV2(item, given);
+  const fullPoints = Number(item.points || 0);
+  const earned = bonusHintUsed ? Math.max(0, fullPoints - 1) : fullPoints;
+  const scoreChange = correct ? earned : -fullPoints;
+
+  players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) + scoreChange;
 
   if (correct) {
-    players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) + 10;
-    bonusResult.textContent = `CORRECT! ${activeBonus.title}. +10 points! Your turn is over.`;
+    bonusResult.textContent = earned > 0
+      ? `CORRECT! +${earned} point${earned === 1 ? "" : "s"}.`
+      : "CORRECT! The hint reduced this question to 0 points.";
     bonusResult.className = "bonus-success";
-    setStatus(`${players[currentPlayerIndex].name} won the Bonus Round for +10.`);
-
-    try { showRandomCorrectBonusReaction(); }
-    catch (err) { console.error("Correct Bonus reaction failed", err); }
+    try { showRandomCorrectBonusReaction(); } catch (err) { console.error("Correct Bonus reaction failed", err); }
   } else {
-    bonusResult.textContent = `INCORRECT. The answer was ${activeBonus.title}. Your turn is over.`;
+    bonusResult.textContent = `INCORRECT. The answer was ${item.answer}. ${scoreChange} point${fullPoints === 1 ? "" : "s"}.`;
     bonusResult.className = "bonus-fail";
-    setStatus(`${players[currentPlayerIndex].name} missed the Bonus Round.`);
-
-    try { showRandomWrongBonusReaction(); }
-    catch (err) { console.error("Wrong Bonus reaction failed", err); }
+    try { showRandomWrongBonusReaction(); } catch (err) { console.error("Wrong Bonus reaction failed", err); }
   }
 
-  // Keep the original quote/picture, revealed answer, and reaction on screen.
-  // The player closes the Bonus Round when finished reviewing it.
+  if (item.answerExplanation) {
+    bonusExplanation.textContent = item.answerExplanation;
+    bonusExplanation.classList.remove("hidden");
+  }
+
+  bonusCancelBtn.textContent = "Close Bonus Round";
+
   try { saveTwoPlayerState(); } catch (err) { console.error("Bonus save failed", err); }
   try { updateScoreDisplay(); } catch (err) { console.error("Bonus score display failed", err); }
 
-  // A Bonus Round is the player's one action for the turn.
-  // Correct OR incorrect, the turn always moves to the next player.
-  try { endTurn(); }
-  catch (err) { console.error("Bonus end-turn failed", err); }
+  // Bonus Round is the player's action for the turn.
+  try { endTurn(); } catch (err) { console.error("Bonus end-turn failed", err); }
 }
 
-bonusQuoteChoice.addEventListener("click", () => startBonus("quote"));
-bonusPictureChoice.addEventListener("click", () => startBonus("picture"));
+bonusCategoryChoices.addEventListener("click", e => {
+  const btn = e.target.closest("[data-bonus-category]");
+  if (!btn || btn.disabled) return;
+  startBonusCategory(btn.dataset.bonusCategory);
+});
+bonusHintBtn.addEventListener("click", useBonusHint);
 bonusCloseBtn.addEventListener("click", closeBonusRound);
 bonusCancelBtn.addEventListener("click", closeBonusRound);
+bonusSubmitBtn.addEventListener("click", submitBonusAnswer);
 bonusAnswer.addEventListener("keydown", e => { if (e.key === "Enter") submitBonusAnswer(); });
 bonusOverlay.addEventListener("click", e => { if (e.target === bonusOverlay) closeBonusRound(); });
 cheatOverlay.addEventListener("click", e => { if (e.target === cheatOverlay) closeCheatDialog(); });
@@ -5266,7 +5473,8 @@ cageCheckOverlay.addEventListener("click", e => {
   localStorage.setItem(TWO_PLAYER_STATE_KEY, JSON.stringify({
     players,
     currentPlayerIndex,
-    bonusUsedThisTurn
+    bonusUsedThisTurn,
+    usedBonusQuestionIds
   }));
 }
 
@@ -5288,6 +5496,9 @@ function loadTwoPlayerState() {
       currentPlayerIndex = saved.currentPlayerIndex;
     }
     bonusUsedThisTurn = !!saved.bonusUsedThisTurn;
+    usedBonusQuestionIds = Array.isArray(saved.usedBonusQuestionIds)
+      ? [...new Set(saved.usedBonusQuestionIds.map(String))]
+      : [];
   } catch {
     // If saved two-player state is bad, ignore it and use defaults.
   }
@@ -5925,6 +6136,8 @@ function makeDraggable(obj) {
     }
 
     function showIndex() {
+      const title = modalOverlay.querySelector('.modal-header h2');
+      if (title) title.textContent = "Cage Connection Index";
       const movies = [...nodes].map(n => n.name).sort((a, b) => a.localeCompare(b));
       const actorMap = new Map();
 
@@ -5973,6 +6186,62 @@ function makeDraggable(obj) {
     function closeIndex(event) {
       if (event && event.target && event.target !== modalOverlay) return;
       modalOverlay.classList.add("hidden");
+    }
+
+    function showSortedLinks() {
+      const rows = connections.map((c, originalIndex) => {
+        const leftName = (c.a && c.a.name) ? c.a.name : "[missing movie]";
+        const rightName = (c.b && c.b.name) ? c.b.name : "[missing movie]";
+        const names = [leftName, rightName].sort((a, b) => a.localeCompare(b, undefined, {sensitivity:"base"}));
+        const pairKey = names.map(n => String(n).trim().toLowerCase()).join(" || ");
+        return { c, originalIndex, leftName, rightName, sortA:names[0], sortB:names[1], pairKey };
+      }).sort((x, y) =>
+        x.sortA.localeCompare(y.sortA, undefined, {sensitivity:"base"}) ||
+        x.sortB.localeCompare(y.sortB, undefined, {sensitivity:"base"}) ||
+        String(x.c.id || "").localeCompare(String(y.c.id || ""))
+      );
+
+      const counts = new Map();
+      rows.forEach(r => counts.set(r.pairKey, (counts.get(r.pairKey) || 0) + 1));
+      const duplicatePairs = [...counts.values()].filter(n => n > 1).length;
+
+      let html = `
+        <div class="index-section">
+          <h3>Sorted Connection Inspector</h3>
+          <div class="index-box">
+            <div class="index-line"><strong>${rows.length}</strong> stored connection${rows.length === 1 ? "" : "s"}. ${duplicatePairs ? `<strong>${duplicatePairs}</strong> duplicate movie-pair${duplicatePairs === 1 ? "" : "s"} flagged below.` : "No duplicate movie pairs found."}</div>
+            <div class="index-line">This view does not change the board. Links are sorted alphabetically by the two movies.</div>
+          </div>
+        </div>
+      `;
+
+      if (!rows.length) {
+        html += `<div class="index-section"><div class="index-box"><div class="index-line">No connections are stored.</div></div></div>`;
+      } else {
+        html += `<div class="index-section">${rows.map((r, i) => {
+          const c = r.c;
+          const duplicate = counts.get(r.pairKey) > 1;
+          let detail = "";
+          if (c.type === "shared") {
+            detail = `Shared actor: ${c.sharedActor || "[blank]"}`;
+          } else {
+            detail = `Bridge: ${c.bridgeTitle || "[blank]"} | Actors: ${c.leftActor || "[blank]"} / ${c.rightActor || "[blank]"}`;
+          }
+          const owner = typeof c.owner === "number" ? `Player ${c.owner + 1}` : "No owner";
+          return `
+            <div class="index-box" style="${duplicate ? "border-color:#ff8d8d;" : ""}">
+              <div class="actor-name">${i + 1}. ${escapeHtml(r.sortA)} ↔ ${escapeHtml(r.sortB)} ${duplicate ? "⚠ DUPLICATE PAIR" : ""}</div>
+              <div class="index-line">Type: ${escapeHtml(c.type || "[blank]")} | ${escapeHtml(detail)}</div>
+              <div class="index-line">Owner: ${escapeHtml(owner)} | Stored ID: ${escapeHtml(c.id || "[no id]")} | Array slot: ${r.originalIndex}</div>
+            </div>
+          `;
+        }).join("")}</div>`;
+      }
+
+      const title = modalOverlay.querySelector('.modal-header h2');
+      if (title) title.textContent = "Connection Inspector";
+      indexContent.innerHTML = html;
+      modalOverlay.classList.remove("hidden");
     }
 
     function escapeHtml(str) {
@@ -6280,12 +6549,16 @@ endTurn = function() {
 
 const _dockSubmitBonusAnswer = submitBonusAnswer;
 submitBonusAnswer = function() {
-  const playerName = players[currentPlayerIndex]?.name || `Player ${currentPlayerIndex + 1}`;
-  const before = Number(players[currentPlayerIndex]?.score || 0);
+  const answeringIndex = currentPlayerIndex;
+  const playerName = players[answeringIndex]?.name || `Player ${answeringIndex + 1}`;
+  const before = Number(players[answeringIndex]?.score || 0);
+  const hadBonus = !!activeBonus;
   _dockSubmitBonusAnswer();
-  const after = Number(players[currentPlayerIndex]?.score || 0);
-  if (after - before === 10) addDockRecent(`${playerName} won the Bonus Round (+10).`);
-  else if (activeBonus) addDockRecent(`${playerName} attempted the Bonus Round.`);
+  const after = Number(players[answeringIndex]?.score || 0);
+  const delta = after - before;
+  if (hadBonus && delta > 0) addDockRecent(`${playerName} won ${delta} Bonus Round point${delta === 1 ? "" : "s"}.`);
+  else if (hadBonus && delta === 0) addDockRecent(`${playerName} completed a 0-point hinted Bonus Round.`);
+  else if (hadBonus && delta < 0) addDockRecent(`${playerName} lost ${Math.abs(delta)} Bonus Round point${Math.abs(delta) === 1 ? "" : "s"}.`);
 };
 
 // ---- Remote two-player support (Firebase Realtime Database) ----
@@ -6314,10 +6587,10 @@ function getRemoteMembers(){return{
   "0":{name:cleanPlayerName(players[0]?.name,"Player 1"),occupied:true},
   "1":{name:cleanPlayerName(players[1]?.name,"Player 2"),occupied:false},
 }}
-function getRemoteState(){return{version:2,board:getBoardData(),scores:[
+function getRemoteState(){return{version:3,board:getBoardData(),scores:[
   Number(players[0]?.score||0),
   Number(players[1]?.score||0)
-],currentPlayerIndex,bonusUsedThisTurn:!!bonusUsedThisTurn,recentActions:dockRecentItems.filter(x=>x&&x!=="Game ready.").slice(0,4),updatedAt:window.firebase?firebase.database.ServerValue.TIMESTAMP:Date.now()}}
+],currentPlayerIndex,bonusUsedThisTurn:!!bonusUsedThisTurn,usedBonusQuestionIds:[...new Set(usedBonusQuestionIds.map(String))],recentActions:dockRecentItems.filter(x=>x&&x!=="Game ready.").slice(0,4),updatedAt:window.firebase?firebase.database.ServerValue.TIMESTAMP:Date.now()}}
 function mergeRemoteBoards(remoteBoard, localBoard) {
   const remoteNodes = Array.isArray(remoteBoard?.nodes) ? remoteBoard.nodes : [];
   const localNodes = Array.isArray(localBoard?.nodes) ? localBoard.nodes : [];
@@ -6435,7 +6708,7 @@ function applyRemoteMembers(members){
     if(member&&member.name)players[i].name=cleanPlayerName(member.name,`Player ${i+1}`);
   }
   if(remoteRoomRef && !remoteOccupiedSeats[currentPlayerIndex]) currentPlayerIndex=nextPlayablePlayerIndex(currentPlayerIndex);
-  localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn}));
+  localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn,usedBonusQuestionIds}));
   updateScoreDisplay();
   updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);
   refreshOnlinePanel();
@@ -6461,10 +6734,13 @@ function applyRemoteState(state){
     }
 
     bonusUsedThisTurn=!!state.bonusUsedThisTurn;
+    usedBonusQuestionIds=Array.isArray(state.usedBonusQuestionIds)
+      ? [...new Set(state.usedBonusQuestionIds.map(String))]
+      : [];
     if(Array.isArray(state.recentActions))renderDockRecent(state.recentActions);
 
     localStorage.setItem(STORAGE_KEY,JSON.stringify(state.board));
-    localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn}));
+    localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn,usedBonusQuestionIds}));
     updateScoreDisplay();
     updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);
     refreshOnlinePanel();
