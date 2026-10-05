@@ -3787,6 +3787,7 @@ This will also remove any connections attached to it.`);
 
   removeMovieMode = false;
   saveBoard();
+      syncBoardMaintenanceNow("Removed-movie board");
   redrawNodes();
   draw();
   renderMovieList();
@@ -4429,14 +4430,23 @@ function renderNode(nodeObj) {
       return created;
     }
 
-    function syncAddedMovieBoardNow() {
-      // Adding a movie must never create a connection. In an online turn,
-      // publish the exact local board instead of merging in stale remote links.
-      if (typeof remoteRoomRef !== "undefined" && remoteRoomRef &&
-          remotePlayerIndex === currentPlayerIndex) {
-        remoteRoomRef.child("state/board").set(getBoardData())
-          .catch(err => console.error("Added-movie board sync failed", err));
+    function syncBoardMaintenanceNow(reason = "Board maintenance") {
+      // Adding/removing board items is shared maintenance, not a turn action.
+      // Publish the exact board so stale remote links cannot be merged back in.
+      if (typeof remoteSyncTimer !== "undefined" && remoteSyncTimer) {
+        clearTimeout(remoteSyncTimer);
+        remoteSyncTimer = null;
       }
+
+      if (typeof remoteRoomRef !== "undefined" && remoteRoomRef) {
+        const boardSnapshot = getBoardData();
+        remoteRoomRef.child("state/board").set(boardSnapshot)
+          .catch(err => console.error(`${reason} sync failed`, err));
+      }
+    }
+
+    function syncAddedMovieBoardNow() {
+      syncBoardMaintenanceNow("Added-movie board");
     }
 
     function centerOnNode(nodeObj) {
@@ -4504,7 +4514,6 @@ function renderNode(nodeObj) {
     }
 
     function addSelectedMovies() {
-      if (!remoteTurnAllowed()) return;
       const checked = Array.from(document.querySelectorAll(".movie-check:checked")).map(cb => cb.value);
 
       if (!checked.length) {
@@ -4529,7 +4538,6 @@ function renderNode(nodeObj) {
     }
 
     function addAllVisibleMovies() {
-      if (!remoteTurnAllowed()) return;
       const visible = Array.from(document.querySelectorAll(".movie-check")).map(cb => cb.value);
 
       if (!visible.length) {
@@ -4553,7 +4561,6 @@ function renderNode(nodeObj) {
     }
 
     function addCustomMovie() {
-      if (!remoteTurnAllowed()) return;
       const name = prompt("Custom movie or show title:");
       if (!name || !name.trim()) return;
 
@@ -5806,6 +5813,7 @@ function clearFocus() {
       draw();
       applyFocusStyles();
       saveBoard();
+      syncBoardMaintenanceNow("Removed-connection board");
       renderMovieList();
       updateWinStatus();
       if (!silent) setStatus("Connection removed.");
@@ -5933,6 +5941,7 @@ function clearFocus() {
   draw();
   applyFocusStyles();
   saveBoard();
+    syncBoardMaintenanceNow("Edited-connection board");
   updateWinStatus();
   setStatus("Connection updated.");
 }
@@ -6222,6 +6231,7 @@ function makeDraggable(obj) {
 
       draw();
       saveBoard();
+    syncBoardMaintenanceNow("Edited-connection board");
     }
     // If it was not moved, let the normal click event handle focus/poster/cast mode.
   }
@@ -6658,6 +6668,7 @@ function makeDraggable(obj) {
       draw();
       applyFocusStyles();
       saveBoard();
+    syncBoardMaintenanceNow("Edited-connection board");
       updateWinStatus();
       setStatus("Board arranged with branches below their connected movies.");
     }
@@ -7475,7 +7486,7 @@ switchTurnAfterConnection = function(chainMergeBonus = 0) {
 };
 
 function guardTurnFunction(name){const original=window[name];if(typeof original!=="function")return;window[name]=function(...args){if(!remoteTurnAllowed())return;return original.apply(this,args)}}
-["connectMode","openBonusRound","startCastLookup","startChallengeMode","startRemoveMovie","endTurn"].forEach(guardTurnFunction);
+["connectMode","openBonusRound","startCastLookup","startRemoveMovie","endTurn"].forEach(guardTurnFunction);
 refreshOnlinePanel();
 updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
 setTimeout(()=>{applyInviteFromUrl();setTimeout(autoResumeRemoteSession,80)},0);
