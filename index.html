@@ -1259,6 +1259,65 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
   .conn-type-choices { grid-template-columns:1fr; }
   #connectionDialog { width:min(96vw,520px) !important; }
 }
+
+#boardListMode {
+  flex:1 1 auto;
+  min-width:0;
+  height:100%;
+  overflow:auto;
+  background:#100c0a;
+  padding:10px;
+  box-sizing:border-box;
+}
+#boardListMode.hidden { display:none; }
+#boardListModeInner {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-width:760px;
+  margin:0 auto;
+}
+.phone-list-movie {
+  width:100%;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:12px 14px;
+  text-align:left;
+  background:#17110e !important;
+  border:1px solid #6a5738 !important;
+}
+.phone-list-movie-title {
+  font-size:16px;
+  font-weight:800;
+  color:#f4ead7;
+}
+.phone-list-links {
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.phone-list-link {
+  width:100%;
+  text-align:left;
+  font-size:12px !important;
+  padding:7px 9px !important;
+  color:#d8b96f !important;
+  border-color:#4d3d2b !important;
+}
+.phone-list-unconnected {
+  font-size:12px;
+  color:#9f9688;
+}
+body[data-board-view="list"] #topBoardScroll,
+body[data-board-view="list"] #leftBoardScroll,
+body[data-board-view="list"] #board {
+  display:none !important;
+}
+body[data-board-view="list"] #boardListMode {
+  display:block !important;
+}
 </style>
 </head>
 <body>
@@ -1268,7 +1327,7 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
 <div class="cc-theme-mark cobra">〰 COBRA</div>
 <div class="cc-theme-mark vegas">★ VEGAS</div>
   <div id="toolbar">
-    <span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span>Cage Connection</span></span><span style="color:#ffd54a;font-weight:800;font-size:12px;margin-right:8px;">PHONE TEST v4</span>
+    <span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span>Cage Connection</span></span><span style="color:#ffd54a;font-weight:800;font-size:12px;margin-right:8px;">PHONE TEST v5</span>
 
     <button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
     <button id="mainChallengeButton" class="challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span>Challenge</span></button>
@@ -1293,7 +1352,8 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
     <details class="toolbar-menu size-menu">
       <summary><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 4v6M4 17h16M17 14v6"/></svg><span>View</span><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
       <div class="toolbar-menu-panel size-menu-panel">
-        <button type="button" onclick="this.closest('details').removeAttribute('open'); openBoardMovieList()">List View</button>
+        <button type="button" onclick="this.closest('details').removeAttribute('open'); setBoardViewMode('board')">Board View</button>
+        <button type="button" onclick="this.closest('details').removeAttribute('open'); setBoardViewMode('list')">List View</button>
         <button type="button" data-card-size-choice="overview" onclick="setCardSize('overview')">Overview</button>
         <button type="button" data-card-size-choice="compact" onclick="setCardSize('compact')">Compact</button>
         <button type="button" data-card-size-choice="normal" onclick="setCardSize('normal')">Normal</button>
@@ -1335,6 +1395,9 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
       <div id="surface">
         <svg id="lines"></svg>
       </div>
+    </div>
+    <div id="boardListMode" class="hidden" aria-label="Movie list view">
+      <div id="boardListModeInner"></div>
     </div>
   </div>
 
@@ -1658,6 +1721,8 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
 <script>
     const board = document.getElementById("board");
+    const boardListMode = document.getElementById("boardListMode");
+    const boardListModeInner = document.getElementById("boardListModeInner");
     const leftBoardScroll = document.getElementById("leftBoardScroll");
     const leftBoardScrollSpacer = document.getElementById("leftBoardScrollSpacer");
     const topBoardScroll = document.getElementById("topBoardScroll");
@@ -1844,6 +1909,90 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
     const POSTER_OVERRIDES_KEY = "cage-branch-test-clean-poster-overrides-v1";
     const CARD_SIZE_KEY = "cage-connection-card-size-v2";
 
+    const BOARD_VIEW_MODE_KEY = "cage-connection-board-view-v1";
+
+    function setBoardViewMode(mode) {
+      const next = mode === "list" ? "list" : "board";
+      document.body.dataset.boardView = next;
+      localStorage.setItem(BOARD_VIEW_MODE_KEY, next);
+      renderBoardListMode();
+      setStatus(next === "list" ? "List View." : "Board View.");
+    }
+
+    function loadBoardViewMode() {
+      const saved = localStorage.getItem(BOARD_VIEW_MODE_KEY) || "board";
+      document.body.dataset.boardView = saved === "list" ? "list" : "board";
+      renderBoardListMode();
+    }
+
+    function renderBoardListMode() {
+      if (!boardListModeInner) return;
+      boardListModeInner.innerHTML = "";
+
+      const sorted = [...nodes].sort((a, b) => a.name.localeCompare(b.name));
+
+      if (!sorted.length) {
+        const empty = document.createElement("div");
+        empty.className = "index-box";
+        empty.textContent = "No movies are on the board yet.";
+        boardListModeInner.appendChild(empty);
+        return;
+      }
+
+      sorted.forEach(node => {
+        const card = document.createElement("div");
+        card.className = "phone-list-movie";
+
+        const titleBtn = document.createElement("button");
+        titleBtn.type = "button";
+        titleBtn.className = "phone-list-movie-title";
+        titleBtn.textContent = node.name;
+        titleBtn.addEventListener("click", () => handleMovieCardAction(node));
+        card.appendChild(titleBtn);
+
+        const nodeConnections = getConnectionsForNode(node.id);
+
+        if (!nodeConnections.length) {
+          const loose = document.createElement("div");
+          loose.className = "phone-list-unconnected";
+          loose.textContent = "Not currently connected";
+          card.appendChild(loose);
+        } else {
+          const links = document.createElement("div");
+          links.className = "phone-list-links";
+
+          nodeConnections.forEach(connection => {
+            const other = getOtherNode(connection, node.id);
+            const detail = connection.type === "shared"
+              ? connection.sharedActor
+              : `${connection.leftActor || ""} → ${connection.bridgeTitle || ""} → ${connection.rightActor || ""}`;
+
+            const linkBtn = document.createElement("button");
+            linkBtn.type = "button";
+            linkBtn.className = "phone-list-link";
+            linkBtn.textContent = `Connected to ${other.name}${detail ? ` — ${detail}` : ""}`;
+
+            linkBtn.addEventListener("click", e => {
+              e.stopPropagation();
+              if (breakConnectionMode) {
+                breakConnectionFromBoard(connection.id);
+              } else if (challengeMode) {
+                challengeConnection(connection.id);
+              } else {
+                editConnection(connection.id);
+              }
+            });
+
+            links.appendChild(linkBtn);
+          });
+
+          card.appendChild(links);
+        }
+
+        boardListModeInner.appendChild(card);
+      });
+    }
+
     function getLayoutMetrics() {
       const size = document.body.dataset.cardSize || "compact";
       if (size === "overview") return { xGap: 118, yGap: 158, branchGap: 72, singleCols: 12 };
@@ -1937,6 +2086,7 @@ function loadBonusQuestionBank(force = false) {
   loadTwoPlayerState();
 loadCardSize();
 loadBoard();
+loadBoardViewMode();
 setStatus("Ready.");
 updateScoreDisplay();
 
@@ -6291,43 +6441,53 @@ function clearFocus() {
       updateScoreDisplay();
     }
 
-    function arrangeDisconnectedGroupsInSeparateRows() {
+    function arrangeAfterBrokenConnection() {
   const metrics = getLayoutMetrics();
   const startX = 60;
   const startY = 70;
-  const rowGap = metrics.yGap;
+  const yGap = metrics.yGap;
+  const xGap = metrics.xGap;
+  const singleCols = metrics.singleCols;
+
   const visited = new Set();
-  const groups = [];
+  const connectedComponents = [];
+  const looseMovies = [];
 
   nodes.forEach(node => {
     if (visited.has(node.id)) return;
+
     const componentIds = getConnectedComponentNodeIds(node.id);
     componentIds.forEach(id => visited.add(id));
-    groups.push(componentIds);
+
+    if (componentIds.size > 1) {
+      connectedComponents.push(componentIds);
+    } else {
+      looseMovies.push(node);
+    }
   });
 
-  // Keep larger connected groups first, then smaller/single groups.
-  groups.sort((a, b) => b.size - a.size);
+  connectedComponents.sort((a, b) => b.size - a.size);
+  looseMovies.sort((a, b) => a.name.localeCompare(b.name));
 
   let currentRow = 0;
 
-  groups.forEach(componentIds => {
-    const y = startY + (currentRow * rowGap);
+  connectedComponents.forEach(componentIds => {
+    const rowsUsed = layoutBranchComponent(
+      componentIds,
+      startX,
+      startY + (currentRow * yGap)
+    );
+    currentRow += Math.max(1, rowsUsed);
+  });
 
-    if (componentIds.size > 1) {
-      const rowsUsed = layoutBranchComponent(componentIds, startX, y);
-      currentRow += Math.max(1, rowsUsed);
-    } else {
-      const id = [...componentIds][0];
-      const node = nodes.find(n => n.id === id);
-      if (node) {
-        node.x = startX;
-        node.y = y;
-        node.el.style.left = node.x + "px";
-        node.el.style.top = node.y + "px";
-      }
-      currentRow += 1;
-    }
+  // All unconnected movies go back into one common pool/grid.
+  looseMovies.forEach((node, index) => {
+    const col = index % singleCols;
+    const row = Math.floor(index / singleCols);
+    node.x = startX + (col * xGap);
+    node.y = startY + ((currentRow + row) * yGap);
+    node.el.style.left = node.x + "px";
+    node.el.style.top = node.y + "px";
   });
 
   focusedNodeId = null;
@@ -6335,6 +6495,7 @@ function clearFocus() {
   redrawNodes();
   draw();
   applyFocusStyles();
+  renderBoardListMode();
 }
 
 function deleteConnection(connectionId, silent = false, breakMessage = "Connection removed.") {
@@ -6342,7 +6503,7 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
       connections = connections.filter(c => c.id !== connectionId);
 
       if (doomed) {
-        arrangeDisconnectedGroupsInSeparateRows();
+        arrangeAfterBrokenConnection();
       } else {
         redrawNodes();
         draw();
@@ -6491,6 +6652,7 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
     }
 
     function updateWinStatus() {
+      renderBoardListMode();
       redrawNodes();
 
       if (!nodes.length) {
