@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3746,6 +3745,22 @@ function validateSharedActor(movieA, movieB, actorName) {
       `${right} must appear in both ${bridgeTitle} and ${movieB}.`
   };
 }
+function isHardCageCheckFailure(validation) {
+  const message = String(validation?.message || "");
+  return /Nicolas Cage cannot be used/i.test(message);
+}
+
+function offerCageCheckOverride(validation) {
+  if (!validation || validation.status !== "invalid") return false;
+  if (isHardCageCheckFailure(validation)) return false;
+
+  return confirm(
+    "Cage Check could not validate this connection from its current cast data.\n\n" +
+    validation.message +
+    "\n\nSave this connection anyway?"
+  );
+}
+
 function startPosterEdit() {
   posterEditMode = true;
   castLookupMode = false;
@@ -4046,7 +4061,9 @@ async function resolveChallengeEvent(result, challenge){
       updateScoreDisplay();
     }
     addDockRecent(`${challenger} won the challenge. Incorrect connection broken. ${challengedPlayer} -${penalty}.`);
-    setStatus(`Challenge successful. Connection broken. ${challengedPlayer} -${penalty}.`);
+    resetAfterBrokenConnection(
+      `Challenge successful. Connection broken. ${challengedPlayer} -${penalty}.`
+    );
   }
   if(remoteRoomRef){
     try{await remoteRoomRef.child("challenge").remove();}catch(err){console.error("Challenge clear failed",err);}
@@ -4658,7 +4675,11 @@ function renderNode(nodeObj) {
 
       const index = Number(trimmed) - 1;
       if (index >= 0 && index < existing.length) {
-        deleteConnection(existing[index].id, true);
+        deleteConnection(
+          existing[index].id,
+          true,
+          `Connection removed. ${nodeObj.name} is available for a new connection.`
+        );
         alert(`Connection removed. You can now connect ${nodeObj.name} to another movie.`);
         return false;
       }
@@ -4812,12 +4833,18 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     const validation = validateSharedActor(first.name, obj.name, result.sharedActor);
 
     if (validation.status === "invalid") {
-      sharedWrongPenalty += 1;
-      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
-      updateScoreDisplay();
-      setStatus(`Cage Check: FAILED. Score -1. ${validation.message}`);
-      showCageCheckFailed(validation.message, "-1 point");
-      return;
+      const overrideAccepted = offerCageCheckOverride(validation);
+
+      if (!overrideAccepted) {
+        sharedWrongPenalty += 1;
+        localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+        updateScoreDisplay();
+        setStatus(`Cage Check: FAILED. Score -1. ${validation.message}`);
+        showCageCheckFailed(validation.message, "-1 point");
+        return;
+      }
+
+      setStatus("Manual override accepted. Connection saved.");
     }
 
     if (validation.status === "unknown") {
@@ -4842,12 +4869,18 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     );
 
     if (validation.status === "invalid") {
-      sharedWrongPenalty += 1;
-      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
-      updateScoreDisplay();
-      setStatus(`Cage Check: FAILED. Score -1. ${validation.message}`);
-      showCageCheckFailed(validation.message, "-1 point");
-      return;
+      const overrideAccepted = offerCageCheckOverride(validation);
+
+      if (!overrideAccepted) {
+        sharedWrongPenalty += 1;
+        localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+        updateScoreDisplay();
+        setStatus(`Cage Check: FAILED. Score -1. ${validation.message}`);
+        showCageCheckFailed(validation.message, "-1 point");
+        return;
+      }
+
+      setStatus("Manual override accepted. Connection saved.");
     }
 
     if (validation.status === "unknown") {
@@ -5800,7 +5833,51 @@ function clearFocus() {
       updateWinStatus();
     }
 
-    function deleteConnection(connectionId, silent = false) {
+    function resetAfterBrokenConnection(message = "Connection removed.") {
+      // A broken link should never leave the board stuck in Challenge/Edit/
+      // partial-Connect state.
+      challengeMode = false;
+      castLookupMode = false;
+      posterEditMode = false;
+      removeMovieMode = false;
+      connectFirstNode = null;
+      focusedNodeId = null;
+
+      clearNodeStates();
+
+      if (typeof hideChallengeEventModal === "function") {
+        try { hideChallengeEventModal(); } catch {}
+      }
+
+      applyFocusStyles();
+      redrawNodes();
+      draw();
+
+      // Only the active player is put directly back into Connect mode.
+      // A non-active remote player returns to a clean waiting state.
+      const connectedRemote =
+        typeof remoteRoomCode !== "undefined" &&
+        !!remoteRoomCode &&
+        (remotePlayerIndex === 0 || remotePlayerIndex === 1);
+
+      const mayConnectNow =
+        !connectedRemote || remotePlayerIndex === currentPlayerIndex;
+
+      if (mayConnectNow) {
+        connectModeActive = true;
+        setStatus(`${message} Click the first movie to make a new connection.`);
+      } else {
+        connectModeActive = false;
+        const activeName =
+          players[currentPlayerIndex]?.name ||
+          `Player ${currentPlayerIndex + 1}`;
+        setStatus(`${message} Waiting for ${activeName}.`);
+      }
+
+      updateScoreDisplay();
+    }
+
+    function deleteConnection(connectionId, silent = false, breakMessage = "Connection removed.") {
       const doomed = connections.find(c => c.id === connectionId);
       connections = connections.filter(c => c.id !== connectionId);
 
@@ -5816,7 +5893,9 @@ function clearFocus() {
       syncBoardMaintenanceNow("Removed-connection board");
       renderMovieList();
       updateWinStatus();
-      if (!silent) setStatus("Connection removed.");
+
+      // Always restore a clean board interaction state after a link is broken.
+      resetAfterBrokenConnection(breakMessage);
     }
 
    function editConnection(connectionId) {
@@ -5848,8 +5927,11 @@ function clearFocus() {
     localStorage.setItem(WRONG_BRIDGE_PENALTY_KEY, String(wrongBridgePenalty));
     updateScoreDisplay();
 
-    deleteConnection(connectionId, true);
-    setStatus("Wrong connection removed. Score -3.");
+    deleteConnection(
+      connectionId,
+      true,
+      "Wrong connection removed. Score -3."
+    );
     return;
   }
 
@@ -5883,11 +5965,17 @@ function clearFocus() {
     );
 
     if (validation.status === "invalid") {
-      sharedWrongPenalty += 1;
-      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
-      updateScoreDisplay();
-      showCageCheckFailed(validation.message, "-1 point");
-      return;
+      const overrideAccepted = offerCageCheckOverride(validation);
+
+      if (!overrideAccepted) {
+        sharedWrongPenalty += 1;
+        localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+        updateScoreDisplay();
+        showCageCheckFailed(validation.message, "-1 point");
+        return;
+      }
+
+      setStatus("Manual override accepted. Connection updated.");
     }
 
     if (validation.status === "unknown") {
@@ -5915,12 +6003,18 @@ function clearFocus() {
     );
 
     if (validation.status === "invalid") {
-      sharedWrongPenalty += 1;
-      localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
-      updateScoreDisplay();
+      const overrideAccepted = offerCageCheckOverride(validation);
 
-      showCageCheckFailed(validation.message, "-1 point");
-      return;
+      if (!overrideAccepted) {
+        sharedWrongPenalty += 1;
+        localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
+        updateScoreDisplay();
+
+        showCageCheckFailed(validation.message, "-1 point");
+        return;
+      }
+
+      setStatus("Manual override accepted. Connection updated.");
     }
 
     if (validation.status === "unknown") {
@@ -6065,11 +6159,8 @@ function clearFocus() {
 if (challengeMode) {
   challengeConnection(c.id);
 } else {
-if (challengeMode) {
-  challengeConnection(c.id);
-} else {
   editConnection(c.id);
-}}        });
+}        });
         svg.appendChild(hitbox);
 
         const midX = (x1 + x2) / 2;
@@ -7493,4 +7584,3 @@ setTimeout(()=>{applyInviteFromUrl();setTimeout(autoResumeRemoteSession,80)},0);
 
 </script>
 </body>
-</html> 
