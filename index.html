@@ -1221,6 +1221,44 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
 body.break-connect-mode .connection-hitbox { stroke: rgba(255,213,74,.10); }
 body.break-connect-mode .connection-line { stroke: #ffd54a !important; }
 body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
+
+.conn-type-choices {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:12px 0 14px;
+}
+.conn-type-choices button {
+  min-height:52px;
+  font-weight:800;
+}
+.conn-type-choices button.selected {
+  border-color:#ffd54a !important;
+  color:#ffd54a !important;
+  box-shadow:0 0 0 2px rgba(255,213,74,.18) !important;
+}
+#movieListOverlay {
+  position:fixed; inset:0; z-index:23000;
+  background:rgba(0,0,0,.76);
+  display:flex; align-items:center; justify-content:center;
+  padding:16px;
+}
+#movieListOverlay.hidden { display:none; }
+#movieListDialog {
+  width:min(560px,94vw); max-height:86vh; overflow:auto;
+  background:#151412; border:1px solid #7b5e38; border-top:4px solid #9e2d28;
+  padding:16px;
+}
+#boardMovieList { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+.board-movie-list-item {
+  width:100%; text-align:left; display:flex; justify-content:space-between; gap:10px;
+  padding:11px 12px !important;
+}
+.board-movie-list-item span:last-child { opacity:.65; font-size:12px; }
+@media(max-width:560px){
+  .conn-type-choices { grid-template-columns:1fr; }
+  #connectionDialog { width:min(96vw,520px) !important; }
+}
 </style>
 </head>
 <body>
@@ -1233,6 +1271,7 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
     <span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span>Cage Connection</span></span>
 
     <button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
+    <button type="button" onclick="openBoardMovieList()" title="Show movies as a list"><span>Movie List</span></button>
     <button id="mainChallengeButton" class="challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span>Challenge</span></button>
     <button onclick="connectMode()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15"/><path d="M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15"/></svg><span>Connect</span></button>
     <button type="button" onclick="startBreakConnectionMode()" title="Break an existing connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 14.5l-2 2a4 4 0 0 1-5.7-5.6l2.3-2.3"/><path d="M14.5 9.5l2-2a4 4 0 0 1 5.7 5.6l-2.3 2.3"/><path d="M8 12h8"/></svg><span>Break Connect</span></button>
@@ -1468,20 +1507,32 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
   </div>
 
 
+
+<div id="movieListOverlay" class="hidden">
+  <div id="movieListDialog" role="dialog" aria-modal="true" aria-labelledby="movieListTitle">
+    <div class="modal-header">
+      <h2 id="movieListTitle">Movies on Board</h2>
+      <button type="button" onclick="closeBoardMovieList()">Close</button>
+    </div>
+    <div id="boardMovieList"></div>
+  </div>
+</div>
+
+
 <div id="connectionOverlay" class="hidden">
   <div id="connectionDialog" role="dialog" aria-modal="true" aria-labelledby="connectionDialogTitle">
     <h2 id="connectionDialogTitle">Make Connection</h2>
     <div id="connectionDialogSubtitle" class="conn-sub"></div>
-    <div class="conn-row">
-      <div>
-        <label for="connectionType">Connection type</label>
-        <select id="connectionType">
-          <option value="BRIDGE">Bridge movie/show (+2)</option>
-          <option value="SHARED">Same actor in both (+1)</option>
-        </select>
-      </div>
+    <div class="conn-type-choices" id="connectionTypeChoices">
+      <button type="button" id="connectionBridgeBtn">Multi-Movie Connection (+2)</button>
+      <button type="button" id="connectionSharedBtn">Same Actor (+1)</button>
     </div>
-    <div id="bridgeFields">
+    <select id="connectionType" style="display:none" aria-hidden="true">
+      <option value=""></option>
+      <option value="BRIDGE">Multi-Movie Connection</option>
+      <option value="SHARED">Same Actor</option>
+    </select>
+    <div id="bridgeFields" style="display:none">
       <div class="conn-row">
         <div><label for="bridgeTitleInput">Bridge movie/show</label><input id="bridgeTitleInput" type="text"></div>
       </div>
@@ -1666,6 +1717,10 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
     const cageCheckRejectBtn = document.getElementById("cageCheckRejectBtn");
     const connectionOverlay = document.getElementById("connectionOverlay");
     const connectionType = document.getElementById("connectionType");
+    const connectionBridgeBtn = document.getElementById("connectionBridgeBtn");
+    const connectionSharedBtn = document.getElementById("connectionSharedBtn");
+    const movieListOverlay = document.getElementById("movieListOverlay");
+    const boardMovieList = document.getElementById("boardMovieList");
     const bridgeFields = document.getElementById("bridgeFields");
     const sharedFields = document.getElementById("sharedFields");
     const bridgeTitleInput = document.getElementById("bridgeTitleInput");
@@ -1991,7 +2046,22 @@ function posterSrcForMovie(title) {
     }
 
     function getAllTitles() {
-      const merged = [...BUILT_IN_TITLES, ...customTitles];
+      // Pull titles from every data source the game already knows about.
+      // This fixes cases where a poster/cast/wiki entry exists but the title
+      // was accidentally omitted from BUILT_IN_TITLES.
+      const castTitles = (typeof CAST_DATA !== "undefined" && CAST_DATA) ? Object.keys(CAST_DATA) : [];
+      const wikiTitles = (typeof WIKI_URLS !== "undefined" && WIKI_URLS) ? Object.keys(WIKI_URLS) : [];
+      const overrideTitles = (typeof posterOverrides !== "undefined" && posterOverrides) ? Object.keys(posterOverrides) : [];
+      const userCastTitles = (typeof userCastAdditions !== "undefined" && userCastAdditions) ? Object.keys(userCastAdditions) : [];
+
+      const merged = [
+        ...BUILT_IN_TITLES,
+        ...castTitles,
+        ...wikiTitles,
+        ...overrideTitles,
+        ...userCastTitles,
+        ...customTitles
+      ];
       const seen = new Set();
       const deduped = [];
 
@@ -4658,6 +4728,53 @@ function renderNode(nodeObj) {
       board.scrollTop = Math.max(0, nodeObj.y - board.clientHeight / 2 + 30);
     }
 
+    function openBoardMovieList() {
+      boardMovieList.innerHTML = "";
+
+      const sorted = [...nodes].sort((a, b) => a.name.localeCompare(b.name));
+
+      if (!sorted.length) {
+        const empty = document.createElement("div");
+        empty.className = "index-box";
+        empty.textContent = "No movies are on the board yet.";
+        boardMovieList.appendChild(empty);
+      } else {
+        sorted.forEach(node => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "board-movie-list-item";
+
+          const title = document.createElement("span");
+          title.textContent = node.name;
+
+          const degree = document.createElement("span");
+          const count = getDegree(node.id);
+          degree.textContent = `${count} connection${count === 1 ? "" : "s"}`;
+
+          btn.append(title, degree);
+          btn.addEventListener("click", () => {
+            closeBoardMovieList();
+            focusedNodeId = node.id;
+            centerOnNode(node);
+            applyFocusStyles();
+            bringToFront(node.el);
+          });
+
+          boardMovieList.appendChild(btn);
+        });
+      }
+
+      movieListOverlay.classList.remove("hidden");
+    }
+
+    function closeBoardMovieList() {
+      movieListOverlay.classList.add("hidden");
+    }
+
+    movieListOverlay.addEventListener("click", e => {
+      if (e.target === movieListOverlay) closeBoardMovieList();
+    });
+
     function openMoviePicker() {
       pickerOverlay.classList.remove("hidden");
       movieSearch.value = "";
@@ -5117,52 +5234,81 @@ function showConnectionDialog(first, second) {
     connectionDialogSubtitle.textContent = `${first.name} ↔ ${second.name}`;
     leftActorLabel.textContent = `Actor from “${first.name}”`;
     rightActorLabel.textContent = `Actor from “${second.name}”`;
-    connectionType.value = "BRIDGE";
+
+    connectionType.value = "";
     bridgeTitleInput.value = "";
     leftActorInput.value = "";
     rightActorInput.value = "";
     sharedActorInput.value = "";
     connectionDialogError.textContent = "";
-    bridgeFields.style.display = "block";
+
+    bridgeFields.style.display = "none";
     sharedFields.style.display = "none";
+    connectionBridgeBtn.classList.remove("selected");
+    connectionSharedBtn.classList.remove("selected");
     connectionOverlay.classList.remove("hidden");
 
-    const syncFields = () => {
-      const shared = connectionType.value === "SHARED";
-      bridgeFields.style.display = shared ? "none" : "block";
-      sharedFields.style.display = shared ? "block" : "none";
+    const chooseType = type => {
+      connectionType.value = type;
+      const isShared = type === "SHARED";
+      bridgeFields.style.display = isShared ? "none" : "block";
+      sharedFields.style.display = isShared ? "block" : "none";
+      connectionBridgeBtn.classList.toggle("selected", !isShared);
+      connectionSharedBtn.classList.toggle("selected", isShared);
       connectionDialogError.textContent = "";
+
+      setTimeout(() => {
+        if (isShared) sharedActorInput.focus();
+        else bridgeTitleInput.focus();
+      }, 0);
     };
 
     const cleanup = () => {
-      connectionType.removeEventListener("change", syncFields);
+      connectionBridgeBtn.removeEventListener("click", chooseBridge);
+      connectionSharedBtn.removeEventListener("click", chooseShared);
       connectionSaveBtn.removeEventListener("click", save);
       connectionCancelBtn.removeEventListener("click", cancel);
       connectionOverlay.removeEventListener("click", outside);
       connectionOverlay.classList.add("hidden");
     };
 
+    const chooseBridge = () => chooseType("BRIDGE");
+    const chooseShared = () => chooseType("SHARED");
     const cancel = () => { cleanup(); resolve(null); };
     const outside = e => { if (e.target === connectionOverlay) cancel(); };
+
     const save = () => {
+      if (!connectionType.value) {
+        connectionDialogError.textContent = "Choose Multi-Movie Connection or Same Actor.";
+        return;
+      }
+
       if (connectionType.value === "SHARED") {
         const sharedActor = sharedActorInput.value.trim();
-        if (!sharedActor) { connectionDialogError.textContent = "Enter the actor who appears in both movies."; return; }
-        cleanup(); resolve({type:"SHARED", sharedActor});
+        if (!sharedActor) {
+          connectionDialogError.textContent = "Enter the actor who appears in both movies.";
+          return;
+        }
+        cleanup();
+        resolve({type:"SHARED", sharedActor});
       } else {
         const bridgeTitle = bridgeTitleInput.value.trim();
         const leftActor = leftActorInput.value.trim();
         const rightActor = rightActorInput.value.trim();
-        if (!bridgeTitle || !leftActor || !rightActor) { connectionDialogError.textContent = "Complete the bridge title and both actor names."; return; }
-        cleanup(); resolve({type:"BRIDGE", bridgeTitle, leftActor, rightActor});
+        if (!bridgeTitle || !leftActor || !rightActor) {
+          connectionDialogError.textContent = "Complete the other movie and both actor names.";
+          return;
+        }
+        cleanup();
+        resolve({type:"BRIDGE", bridgeTitle, leftActor, rightActor});
       }
     };
 
-    connectionType.addEventListener("change", syncFields);
+    connectionBridgeBtn.addEventListener("click", chooseBridge);
+    connectionSharedBtn.addEventListener("click", chooseShared);
     connectionSaveBtn.addEventListener("click", save);
     connectionCancelBtn.addEventListener("click", cancel);
     connectionOverlay.addEventListener("click", outside);
-    setTimeout(() => bridgeTitleInput.focus(), 0);
   });
 }
 
