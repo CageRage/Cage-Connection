@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Cage Connection">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cage Connection</title>
+  <title>Cage Connection - Local Full Test</title>
   <style>
     body {
       margin: 0;
@@ -1216,9 +1217,14 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
 
 /* Remote multiplayer */
 .online-status-badge{display:inline-flex;align-items:center;min-height:30px;padding:0 8px;border:1px solid #5b513c;color:#b9ab8c;font-size:12px;letter-spacing:.04em;background:#0d0e10}.online-status-badge.live{color:#95e6b2;border-color:#34684a}#onlineOverlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;z-index:12000}#onlineOverlay.hidden{display:none}#onlineModal{width:min(760px,94vw);max-height:88vh;overflow:auto;background:#111319;border:1px solid #6c5b39;padding:18px;box-shadow:0 18px 48px rgba(0,0,0,.55)}.online-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.online-card{background:#17191f;border:1px solid #343842;padding:14px}.online-card h3{margin:0 0 8px;color:#d8b96f}.online-card p{margin:0 0 12px;color:#b9b6ad;font-size:13px}.online-card label{display:block;margin:9px 0 5px;color:#d8d2c3;font-size:12px;font-weight:700}.online-card input,.online-card select{width:100%;box-sizing:border-box;padding:10px;background:#0c0e12;color:#fff;border:1px solid #4a4f59;font-size:16px}.online-card button,.online-connected button{margin-top:12px}.online-primary{border-color:#8a6a2b!important;color:#f1d48a!important}.online-connected{margin-top:14px;border:1px solid #34684a;background:#101a15;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.online-connected.hidden{display:none}.online-kicker{display:block;font-size:10px;color:#8ca597;letter-spacing:.14em}#onlineRoomCode{display:block;font-size:28px;letter-spacing:.12em;color:#95e6b2}#onlineRoleText{color:#d8d2c3;font-weight:700}.online-message{margin-top:12px;min-height:20px;color:#d8b96f;font-size:13px}@media(max-width:700px){.online-grid{grid-template-columns:1fr}}
+
+body.break-connect-mode .connection-hitbox { stroke: rgba(255,213,74,.10); }
+body.break-connect-mode .connection-line { stroke: #ffd54a !important; }
+body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
 </style>
 </head>
 <body>
+<div style="position:fixed;top:6px;right:8px;z-index:40000;background:#7f1d1d;color:white;padding:6px 9px;border:1px solid #d8b96f;font:700 11px Arial;">LOCAL TEST — NOT ONLINE</div>
 <div class="cc-theme-mark treasure">✦ MAP</div>
 <div class="cc-theme-mark mansion">⌂ NIGHT HOUSE</div>
 <div class="cc-theme-mark cobra">〰 COBRA</div>
@@ -1229,6 +1235,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     <button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
     <button id="mainChallengeButton" class="challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span>Challenge</span></button>
     <button onclick="connectMode()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15"/><path d="M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15"/></svg><span>Connect</span></button>
+    <button type="button" onclick="startBreakConnectionMode()" title="Break an existing connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 14.5l-2 2a4 4 0 0 1-5.7-5.6l2.3-2.3"/><path d="M14.5 9.5l2-2a4 4 0 0 1 5.7 5.6l-2.3 2.3"/><path d="M8 12h8"/></svg><span>Break Connect</span></button>
     <button type="button" onclick="openBonusRound()" title="Bonus Round" aria-label="Bonus Round" style="padding:2px 8px !important;border:0 !important;background:transparent !important;min-height:0 !important;"><img src="reactions/bonus-roun.png" alt="Bonus Round" style="height:78px;width:auto;display:block;object-fit:contain;border-radius:4px;"></button>
     <button id="onlineButton" type="button" onclick="openOnlinePanel()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 16 0"/><path d="M7 12a5 5 0 0 1 10 0"/><path d="M10 12a2 2 0 0 1 4 0"/><circle cx="12" cy="16" r="1"/></svg><span>Online</span></button>
     <button id="mainStartFreshButton" type="button" onclick="hardStartFresh()"><span>Start Fresh</span></button>
@@ -1238,6 +1245,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
       <summary><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h7l-1 8 8-12h-7z"/></svg><span>Cheats</span><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
       <div class="toolbar-menu-panel">
         <button onclick="this.closest('details').removeAttribute('open'); startCastLookup()">Cast Lookup (-2)</button>
+        <button onclick="this.closest('details').removeAttribute('open'); addCastMemberTool()">Add Cast Member</button>
         <button onclick="this.closest('details').removeAttribute('open'); openPathFinder()">Find Path</button>
         <button onclick="this.closest('details').removeAttribute('open'); showIndex()">Show Index</button>
       </div>
@@ -1578,6 +1586,10 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     <div id="cageCheckReason"></div>
     <div id="cageCheckPenalty">-1 point</div>
     <img id="cageCheckGif" alt="Nicolas Cage reaction" src="reactions/cage_check/cage_check_failed_01.gif">
+    <div id="cageCheckOverrideActions" style="display:none;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">
+      <button type="button" id="cageCheckOverrideBtn">Override &amp; Save Connection</button>
+      <button type="button" id="cageCheckRejectBtn">Reject Connection</button>
+    </div>
     <button type="button" id="cageCheckContinueBtn">Continue</button>
   </div>
 </div>
@@ -1649,6 +1661,9 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     const cageCheckPenalty = document.getElementById("cageCheckPenalty");
     const cageCheckGif = document.getElementById("cageCheckGif");
     const cageCheckContinueBtn = document.getElementById("cageCheckContinueBtn");
+    const cageCheckOverrideActions = document.getElementById("cageCheckOverrideActions");
+    const cageCheckOverrideBtn = document.getElementById("cageCheckOverrideBtn");
+    const cageCheckRejectBtn = document.getElementById("cageCheckRejectBtn");
     const connectionOverlay = document.getElementById("connectionOverlay");
     const connectionType = document.getElementById("connectionType");
     const bridgeFields = document.getElementById("bridgeFields");
@@ -1812,6 +1827,7 @@ body.dock-collapsed #boardShell { height: calc(100vh - 124px) !important; }
     let castLookupMode = false;
     let posterEditMode = false;
     let challengeMode = false;
+let breakConnectionMode = false;
 let posterOverrides = loadPosterOverrides();
     let castPenalty = Number(localStorage.getItem(CAST_PENALTY_KEY) || 0);
     let sharedWrongPenalty = Number(localStorage.getItem(SHARED_WRONG_PENALTY_KEY) || 0);
@@ -3657,8 +3673,135 @@ function normalizeActorName(name) {
     .replace(/\s+/g, " ");
 }
 
+const USER_CAST_ADDITIONS_KEY = "cage-connection-user-cast-additions-v1";
+
+function loadUserCastAdditions() {
+  try {
+    const raw = localStorage.getItem(USER_CAST_ADDITIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+let userCastAdditions = loadUserCastAdditions();
+
+function saveUserCastAdditions() {
+  localStorage.setItem(
+    USER_CAST_ADDITIONS_KEY,
+    JSON.stringify(userCastAdditions)
+  );
+}
+
+function normalizeMovieTitleForCast(title) {
+  return String(title || "").trim().toLowerCase();
+}
+
+function findCanonicalCastMovieTitle(title) {
+  const target = normalizeMovieTitleForCast(title);
+  if (!target) return "";
+
+  const builtIn = Object.keys(CAST_DATA).find(
+    key => normalizeMovieTitleForCast(key) === target
+  );
+  if (builtIn) return builtIn;
+
+  const added = Object.keys(userCastAdditions).find(
+    key => normalizeMovieTitleForCast(key) === target
+  );
+  if (added) return added;
+
+  const boardMovie = nodes.find(
+    n => normalizeMovieTitleForCast(n.name) === target
+  );
+  if (boardMovie) return boardMovie.name;
+
+  return String(title || "").trim();
+}
+
+function getCombinedCast(movieTitle) {
+  const canonical = findCanonicalCastMovieTitle(movieTitle);
+  if (!canonical) return null;
+
+  const builtInKey = Object.keys(CAST_DATA).find(
+    key => normalizeMovieTitleForCast(key) === normalizeMovieTitleForCast(canonical)
+  );
+
+  const addedKey = Object.keys(userCastAdditions).find(
+    key => normalizeMovieTitleForCast(key) === normalizeMovieTitleForCast(canonical)
+  );
+
+  const builtIn = builtInKey && Array.isArray(CAST_DATA[builtInKey])
+    ? CAST_DATA[builtInKey]
+    : [];
+  const added = addedKey && Array.isArray(userCastAdditions[addedKey])
+    ? userCastAdditions[addedKey]
+    : [];
+
+  if (!builtInKey && !addedKey) return null;
+
+  const seen = new Set();
+  return [...builtIn, ...added].filter(actor => {
+    const key = normalizeActorName(actor);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function addCastMemberTool() {
+  const suggestedMovie =
+    (focusedNodeId && nodes.find(n => n.id === focusedNodeId)?.name) ||
+    "";
+
+  const movieInput = prompt(
+    "Movie or show title:",
+    suggestedMovie
+  );
+  if (!movieInput || !movieInput.trim()) return;
+
+  const canonicalMovie = findCanonicalCastMovieTitle(movieInput);
+  const actorInput = prompt(
+    `Actor to add to "${canonicalMovie}":`,
+    ""
+  );
+  if (!actorInput || !actorInput.trim()) return;
+
+  const actor = actorInput.trim();
+
+  if (normalizeActorName(actor) === "nicolas cage") {
+    alert("Nicolas Cage does not need to be added. He is already the center of this universe.");
+    return;
+  }
+
+  const currentCast = getCombinedCast(canonicalMovie) || [];
+  if (currentCast.some(name => normalizeActorName(name) === normalizeActorName(actor))) {
+    alert(`${actor} is already listed in the cast of "${canonicalMovie}".`);
+    return;
+  }
+
+  const existingKey = Object.keys(userCastAdditions).find(
+    key => normalizeMovieTitleForCast(key) === normalizeMovieTitleForCast(canonicalMovie)
+  );
+  const storageKey = existingKey || canonicalMovie;
+
+  if (!Array.isArray(userCastAdditions[storageKey])) {
+    userCastAdditions[storageKey] = [];
+  }
+
+  userCastAdditions[storageKey].push(actor);
+  saveUserCastAdditions();
+
+  setStatus(`Cast memory updated: ${actor} added to ${canonicalMovie}.`);
+  alert(
+    `${actor} has been added to "${canonicalMovie}".\n\n` +
+    "Cage Check will use this cast addition immediately and remember it on this device."
+  );
+}
+
 function movieHasActor(movieTitle, actorName) {
-  const cast = CAST_DATA[movieTitle];
+  const cast = getCombinedCast(movieTitle);
 
   if (!cast) {
     return null;
@@ -3750,19 +3893,60 @@ function isHardCageCheckFailure(validation) {
   return /Nicolas Cage cannot be used/i.test(message);
 }
 
-function offerCageCheckOverride(validation) {
-  if (!validation || validation.status !== "invalid") return false;
-  if (isHardCageCheckFailure(validation)) return false;
+let pendingCageCheckOverrideResolver = null;
 
-  return confirm(
-    "Cage Check could not validate this connection from its current cast data.\n\n" +
-    validation.message +
-    "\n\nSave this connection anyway?"
-  );
+function resetCageCheckOverrideControls() {
+  if (cageCheckOverrideActions) cageCheckOverrideActions.style.display = "none";
+  if (cageCheckContinueBtn) cageCheckContinueBtn.style.display = "";
 }
 
+function resolveCageCheckOverride(accepted) {
+  if (!pendingCageCheckOverrideResolver) return;
+  const resolve = pendingCageCheckOverrideResolver;
+  pendingCageCheckOverrideResolver = null;
+  cageCheckOverlay.classList.add("hidden");
+  resetCageCheckOverrideControls();
+  resolve(!!accepted);
+}
+
+function offerCageCheckOverride(validation) {
+  if (!validation || validation.status !== "invalid") return Promise.resolve(false);
+  if (isHardCageCheckFailure(validation)) return Promise.resolve(false);
+
+  return new Promise(resolve => {
+    pendingCageCheckOverrideResolver = resolve;
+
+    const titleEl = document.getElementById("cageCheckTitle");
+    if (titleEl) titleEl.textContent = "Cage Check:";
+
+    let cageClaim = String(validation.message || "").trim();
+    cageClaim = cageClaim
+      .replace(/\s*based on the cast data\.?$/i, ".")
+      .replace(/\s*Cage Check does not have enough data to verify this connection\.?$/i, ".");
+
+    cageCheckReason.textContent =
+      `According to Nicolas Cage, ${cageClaim} ` +
+      `If you doubt Mr. Cage, you may choose to override. ` +
+      `Mr. Cage may or may not agree.`;
+
+    cageCheckPenalty.textContent = "";
+    cageCheckPenalty.style.display = "block";
+
+    cageCheckGif.style.display = "none";
+    cageCheckGif.removeAttribute("src");
+
+    cageCheckContinueBtn.style.display = "none";
+    cageCheckOverrideActions.style.display = "flex";
+    cageCheckOverlay.classList.remove("hidden");
+  });
+}
+
+cageCheckOverrideBtn.addEventListener("click", () => resolveCageCheckOverride(true));
+cageCheckRejectBtn.addEventListener("click", () => resolveCageCheckOverride(false));
+
 function startPosterEdit() {
-  posterEditMode = true;
+    breakConnectionMode = false;
+posterEditMode = true;
   castLookupMode = false;
   connectModeActive = false;
   connectFirstNode = null;
@@ -3772,7 +3956,8 @@ function startPosterEdit() {
     let removeMovieMode = false;
 
 function startRemoveMovie() {
-  removeMovieMode = true;
+    breakConnectionMode = false;
+removeMovieMode = true;
   castLookupMode = false;
   posterEditMode = false;
   connectModeActive = false;
@@ -3845,7 +4030,8 @@ function handlePosterEdit(nodeObj) {
   setStatus(`Poster updated for ${nodeObj.name}.`);
 }
     function startChallengeMode() {
-  challengeMode = true;
+    breakConnectionMode = false;
+challengeMode = true;
   castLookupMode = false;
   posterEditMode = false;
   connectModeActive = false;
@@ -4267,6 +4453,7 @@ function findMovie() {
       connectModeActive = false;
       connectFirstNode = null;
       challengeMode = false;
+      breakConnectionMode = false;
       castLookupMode = false;
       svg.innerHTML = "";
 
@@ -4833,14 +5020,13 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     const validation = validateSharedActor(first.name, obj.name, result.sharedActor);
 
     if (validation.status === "invalid") {
-      const overrideAccepted = offerCageCheckOverride(validation);
+      const overrideAccepted = await offerCageCheckOverride(validation);
 
       if (!overrideAccepted) {
-        sharedWrongPenalty += 1;
-        localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
-        updateScoreDisplay();
-        setStatus(`Cage Check: FAILED. Score -1. ${validation.message}`);
-        showCageCheckFailed(validation.message, "-1 point");
+        connectFirstNode = null;
+        clearNodeStates();
+        connectModeActive = true;
+        setStatus("Connection rejected. Click the first movie to try another connection.");
         return;
       }
 
@@ -4860,33 +5046,8 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     });
     players[currentPlayerIndex].score += 1;
   } else {
-    const validation = validateBridgeConnection(
-      first.name,
-      result.bridgeTitle,
-      obj.name,
-      result.leftActor,
-      result.rightActor
-    );
-
-    if (validation.status === "invalid") {
-      const overrideAccepted = offerCageCheckOverride(validation);
-
-      if (!overrideAccepted) {
-        sharedWrongPenalty += 1;
-        localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
-        updateScoreDisplay();
-        setStatus(`Cage Check: FAILED. Score -1. ${validation.message}`);
-        showCageCheckFailed(validation.message, "-1 point");
-        return;
-      }
-
-      setStatus("Manual override accepted. Connection saved.");
-    }
-
-    if (validation.status === "unknown") {
-      setStatus(`Cage Check: UNCONFIRMED. ${validation.message}`);
-      showCageCheckUnknown(validation.message);
-    }
+    // Bridge connections are accepted without Cage Check.
+    // Bridge cast verification is intentionally skipped.
 
     connections.push({
       id: crypto.randomUUID(), type:"bridge", a:first, b:obj,
@@ -5706,15 +5867,62 @@ function showCageCheckUnknown(message) {
 }
 
 function closeCageCheckFailed() {
+  if (pendingCageCheckOverrideResolver) return;
   cageCheckOverlay.classList.add("hidden");
+  resetCageCheckOverrideControls();
 }
 
 cageCheckContinueBtn.addEventListener("click", closeCageCheckFailed);
 cageCheckOverlay.addEventListener("click", e => {
-  if (e.target === cageCheckOverlay) closeCageCheckFailed();
+  if (e.target === cageCheckOverlay && !pendingCageCheckOverrideResolver) {
+    closeCageCheckFailed();
+  }
 });
 
+    function startBreakConnectionMode() {
+      breakConnectionMode = true;
+      document.body.classList.add("break-connect-mode");
+      challengeMode = false;
+      castLookupMode = false;
+      posterEditMode = false;
+      removeMovieMode = false;
+      connectModeActive = false;
+      connectFirstNode = null;
+      focusedNodeId = null;
+      clearNodeStates();
+      applyFocusStyles();
+      setStatus("Break Connect mode ON. Click the connection line or center label you want to break.");
+    }
+
+    function breakConnectionFromBoard(connectionId) {
+      const c = connections.find(x => x.id === connectionId);
+      if (!c) {
+        breakConnectionMode = false;
+        setStatus("That connection could not be found.");
+        return;
+      }
+
+      const left = c.a?.name || "first movie";
+      const right = c.b?.name || "second movie";
+      const ok = confirm(`Break the connection between "${left}" and "${right}"?`);
+
+      if (!ok) {
+        setStatus("Break cancelled. Click another connection, or choose Connect to leave Break Connect mode.");
+        return;
+      }
+
+      breakConnectionMode = false;
+      document.body.classList.remove("break-connect-mode");
+      deleteConnection(
+        connectionId,
+        true,
+        `Connection broken: ${left} ↔ ${right}.`
+      );
+    }
+
     function connectMode() {
+      breakConnectionMode = false;
+      document.body.classList.remove("break-connect-mode");
       connectModeActive = true;
       connectFirstNode = null;
       castLookupMode = false;
@@ -5727,6 +5935,8 @@ cageCheckOverlay.addEventListener("click", e => {
 
  function clearSelection() {
   clearNodeStates();
+  breakConnectionMode = false;
+  document.body.classList.remove("break-connect-mode");
   connectModeActive = false;
   connectFirstNode = null;
   castLookupMode = false;
@@ -5898,7 +6108,7 @@ function clearFocus() {
       resetAfterBrokenConnection(breakMessage);
     }
 
-   function editConnection(connectionId) {
+   async function editConnection(connectionId) {
   const c = connections.find(x => x.id === connectionId);
   if (!c) return;
 
@@ -5956,31 +6166,7 @@ function clearFocus() {
     const rightActor = prompt(`Actor from "${c.b.name}":`, c.rightActor || "");
     if (!rightActor || !rightActor.trim()) return;
 
-    const validation = validateBridgeConnection(
-      c.a.name,
-      bridgeTitle.trim(),
-      c.b.name,
-      leftActor.trim(),
-      rightActor.trim()
-    );
-
-    if (validation.status === "invalid") {
-      const overrideAccepted = offerCageCheckOverride(validation);
-
-      if (!overrideAccepted) {
-        sharedWrongPenalty += 1;
-        localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
-        updateScoreDisplay();
-        showCageCheckFailed(validation.message, "-1 point");
-        return;
-      }
-
-      setStatus("Manual override accepted. Connection updated.");
-    }
-
-    if (validation.status === "unknown") {
-      showCageCheckUnknown(validation.message);
-    }
+    // Bridge edits are accepted without Cage Check.
 
     c.type = "bridge";
     c.bridgeTitle = bridgeTitle.trim();
@@ -6003,14 +6189,10 @@ function clearFocus() {
     );
 
     if (validation.status === "invalid") {
-      const overrideAccepted = offerCageCheckOverride(validation);
+      const overrideAccepted = await offerCageCheckOverride(validation);
 
       if (!overrideAccepted) {
-        sharedWrongPenalty += 1;
-        localStorage.setItem(SHARED_WRONG_PENALTY_KEY, String(sharedWrongPenalty));
-        updateScoreDisplay();
-
-        showCageCheckFailed(validation.message, "-1 point");
+        setStatus("Connection change cancelled.");
         return;
       }
 
@@ -6156,7 +6338,9 @@ function clearFocus() {
         hitbox.setAttribute("class", "connection-hitbox");
         hitbox.addEventListener("click", (e) => {
           e.stopPropagation();
-if (challengeMode) {
+if (breakConnectionMode) {
+  breakConnectionFromBoard(c.id);
+} else if (challengeMode) {
   challengeConnection(c.id);
 } else {
   editConnection(c.id);
@@ -6176,7 +6360,9 @@ if (challengeMode) {
         bg.setAttribute("class", "connection-label-bg");
         bg.addEventListener("click", (e) => {
           e.stopPropagation();
-if (challengeMode) {
+if (breakConnectionMode) {
+  breakConnectionFromBoard(c.id);
+} else if (challengeMode) {
   challengeConnection(c.id);
 } else {
   editConnection(c.id);
@@ -6190,7 +6376,9 @@ if (challengeMode) {
         title.textContent = c.type === "shared" ? c.sharedActor : c.bridgeTitle;
         title.addEventListener("click", (e) => {
           e.stopPropagation();
-if (challengeMode) {
+if (breakConnectionMode) {
+  breakConnectionFromBoard(c.id);
+} else if (challengeMode) {
   challengeConnection(c.id);
 } else {
   editConnection(c.id);
@@ -6206,7 +6394,9 @@ if (challengeMode) {
           : `${c.leftActor} ↔ ${c.rightActor}`;
         actors.addEventListener("click", (e) => {
           e.stopPropagation();
-if (challengeMode) {
+if (breakConnectionMode) {
+  breakConnectionFromBoard(c.id);
+} else if (challengeMode) {
   challengeConnection(c.id);
 } else {
   editConnection(c.id);
@@ -6897,7 +7087,7 @@ let remoteDb=null,remoteRoomCode=null,remotePlayerIndex=null,remoteRoomRef=null,
 let remoteOccupiedSeats=[true,true];
 let remoteStateHandler=null,remoteMembersHandler=null,remoteChatQuery=null,remoteChatHandler=null,remoteChallengeHandler=null,applyingRemoteState=false;
 let remoteSyncTimer=null,remoteNameSyncTimer=null;
-try{if(window.firebase&&!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);if(window.firebase){remoteDb=firebase.database();try{if(remoteDb&&remoteDb.INTERNAL&&typeof remoteDb.INTERNAL.forceLongPolling==="function")remoteDb.INTERNAL.forceLongPolling()}catch(lpErr){console.warn("Could not force Firebase long polling",lpErr)}}}catch(err){console.error("Firebase initialization failed",err)}
+/* Local full test: Firebase intentionally disabled. */
 function openOnlinePanel(){const e=document.getElementById("onlineOverlay");if(e)e.classList.remove("hidden");prefillRemoteResume();refreshOnlinePanel()}
 function closeOnlinePanel(event){const e=document.getElementById("onlineOverlay");if(event&&event.target!==e)return;if(e)e.classList.add("hidden")}
 function setOnlineMessage(t){const e=document.getElementById("onlineMessage");if(e)e.textContent=t}
@@ -7518,7 +7708,7 @@ function refreshOnlinePanel(){
     refreshInviteLink();
   }
 }
-function remoteTurnAllowed(){if(!remoteRoomCode)return true;if(remotePlayerIndex===currentPlayerIndex)return true;setStatus(`Waiting for ${players[currentPlayerIndex]?.name||`Player ${currentPlayerIndex+1}`}.`);return false}
+function remoteTurnAllowed(){ return true; }
 const _remoteSaveBoard=saveBoard;saveBoard=function(){_remoteSaveBoard();scheduleRemoteSync()};
 const _remoteSaveTwoPlayerState=saveTwoPlayerState;saveTwoPlayerState=function(){_remoteSaveTwoPlayerState();scheduleRemoteSync();scheduleOwnNameSync()};
 
@@ -7580,7 +7770,7 @@ function guardTurnFunction(name){const original=window[name];if(typeof original!
 ["connectMode","openBonusRound","startCastLookup","startRemoveMovie","endTurn"].forEach(guardTurnFunction);
 refreshOnlinePanel();
 updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
-setTimeout(()=>{applyInviteFromUrl();setTimeout(autoResumeRemoteSession,80)},0);
+/* Local full test: online invite/resume intentionally disabled. */
 
 </script>
 </body>
