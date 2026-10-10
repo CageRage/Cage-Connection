@@ -1268,7 +1268,7 @@ body.break-connect-mode .connection-label-bg { stroke: #ffd54a !important; }
 <div class="cc-theme-mark cobra">〰 COBRA</div>
 <div class="cc-theme-mark vegas">★ VEGAS</div>
   <div id="toolbar">
-    <span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span>Cage Connection</span></span><span style="color:#ffd54a;font-weight:800;font-size:12px;margin-right:8px;">PHONE TEST v3</span>
+    <span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span>Cage Connection</span></span><span style="color:#ffd54a;font-weight:800;font-size:12px;margin-right:8px;">PHONE TEST v4</span>
 
     <button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
     <button id="mainChallengeButton" class="challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span>Challenge</span></button>
@@ -6291,18 +6291,63 @@ function clearFocus() {
       updateScoreDisplay();
     }
 
-    function deleteConnection(connectionId, silent = false, breakMessage = "Connection removed.") {
+    function arrangeDisconnectedGroupsInSeparateRows() {
+  const metrics = getLayoutMetrics();
+  const startX = 60;
+  const startY = 70;
+  const rowGap = metrics.yGap;
+  const visited = new Set();
+  const groups = [];
+
+  nodes.forEach(node => {
+    if (visited.has(node.id)) return;
+    const componentIds = getConnectedComponentNodeIds(node.id);
+    componentIds.forEach(id => visited.add(id));
+    groups.push(componentIds);
+  });
+
+  // Keep larger connected groups first, then smaller/single groups.
+  groups.sort((a, b) => b.size - a.size);
+
+  let currentRow = 0;
+
+  groups.forEach(componentIds => {
+    const y = startY + (currentRow * rowGap);
+
+    if (componentIds.size > 1) {
+      const rowsUsed = layoutBranchComponent(componentIds, startX, y);
+      currentRow += Math.max(1, rowsUsed);
+    } else {
+      const id = [...componentIds][0];
+      const node = nodes.find(n => n.id === id);
+      if (node) {
+        node.x = startX;
+        node.y = y;
+        node.el.style.left = node.x + "px";
+        node.el.style.top = node.y + "px";
+      }
+      currentRow += 1;
+    }
+  });
+
+  focusedNodeId = null;
+  clearNodeStates();
+  redrawNodes();
+  draw();
+  applyFocusStyles();
+}
+
+function deleteConnection(connectionId, silent = false, breakMessage = "Connection removed.") {
       const doomed = connections.find(c => c.id === connectionId);
       connections = connections.filter(c => c.id !== connectionId);
 
       if (doomed) {
-        arrangeConnectedComponent(doomed.a.id);
-        arrangeConnectedComponent(doomed.b.id);
+        arrangeDisconnectedGroupsInSeparateRows();
+      } else {
+        redrawNodes();
+        draw();
+        applyFocusStyles();
       }
-
-      redrawNodes();
-      draw();
-      applyFocusStyles();
       saveBoard();
       syncBoardMaintenanceNow("Removed-connection board");
       renderMovieList();
