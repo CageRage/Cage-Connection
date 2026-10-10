@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cage Connection — Anonymous Authentication Test</title>
+<style>
+body{background:#0c0b0a;color:#f3e8cf;font:16px Arial,sans-serif;max-width:680px;margin:8vh auto;padding:20px}h1{font-family:Georgia,serif;color:#e4c477}button{background:#221812;border:1px solid #bb934e;color:#f7e5bf;padding:14px 20px;cursor:pointer;font-weight:bold;border-radius:5px}#result{white-space:pre-wrap;overflow-wrap:anywhere;padding:16px;background:#171512;border:1px solid #51442e;margin-top:18px;min-height:50px}small{color:#b9ad98}code{color:#f7d481}
+</style>
+</head>
+<body>
+<h1>Cage Connection: Player Identity Test</h1>
+<p>This separate test signs this browser in anonymously using Firebase Authentication. It does <strong>not</strong> read, write, create, join, or change a Cage Connection game.</p>
+<button id="run" type="button">Test anonymous sign-in</button>
+<div id="result" role="status" aria-live="polite">Waiting to test.</div>
+<p><small>For testing, publish this as a <strong>separate file</strong> named <code>security-test.html</code> alongside your existing <code>index.html</code>. Do not replace index.html or change database rules.</small></p>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
+<script>
+'use strict';
+const firebaseConfig = {
+  apiKey: 'AIzaSyCW9X7o1xr-hmB1Xf1vp6J77BP8FZDaanM',
+  authDomain: 'cage-connection.firebaseapp.com',
+  projectId: 'cage-connection',
+  appId: '1:1090463742722:web:055ab8586c3d95305be01b'
+};
+const result = document.getElementById('result');
+const button = document.getElementById('run');
+button.addEventListener('click', async () => {
+  button.disabled = true;
+  result.textContent = 'Checking player identity…';
+  try {
+    if (!window.firebase || !firebase.auth) throw new Error('Firebase Authentication could not load.');
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const current = auth.currentUser;
+    const user = current || (await auth.signInAnonymously()).user;
+    if (!user.isAnonymous) {
+      result.textContent = 'Signed in with an existing non-anonymous Firebase account. No database access was attempted. A separate test profile may be useful.';
+    } else {
+      result.textContent = 'SUCCESS: Anonymous Firebase player identity works.\n\nThis browser has a unique UID:\n' + user.uid + '\n\nNo game data was accessed or changed. Reopen this page and test again to check whether the same UID is retained.';
+    }
+  } catch (error) {
+    result.textContent = 'TEST FAILED: ' + (error.code || 'error') + '\n' + (error.message || String(error)) + '\n\nNo game data was accessed or changed.';
+  } finally { button.disabled = false; }
+});
+</script>
+</body>
+</html>
