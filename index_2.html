@@ -1868,6 +1868,8 @@ body[data-board-view="list"] #boardListMode {
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
 <script>
+// Initialize the authentication promise before any startup code can reference it.
+let remoteAuthReady = null;
     const board = document.getElementById("board");
     const boardListMode = document.getElementById("boardListMode");
     const boardListModeInner = document.getElementById("boardListModeInner");
@@ -7650,7 +7652,7 @@ let remoteStateHandler=null,remoteMembersHandler=null,remoteChatQuery=null,remot
 let remoteSyncTimer=null,remoteNameSyncTimer=null;
 // Staging: separate secured rooms; legacy /games remains locked.
 const SECURE_ROOM_ROOT="secureGames";
-let remoteAuthReady=null;
+
 function ensureRemoteAuth(){
   if (!remoteAuthReady) {
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
