@@ -1433,7 +1433,7 @@ body[data-board-view="list"] #boardListMode {
 
 
 
-/* PHONE TEST v15: compact, consistent two-row toolbar */
+/* PHONE TEST v16: compact, consistent two-row toolbar */
 #toolbar{
   display:flex !important;
   flex-wrap:wrap !important;
@@ -1558,7 +1558,7 @@ body[data-board-view="list"] #boardListMode {
 }
 
 
-/* PHONE TEST v15 — mockup #1 header/action bar only */
+/* PHONE TEST v16 — mockup #1 header/action bar only */
 #toolbar{
   background:linear-gradient(180deg,#0d0d0d 0%,#111 100%) !important;
   border-bottom:1px solid #2f2a20 !important;
@@ -1672,6 +1672,228 @@ body[data-board-view="list"] #boardListMode {
   }
 }
 
+
+/* PHONE TEST v16 — graphics-only polish pass */
+#toolbar{
+  background:
+    linear-gradient(180deg, rgba(26,20,13,.98) 0%, rgba(14,14,14,.98) 38%, rgba(10,10,10,.98) 100%) !important;
+  border-bottom:1px solid #3a2c18 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,190,.08),
+    0 6px 18px rgba(0,0,0,.28) !important;
+  gap:6px !important;
+}
+
+#toolbar .brand-lockup{
+  display:flex !important;
+  align-items:center !important;
+  gap:9px !important;
+  width:100%;
+  padding:2px 4px 6px !important;
+  color:#e6bf69 !important;
+}
+
+#toolbar .brand-icon{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:34px !important;
+  height:34px !important;
+  border-radius:10px !important;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,215,120,.26), rgba(255,215,120,0) 48%),
+    linear-gradient(180deg, #2a2115, #15120d) !important;
+  border:1px solid #74562a !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,236,189,.12),
+    0 3px 8px rgba(0,0,0,.22) !important;
+  color:#d8ae58 !important;
+}
+
+#toolbar .brand-icon .toolbar-icon{
+  width:20px !important;
+  height:20px !important;
+  color:#d8ae58 !important;
+  stroke:#d8ae58 !important;
+}
+
+#toolbar .brand-stack{
+  display:flex !important;
+  flex-direction:column !important;
+  min-width:0 !important;
+  line-height:1.02 !important;
+}
+
+#toolbar .brand-wordmark{
+  color:#ecc66a !important;
+  font-family:Georgia, "Times New Roman", serif !important;
+  font-size:18px !important;
+  font-weight:800 !important;
+  letter-spacing:.08em !important;
+  text-transform:uppercase !important;
+  text-shadow:0 1px 0 rgba(0,0,0,.35) !important;
+}
+
+#toolbar .brand-tagline{
+  color:#8f8779 !important;
+  font-family:Arial, Helvetica, sans-serif !important;
+  font-size:9px !important;
+  letter-spacing:.08em !important;
+  text-transform:uppercase !important;
+  margin-top:2px !important;
+}
+
+#toolbar .toolbar-version{
+  color:#8a857b !important;
+  font-size:9px !important;
+  font-weight:700 !important;
+  letter-spacing:.08em !important;
+  padding-top:4px !important;
+  margin-left:auto !important;
+}
+
+#toolbar > button,
+#toolbar > .toolbar-menu > summary{
+  position:relative !important;
+  overflow:hidden !important;
+  min-width:64px !important;
+  min-height:46px !important;
+  height:46px !important;
+  padding:5px 7px !important;
+  border-radius:10px !important;
+  border:1px solid #4b3a21 !important;
+  background:
+    linear-gradient(180deg, rgba(44,34,20,.95) 0%, rgba(22,19,16,.96) 52%, rgba(15,15,15,.98) 100%) !important;
+  color:#f3efe7 !important;
+  flex-direction:column !important;
+  gap:3px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,192,.10),
+    inset 0 -1px 0 rgba(0,0,0,.45),
+    0 2px 6px rgba(0,0,0,.22) !important;
+  font-size:10px !important;
+  font-weight:700 !important;
+  line-height:1.02 !important;
+  letter-spacing:.01em !important;
+}
+
+#toolbar > button::before,
+#toolbar > .toolbar-menu > summary::before{
+  content:"";
+  position:absolute;
+  left:0; right:0; top:0;
+  height:42%;
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0));
+  pointer-events:none;
+}
+
+#toolbar > button::after,
+#toolbar > .toolbar-menu > summary::after{
+  content:"";
+  position:absolute;
+  left:8px; right:8px; bottom:0;
+  height:2px;
+  border-radius:2px;
+  background:linear-gradient(90deg, rgba(0,0,0,0), rgba(215,173,85,.78), rgba(0,0,0,0));
+  opacity:.55;
+  pointer-events:none;
+}
+
+#toolbar > button:hover,
+#toolbar > .toolbar-menu > summary:hover{
+  border-color:#a47c34 !important;
+  background:
+    linear-gradient(180deg, rgba(53,42,25,.98) 0%, rgba(24,21,18,.98) 52%, rgba(16,16,16,.98) 100%) !important;
+  transform:translateY(-1px);
+}
+
+#toolbar > button:active,
+#toolbar > .toolbar-menu > summary:active{
+  transform:translateY(0);
+}
+
+#toolbar > button.active,
+#toolbar > button[aria-pressed="true"],
+#toolbar > .toolbar-menu[open] > summary{
+  border-color:#c6953e !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,236,191,.12),
+    inset 0 -2px 0 rgba(198,149,62,.75),
+    0 3px 10px rgba(0,0,0,.28) !important;
+}
+
+#toolbar > button .toolbar-icon,
+#toolbar > .toolbar-menu > summary .toolbar-icon{
+  width:18px !important;
+  height:18px !important;
+  padding:2px !important;
+  border-radius:999px !important;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,220,141,.14), rgba(255,220,141,0) 60%),
+    rgba(18,18,18,.62) !important;
+  color:#dfb75e !important;
+  stroke:#dfb75e !important;
+  box-shadow:inset 0 0 0 1px rgba(145,109,46,.36);
+}
+
+#toolbar .toolbar-divider{
+  width:1px !important;
+  height:34px !important;
+  background:linear-gradient(180deg, rgba(0,0,0,0), rgba(182,143,65,.55), rgba(0,0,0,0)) !important;
+  margin:0 3px !important;
+  box-shadow:none !important;
+}
+
+#toolbar .tools-menu-panel,
+#toolbar .toolbar-menu-panel,
+#toolbar .tools-submenu-panel{
+  background:linear-gradient(180deg, #1a150f, #12110f) !important;
+  border:1px solid #5b4524 !important;
+  box-shadow:0 12px 28px rgba(0,0,0,.45) !important;
+}
+
+#toolbar .tools-submenu > summary{
+  color:#f0ede6 !important;
+}
+
+#toolbar #turnDisplay,
+#toolbar #scoreDisplay,
+#toolbar #statusText,
+#toolbar #onlineStatusBadge{
+  color:#d6d1c7 !important;
+}
+
+#toolbar #statusText{
+  opacity:.92 !important;
+}
+
+@media(max-width:700px){
+  #toolbar .brand-wordmark{
+    font-size:16px !important;
+    letter-spacing:.06em !important;
+  }
+  #toolbar .brand-tagline{
+    display:none !important;
+  }
+  #toolbar .toolbar-version{
+    font-size:8px !important;
+  }
+  #toolbar > button,
+  #toolbar > .toolbar-menu > summary{
+    min-width:55px !important;
+    min-height:42px !important;
+    height:42px !important;
+    padding:4px 5px !important;
+    font-size:9.5px !important;
+    border-radius:9px !important;
+  }
+  #toolbar > button .toolbar-icon,
+  #toolbar > .toolbar-menu > summary .toolbar-icon{
+    width:17px !important;
+    height:17px !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1681,7 +1903,7 @@ body[data-board-view="list"] #boardListMode {
 <div class="cc-theme-mark cobra">〰 COBRA</div>
 <div class="cc-theme-mark vegas">★ VEGAS</div>
   <div id="toolbar">
-    <span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span>Cage Connection</span></span><span class="toolbar-version">PHONE TEST v14</span><span class="toolbar-row-break" aria-hidden="true"></span>
+    <span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span class="brand-stack"><span class="brand-wordmark">CAGE CONNECTION</span><span class="brand-tagline">The Nicolas Cage movie chain game</span></span></span><span class="toolbar-version">PHONE TEST v16</span><span class="toolbar-row-break" aria-hidden="true"></span>
 
     <button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
     <button id="mainChallengeButton" class="challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span>Challenge</span></button>
@@ -1695,7 +1917,8 @@ body[data-board-view="list"] #boardListMode {
     <button type="button" onclick="startBreakConnectionMode()" title="Break an existing connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 14.5l-2 2a4 4 0 0 1-5.7-5.6l2.3-2.3"/><path d="M14.5 9.5l2-2a4 4 0 0 1 5.7 5.6l-2.3 2.3"/><path d="M8 12h8"/></svg><span>Break</span></button>
     <button type="button" onclick="openBonusRound()" title="Bonus Round" aria-label="Bonus Round">
       <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3l2.6 5.3 5.9.9-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.9z"/>
+        <path d="M8 4h8v2a4 4 0 0 1-2.5 3.7V12a3.5 3.5 0 0 0 2 3.1V17h-7v-1.9a3.5 3.5 0 0 0 2-3.1V9.7A4 4 0 0 1 8 6V4z"/>
+        <path d="M8 6H5a2 2 0 0 0 2 2h1M16 6h3a2 2 0 0 1-2 2h-1M9 20h6"/>
       </svg>
       <span>Bonus</span>
     </button>
