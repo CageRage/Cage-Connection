@@ -1433,7 +1433,7 @@ body[data-board-view="list"] #boardListMode {
 
 
 
-/* PHONE TEST v19: compact, consistent two-row toolbar */
+/* PHONE TEST v21: compact, consistent two-row toolbar */
 #toolbar{
   display:flex !important;
   flex-wrap:wrap !important;
@@ -1558,7 +1558,7 @@ body[data-board-view="list"] #boardListMode {
 }
 
 
-/* PHONE TEST v19 — mockup #1 header/action bar only */
+/* PHONE TEST v21 — mockup #1 header/action bar only */
 #toolbar{
   background:linear-gradient(180deg,#0d0d0d 0%,#111 100%) !important;
   border-bottom:1px solid #2f2a20 !important;
@@ -1673,7 +1673,7 @@ body[data-board-view="list"] #boardListMode {
 }
 
 
-/* PHONE TEST v19 — graphics-only polish pass */
+/* PHONE TEST v21 — graphics-only polish pass */
 #toolbar{
   background:
     linear-gradient(180deg, rgba(26,20,13,.98) 0%, rgba(14,14,14,.98) 38%, rgba(10,10,10,.98) 100%) !important;
@@ -1895,7 +1895,7 @@ body[data-board-view="list"] #boardListMode {
 }
 
 
-/* PHONE TEST v19 — compact header composition; behavior unchanged */
+/* PHONE TEST v21 — compact header composition; behavior unchanged */
 #toolbar{
   display:block !important;
   padding:0 !important;
@@ -2138,7 +2138,7 @@ body[data-board-view="list"] #boardListMode {
 }
 
 
-/* PHONE TEST v19 — top-only visual fix */
+/* PHONE TEST v21 — top-only visual fix */
 .toolbar-title-row{
   justify-content:flex-start !important;
   min-height:42px !important;
@@ -2305,6 +2305,187 @@ body[data-board-view="list"] #boardListMode {
   }
 }
 
+
+/* PHONE TEST v21 — reliable top icons; no behavior changes */
+.top-action-grid .top-symbol{
+  display:block !important;
+  width:22px !important;
+  height:20px !important;
+  line-height:20px !important;
+  margin:0 auto !important;
+  padding:0 !important;
+  text-align:center !important;
+  color:#e6b34c !important;
+  font-family:Arial, "Segoe UI Symbol", "Apple Symbols", sans-serif !important;
+  font-size:19px !important;
+  font-weight:700 !important;
+  background:none !important;
+  border:0 !important;
+  box-shadow:none !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  filter:sepia(1) saturate(2.3) hue-rotate(355deg) brightness(1.08) !important;
+}
+
+/* Replace potentially colorful glyphs with conservative gold via text-shadow/filter. */
+.top-action-grid > button,
+.top-action-grid > .toolbar-menu > summary{
+  position:relative !important;
+}
+
+.top-action-grid > button span:last-child,
+.top-action-grid > .toolbar-menu > summary span:not(.top-symbol){
+  color:#ffffff !important;
+}
+
+.top-action-grid > .toolbar-menu > summary .toolbar-icon:last-child{
+  display:none !important;
+}
+
+/* Slightly tune individual symbols */
+.top-action-grid > button[onclick="startChallengeMode()"] .top-symbol::before{
+  content:"★";
+  color:#e6b34c;
+}
+.top-action-grid > button[onclick="startChallengeMode()"] .top-symbol{
+  font-size:0 !important;
+}
+.top-action-grid > button[onclick="startChallengeMode()"] .top-symbol::before{
+  font-size:18px !important;
+}
+
+.top-action-grid > button[onclick="openOnlinePanel()"] .top-symbol,
+.top-action-grid > .toolbar-menu > summary .top-symbol{
+  font-size:16px !important;
+}
+
+/* Keep header compact and unchanged otherwise. */
+
+
+/* PHONE TEST v21 — visual-only right-side status mockup */
+#toolbar{
+  display:grid !important;
+  grid-template-columns:minmax(300px,auto) minmax(320px,1fr) !important;
+  grid-template-areas:
+    "title status"
+    "actions status" !important;
+  column-gap:18px !important;
+  row-gap:0 !important;
+  align-items:start !important;
+  padding-right:12px !important;
+}
+
+.toolbar-title-row{
+  grid-area:title !important;
+  width:auto !important;
+  min-width:0 !important;
+}
+
+.toolbar-actions-row{
+  grid-area:actions !important;
+  width:auto !important;
+  max-width:none !important;
+  padding-bottom:8px !important;
+}
+
+.mockup-right-panel{
+  grid-area:status !important;
+  align-self:stretch !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:10px !important;
+  padding:12px 0 10px !important;
+  margin:0 !important;
+  background:transparent !important;
+  border:0 !important;
+  min-height:100% !important;
+}
+
+.mockup-right-panel .status-card{
+  min-height:88px;
+  padding:13px 16px 12px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  border-radius:10px;
+  border:1px solid #49381f;
+  background:
+    linear-gradient(180deg, rgba(37,30,20,.96), rgba(17,16,14,.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255,238,198,.06),
+    0 3px 10px rgba(0,0,0,.24);
+}
+
+.mockup-right-panel .status-kicker{
+  margin-bottom:7px;
+  color:#9b8d76;
+  font-family:Arial,Helvetica,sans-serif;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.12em;
+}
+
+.mockup-right-panel .status-value{
+  color:#f4efe5;
+  font-family:Arial,Helvetica,sans-serif;
+  font-size:18px;
+  font-weight:800;
+  line-height:1.1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.mockup-right-panel .score-card{
+  border-color:#6a4d20;
+  background:
+    radial-gradient(circle at 35% 0%, rgba(224,177,76,.09), transparent 40%),
+    linear-gradient(180deg, rgba(39,31,20,.98), rgba(17,16,14,.98));
+}
+
+.mockup-right-panel .score-card .status-value{
+  color:#e7ba55;
+}
+
+.mockup-right-panel .status-sep{
+  color:#81725d;
+  margin:0 5px;
+}
+
+/* Keep the local-test badge where it already is. */
+@media(max-width:980px){
+  #toolbar{
+    grid-template-columns:1fr !important;
+    grid-template-areas:
+      "title"
+      "actions"
+      "status" !important;
+    column-gap:0 !important;
+    padding-right:0 !important;
+  }
+  .mockup-right-panel{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    padding:6px 10px 9px !important;
+  }
+  .mockup-right-panel .status-card{
+    min-height:58px;
+    padding:9px 10px;
+  }
+  .mockup-right-panel .status-value{
+    font-size:14px;
+  }
+}
+
+@media(max-width:560px){
+  .mockup-right-panel{
+    grid-template-columns:1fr 1fr !important;
+  }
+  .mockup-right-panel .score-card{
+    grid-column:1 / -1;
+    order:-1;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -2314,29 +2495,21 @@ body[data-board-view="list"] #boardListMode {
 <div class="cc-theme-mark cobra">〰 COBRA</div>
 <div class="cc-theme-mark vegas">★ VEGAS</div>
   <div id="toolbar">
-    <div class="toolbar-title-row"><span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span class="brand-stack"><span class="brand-wordmark">CAGE CONNECTION</span><span class="brand-tagline">The Nicolas Cage movie chain game</span></span></span><span class="toolbar-version">PHONE TEST v19</span></div>
+    <div class="toolbar-title-row"><span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span class="brand-stack"><span class="brand-wordmark">CAGE CONNECTION</span><span class="brand-tagline">The Nicolas Cage movie chain game</span></span></span><span class="toolbar-version">PHONE TEST v21</span></div>
     <div class="toolbar-actions-row">
       <div class="top-action-grid">
-        <button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
-        <button id="mainChallengeButton" class="challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span>Challenge</span></button>
-        <button type="button" onclick="connectMode()" title="Connect">
-      <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/>
-        <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/>
-      </svg>
+        <button onclick="openMoviePicker()"><span class="top-symbol" aria-hidden="true">+</span><span>Add Movie</span></button>
+        <button id="mainChallengeButton" class="challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection"><span class="top-symbol" aria-hidden="true">♜</span><span>Challenge</span></button>
+        <button type="button" onclick="connectMode()" title="Connect"><span class="top-symbol" aria-hidden="true">⛓</span>
       <span>Connect</span>
     </button>
-        <button type="button" onclick="startBreakConnectionMode()" title="Break an existing connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 14.5l-2 2a4 4 0 0 1-5.7-5.6l2.3-2.3"/><path d="M14.5 9.5l2-2a4 4 0 0 1 5.7 5.6l-2.3 2.3"/><path d="M8 12h8"/></svg><span>Break</span></button>
-        <button type="button" onclick="openBonusRound()" title="Bonus Round" aria-label="Bonus Round">
-      <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M8 4h8v2a4 4 0 0 1-2.5 3.7V12a3.5 3.5 0 0 0 2 3.1V17h-7v-1.9a3.5 3.5 0 0 0 2-3.1V9.7A4 4 0 0 1 8 6V4z"/>
-        <path d="M8 6H5a2 2 0 0 0 2 2h1M16 6h3a2 2 0 0 1-2 2h-1M9 20h6"/>
-      </svg>
+        <button type="button" onclick="startBreakConnectionMode()" title="Break an existing connection"><span class="top-symbol" aria-hidden="true">✂</span><span>Break</span></button>
+        <button type="button" onclick="openBonusRound()" title="Bonus Round" aria-label="Bonus Round"><span class="top-symbol" aria-hidden="true">★</span>
       <span>Bonus</span>
     </button>
-        <button id="onlineButton" type="button" onclick="openOnlinePanel()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 16 0"/><path d="M7 12a5 5 0 0 1 10 0"/><path d="M10 12a2 2 0 0 1 4 0"/><circle cx="12" cy="16" r="1"/></svg><span>Online</span></button>
+        <button id="onlineButton" type="button" onclick="openOnlinePanel()"><span class="top-symbol" aria-hidden="true">👥</span><span>Online</span></button>
         <details class="toolbar-menu tools-menu">
-      <summary><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5-5l2.1 2.1-2.8 2.8-2.1-2.1a4 4 0 0 0 5 5L20 17.2 17.2 20l-8.1-8.1a4 4 0 0 0-5-5l2.1 2.1"/></svg><span>Tools</span><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
+      <summary><span class="top-symbol" aria-hidden="true">🔧</span><span>Tools</span><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
       <div class="toolbar-menu-panel tools-menu-panel">
         <details class="tools-submenu">
           <summary>Cheats ▸</summary>
@@ -2371,16 +2544,27 @@ body[data-board-view="list"] #boardListMode {
         <button type="button" class="menu-danger" onclick="this.closest('details').removeAttribute('open'); resetBoard()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5"/><path d="M18.5 16A8 8 0 1 1 20 12"/></svg><span>Reset Game</span></button>
       </div>
     </details>
-        <button onclick="endTurn()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7L5 19zM18 5v14"/></svg><span>Skip</span></button>
+        <button onclick="endTurn()"><span class="top-symbol" aria-hidden="true">➜</span><span>Skip</span></button>
       </div>
       <div class="top-utility-row">
         <button id="mainStartFreshButton" type="button" onclick="hardStartFresh()"><span>Start Fresh</span></button>
         <span id="onlineStatusBadge" class="online-status-badge">Offline</span>
       </div>
     </div>
-    <div class="toolbar-status-row"><span id="turnDisplay" style="margin-left:15px;font-weight:bold;color:#ffd54a;font-size:16px;">Turn: Player 1</span>
-    <span id="scoreDisplay" style="margin-left:10px;font-weight:bold;color:#ffd54a;font-size:16px;">Player 1: 0 | Player 2: 0 | Board: 0</span>
-    <span id="statusText">Ready.</span></div>
+    <div class="toolbar-status-row mockup-right-panel">
+      <div class="status-card">
+        <div class="status-kicker">TURN</div>
+        <div class="status-value">Player 2</div>
+      </div>
+      <div class="status-card score-card">
+        <div class="status-kicker">SCORE</div>
+        <div class="status-value">Frankie 28 <span class="status-sep">·</span> Rick 25</div>
+      </div>
+      <div class="status-card">
+        <div class="status-kicker">STATUS</div>
+        <div class="status-value">Ready</div>
+      </div>
+    </div>
   </div>
 
   <div id="topBoardScroll" aria-label="Board horizontal scrollbar" title="Scroll the movie board left and right">
