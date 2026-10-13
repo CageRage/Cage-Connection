@@ -1433,7 +1433,7 @@ body[data-board-view="list"] #boardListMode {
 
 
 
-/* PHONE TEST v16: compact, consistent two-row toolbar */
+/* PHONE TEST v17: compact, consistent two-row toolbar */
 #toolbar{
   display:flex !important;
   flex-wrap:wrap !important;
@@ -1558,7 +1558,7 @@ body[data-board-view="list"] #boardListMode {
 }
 
 
-/* PHONE TEST v16 — mockup #1 header/action bar only */
+/* PHONE TEST v17 — mockup #1 header/action bar only */
 #toolbar{
   background:linear-gradient(180deg,#0d0d0d 0%,#111 100%) !important;
   border-bottom:1px solid #2f2a20 !important;
@@ -1673,7 +1673,7 @@ body[data-board-view="list"] #boardListMode {
 }
 
 
-/* PHONE TEST v16 — graphics-only polish pass */
+/* PHONE TEST v17 — graphics-only polish pass */
 #toolbar{
   background:
     linear-gradient(180deg, rgba(26,20,13,.98) 0%, rgba(14,14,14,.98) 38%, rgba(10,10,10,.98) 100%) !important;
@@ -1894,6 +1894,249 @@ body[data-board-view="list"] #boardListMode {
   }
 }
 
+
+/* PHONE TEST v17 — compact header composition; behavior unchanged */
+#toolbar{
+  display:block !important;
+  padding:0 !important;
+  background:linear-gradient(180deg,#17120c 0%,#0d0d0d 42%,#090909 100%) !important;
+  border-bottom:1px solid #4b3517 !important;
+  box-shadow:0 5px 18px rgba(0,0,0,.28) !important;
+}
+
+.toolbar-title-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:34px;
+  padding:5px 9px 3px;
+  border-bottom:1px solid rgba(181,137,57,.16);
+}
+
+.toolbar-title-row .brand-lockup{
+  display:flex !important;
+  align-items:center !important;
+  gap:7px !important;
+  width:auto !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+.toolbar-title-row .brand-icon{
+  width:27px !important;
+  height:27px !important;
+  border-radius:8px !important;
+}
+
+.toolbar-title-row .brand-icon .toolbar-icon{
+  width:16px !important;
+  height:16px !important;
+}
+
+.toolbar-title-row .brand-wordmark{
+  font-size:17px !important;
+  letter-spacing:.07em !important;
+  white-space:nowrap;
+}
+
+.toolbar-title-row .brand-tagline{
+  display:none !important;
+}
+
+.toolbar-title-row .toolbar-version{
+  margin-left:0 !important;
+  padding:0 !important;
+  color:#81796e !important;
+  font-size:8px !important;
+  align-self:center !important;
+  white-space:nowrap;
+}
+
+.toolbar-actions-row{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 8px 6px;
+  overflow-x:auto;
+  overflow-y:visible;
+  scrollbar-width:none;
+  border-bottom:1px solid rgba(181,137,57,.16);
+}
+.toolbar-actions-row::-webkit-scrollbar{display:none;}
+
+.toolbar-actions-row > button,
+.toolbar-actions-row > .toolbar-menu > summary{
+  flex:0 0 auto !important;
+  min-width:66px !important;
+  min-height:42px !important;
+  height:42px !important;
+  padding:4px 7px !important;
+  border-radius:8px !important;
+  border:1px solid #49381f !important;
+  background:linear-gradient(180deg,#2b2116 0%,#181512 54%,#101010 100%) !important;
+  color:#f3efe8 !important;
+  display:inline-flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:2px !important;
+  font-size:9.5px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(255,238,198,.08),0 2px 5px rgba(0,0,0,.22) !important;
+}
+
+.toolbar-actions-row > button .toolbar-icon,
+.toolbar-actions-row > .toolbar-menu > summary .toolbar-icon{
+  width:17px !important;
+  height:17px !important;
+  padding:0 !important;
+  border-radius:0 !important;
+  background:none !important;
+  box-shadow:none !important;
+  color:#dfb45b !important;
+  stroke:#dfb45b !important;
+}
+
+.toolbar-actions-row > button:hover,
+.toolbar-actions-row > .toolbar-menu > summary:hover{
+  border-color:#9e7936 !important;
+  background:linear-gradient(180deg,#342719,#1d1915 54%,#111 100%) !important;
+}
+
+.toolbar-actions-row > .toolbar-divider{
+  flex:0 0 1px !important;
+  width:1px !important;
+  height:28px !important;
+  margin:0 1px !important;
+  background:linear-gradient(180deg,transparent,rgba(196,151,68,.58),transparent) !important;
+}
+
+.toolbar-actions-row #onlineStatusBadge{
+  flex:0 0 auto;
+  min-height:28px;
+  padding:0 8px;
+  display:inline-flex;
+  align-items:center;
+  border-radius:7px;
+  border:1px solid #3d3d3d;
+  background:#151515;
+  color:#bdb7ad !important;
+  font-size:10px !important;
+  margin:0 !important;
+}
+
+.toolbar-status-row{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) minmax(140px,260px);
+  align-items:center;
+  gap:7px;
+  min-height:30px;
+  padding:4px 8px 5px;
+  background:rgba(0,0,0,.20);
+}
+
+.toolbar-status-row #turnDisplay,
+.toolbar-status-row #scoreDisplay{
+  margin:0 !important;
+  min-height:24px;
+  display:flex;
+  align-items:center;
+  padding:0 9px;
+  border-radius:7px;
+  border:1px solid #44351f;
+  background:#15130f;
+  color:#e8e2d7 !important;
+  font-size:11px !important;
+  font-weight:700 !important;
+  white-space:nowrap;
+}
+
+.toolbar-status-row #scoreDisplay{
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.toolbar-status-row #statusText{
+  margin:0 !important;
+  min-height:24px;
+  display:flex;
+  align-items:center;
+  padding:0 9px;
+  border-radius:7px;
+  border:1px solid #54201e;
+  background:#171312;
+  color:#dcd7ce !important;
+  font-size:10.5px !important;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.toolbar-actions-row .toolbar-menu{
+  flex:0 0 auto;
+}
+
+.toolbar-actions-row .toolbar-menu-panel{
+  z-index:25000 !important;
+}
+
+@media(max-width:700px){
+  .toolbar-title-row{
+    min-height:30px;
+    padding:4px 6px 3px;
+  }
+  .toolbar-title-row .brand-icon{
+    width:24px !important;
+    height:24px !important;
+  }
+  .toolbar-title-row .brand-wordmark{
+    font-size:15px !important;
+  }
+  .toolbar-title-row .toolbar-version{
+    font-size:7.5px !important;
+  }
+
+  .toolbar-actions-row{
+    gap:4px;
+    padding:4px 5px 5px;
+  }
+
+  .toolbar-actions-row > button,
+  .toolbar-actions-row > .toolbar-menu > summary{
+    min-width:58px !important;
+    min-height:39px !important;
+    height:39px !important;
+    padding:3px 5px !important;
+    font-size:9px !important;
+  }
+
+  .toolbar-actions-row > button .toolbar-icon,
+  .toolbar-actions-row > .toolbar-menu > summary .toolbar-icon{
+    width:16px !important;
+    height:16px !important;
+  }
+
+  .toolbar-status-row{
+    grid-template-columns:auto 1fr;
+    gap:4px;
+    padding:4px 5px;
+  }
+
+  .toolbar-status-row #statusText{
+    grid-column:1 / -1;
+  }
+
+  .toolbar-status-row #turnDisplay,
+  .toolbar-status-row #scoreDisplay,
+  .toolbar-status-row #statusText{
+    min-height:22px;
+    padding:0 7px;
+    font-size:9.5px !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1903,9 +2146,8 @@ body[data-board-view="list"] #boardListMode {
 <div class="cc-theme-mark cobra">〰 COBRA</div>
 <div class="cc-theme-mark vegas">★ VEGAS</div>
   <div id="toolbar">
-    <span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span class="brand-stack"><span class="brand-wordmark">CAGE CONNECTION</span><span class="brand-tagline">The Nicolas Cage movie chain game</span></span></span><span class="toolbar-version">PHONE TEST v16</span><span class="toolbar-row-break" aria-hidden="true"></span>
-
-    <button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
+    <div class="toolbar-title-row"><span class="brand-lockup"><span class="brand-icon"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg></span><span class="brand-stack"><span class="brand-wordmark">CAGE CONNECTION</span><span class="brand-tagline">The Nicolas Cage movie chain game</span></span></span><span class="toolbar-version">PHONE TEST v17</span></div>
+    <div class="toolbar-actions-row"><button onclick="openMoviePicker()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add Movie</span></button>
     <button id="mainChallengeButton" class="challenge-main-button" type="button" onclick="startChallengeMode()" title="Challenge a connection"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg><span>Challenge</span></button>
     <button type="button" onclick="connectMode()" title="Connect">
       <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -1971,10 +2213,10 @@ body[data-board-view="list"] #boardListMode {
 
     <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
-    <button onclick="endTurn()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7L5 19zM18 5v14"/></svg><span>Skip</span></button>
-    <span id="turnDisplay" style="margin-left:15px;font-weight:bold;color:#ffd54a;font-size:16px;">Turn: Player 1</span>
+    <button onclick="endTurn()"><svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7L5 19zM18 5v14"/></svg><span>Skip</span></button></div>
+    <div class="toolbar-status-row"><span id="turnDisplay" style="margin-left:15px;font-weight:bold;color:#ffd54a;font-size:16px;">Turn: Player 1</span>
     <span id="scoreDisplay" style="margin-left:10px;font-weight:bold;color:#ffd54a;font-size:16px;">Player 1: 0 | Player 2: 0 | Board: 0</span>
-    <span id="statusText">Ready.</span>
+    <span id="statusText">Ready.</span></div>
   </div>
 
   <div id="topBoardScroll" aria-label="Board horizontal scrollbar" title="Scroll the movie board left and right">
