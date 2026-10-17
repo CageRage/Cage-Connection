@@ -1176,7 +1176,9 @@ body[data-card-size="large"] .node-usage{font-size:11px !important;padding:3px 7
 #dockGoalSub { margin-top:5px; color:#aab2bd; font:12px/1.25 Arial,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #dockConnectionBody { display:flex; gap:9px; align-items:center; min-width:0; }
 .dock-poster-pair { display:flex; gap:4px; flex:0 0 auto; }
+.dock-poster-pair[hidden] { display:none !important; }
 .dock-poster-pair img { width:42px; height:56px; object-fit:cover; border:1px solid #665639; background:#111; }
+.dock-poster-pair img[hidden] { display:none !important; }
 #dockConnectionText { min-width:0; color:#e8e5df; font:12px/1.27 Arial,sans-serif; }
 #dockConnectionTitle { font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #dockConnectionDetail { color:#aeb7c4; margin-top:3px; max-height:32px; overflow:hidden; }
@@ -2632,7 +2634,7 @@ body[data-board-view="list"] #boardListMode {
     <section class="game-dock-panel">
       <div class="game-dock-label"><span class="dock-symbol">↗</span><span>Discovered Connection</span></div>
       <div id="dockConnectionBody">
-        <div class="dock-poster-pair">
+        <div class="dock-poster-pair" id="dockPosterPair" hidden>
           <img id="dockPosterA" alt="First connected movie" />
           <img id="dockPosterB" alt="Second connected movie" />
         </div>
@@ -8859,6 +8861,7 @@ svg.addEventListener("click", protectConnectModeBoardClicks, true);
 // ===== Bottom game dock helpers =====
 const dockGoalText = document.getElementById("dockGoalText");
 const dockGoalSub = document.getElementById("dockGoalSub");
+const dockPosterPair = document.getElementById("dockPosterPair");
 const dockPosterA = document.getElementById("dockPosterA");
 const dockPosterB = document.getElementById("dockPosterB");
 const dockConnectionTitle = document.getElementById("dockConnectionTitle");
@@ -8908,8 +8911,15 @@ function updateDockFromStatus(text) {
 
 function showDockConnection(c, playerName) {
   if (!c || !c.a || !c.b) return;
-  if (dockPosterA) dockPosterA.src = posterSrcForMovie(c.a.name);
-  if (dockPosterB) dockPosterB.src = posterSrcForMovie(c.b.name);
+  if (dockPosterPair) dockPosterPair.hidden = false;
+  for (const [poster, movie] of [[dockPosterA, c.a], [dockPosterB, c.b]]) {
+    if (!poster) continue;
+    // A missing poster must never display the browser's broken-image icon.
+    poster.hidden = false;
+    poster.onerror = () => { poster.hidden = true; };
+    poster.onload = () => { poster.hidden = false; };
+    poster.src = posterSrcForMovie(movie.name);
+  }
   if (dockConnectionTitle) dockConnectionTitle.textContent = `${c.a.name}  →  ${c.b.name}`;
   if (c.type === "shared") {
     dockConnectionDetail.textContent = `Shared actor: ${c.sharedActor}`;
