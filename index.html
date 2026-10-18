@@ -2826,6 +2826,213 @@ body[data-board-view="list"] #boardListMode {
  .top-action-grid .top-symbol.top-image-symbol,.top-action-grid .top-symbol.top-image-symbol img{width:40px !important;height:40px !important;}
 }
 </style>
+
+<style id="cageReadabilityBoardSpacePreview">
+/* Preserve live gameplay IDs; hide only visually redundant dock cards. */
+#gameDock > .game-dock-panel:nth-of-type(1),
+#gameDock > .game-dock-panel:nth-of-type(2) {display:none !important;}
+#gameDock {
+  grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) !important;
+  height:99px !important;
+  padding:7px 10px !important;
+  gap:10px !important;
+}
+#gameDock .game-dock-panel {min-width:0 !important;padding:7px 12px !important;}
+#dockRecent,#dockChatMessages {font-size:13px !important;line-height:1.35 !important;}
+#gameDock .game-dock-label{font-size:13px !important;margin-bottom:5px !important;}
+body.dock-collapsed #gameDock{height:32px !important;}
+@media(min-width:981px){
+  /* Slightly more usable width for long quotes, without enlarging the masthead. */
+  #toolbar {grid-template-columns:415px minmax(235px,280px) minmax(260px,1fr) !important;column-gap:12px !important;}
+  .cage-quote-panel {justify-content:center !important;padding-left:10px !important;padding-right:14px !important;gap:14px !important;}
+  .cage-quote-panel .cage-quote-copy{flex:1 1 520px !important;max-width:620px !important;}
+  .compact-game-status .status-card {min-height:47px !important;padding:8px 12px !important;}
+  .compact-game-status .status-kicker {font-size:11px !important;letter-spacing:.10em !important;}
+  .compact-game-status .status-value {font-size:16px !important;line-height:1.22 !important;overflow-wrap:break-word !important;white-space:normal !important;}
+  .compact-game-status .score-card .status-value {font-size:14px !important;}
+  #boardShell {height:calc(100dvh - 389px) !important;}
+  body.dock-collapsed #boardShell {height:calc(100dvh - 326px) !important;}
+}
+@media(max-width:980px){
+  #gameDock{grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;height:110px !important;}
+  .compact-game-status .status-value{font-size:15px !important;}
+  .compact-game-status .score-card .status-value{font-size:13px !important;}
+  #boardShell{height:calc(100dvh - 392px) !important;}
+  body.dock-collapsed #boardShell{height:calc(100dvh - 320px) !important;}
+}
+@media(max-width:580px){
+  #gameDock{grid-template-columns:1fr !important;height:155px !important;overflow-y:auto !important;}
+  #gameDock > .game-dock-panel:nth-of-type(3){display:none !important;}
+  #boardShell{height:calc(100dvh - 437px) !important;}
+}
+</style>
+
+<style id="cageMoveDockUpAndBonusFix">
+/* Recent Actions and Game Notes now sit ABOVE the movie board, no fixed bottom dock. */
+#gameDock{display:none !important;visibility:hidden !important;}
+#activityTop{width:100%;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px;padding:5px 10px 7px;background:#0b0d10;border-bottom:1px solid #604722;}
+#activityTop .game-dock-panel{min-height:78px;max-height:92px;padding:7px 10px;overflow:hidden;border-radius:5px;}
+#activityTop .game-dock-label{font-size:12px !important;margin-bottom:5px;}
+#activityTop #dockRecent{font-size:12px !important;line-height:1.3 !important;gap:2px;}
+#activityTop #dockChatMessages{height:31px !important;font-size:12px !important;margin-bottom:2px !important;}
+#activityTop #dockChatForm{height:26px;}
+#activityTop #dockChatInput,#activityTop #dockChatSend{height:25px !important;}
+@media(min-width:981px){
+  #boardShell,body.dock-collapsed #boardShell{height:calc(100dvh - 347px) !important;min-height:220px !important;}
+}
+@media(max-width:980px){
+  #activityTop{grid-template-columns:1fr 1fr;gap:6px;padding:5px 8px;}
+  #boardShell,body.dock-collapsed #boardShell{height:calc(100dvh - 395px) !important;min-height:200px !important;}
+}
+@media(max-width:580px){
+ #activityTop{grid-template-columns:1fr;}
+ #activityTop .game-dock-panel{max-height:72px;min-height:60px;}
+ #boardShell,body.dock-collapsed #boardShell{height:calc(100dvh - 515px) !important;min-height:180px !important;}
+}
+</style>
+
+<style id="cageRightSideActionsLayout20261018">
+/* Four columns below masthead: action buttons, readable live stats, compact
+   photo/quote, and the two old dock functions on the RIGHT. */
+@media(min-width:1181px){
+ #toolbar{
+  grid-template-columns:415px minmax(175px,215px) minmax(275px,0.95fr) minmax(280px,1.15fr) !important;
+  grid-template-areas:"title title title title" "actions status activity quote" !important;
+  column-gap:11px !important;row-gap:5px !important;
+  padding:7px 12px 8px !important;
+ }
+ #toolbar .compact-game-status{grid-area:status !important;min-width:0 !important;}
+ #toolbar .compact-game-status .status-value{font-size:15px !important;line-height:1.2 !important;overflow-wrap:anywhere !important;}
+ #toolbar .compact-game-status .score-card .status-value{font-size:13px !important;}
+ #toolbar .compact-game-status .status-card{padding:7px 9px !important;}
+ #toolbar .cage-quote-panel{grid-area:quote !important;min-width:0 !important;gap:10px !important;padding:8px 7px !important;justify-content:flex-start !important;}
+ #toolbar .cage-quote-panel .cage-photo-wrap{flex:0 0 clamp(74px,6.9vw,107px) !important;width:clamp(74px,6.9vw,107px) !important;height:132px !important;}
+ #toolbar .cage-quote-panel .cage-quote-copy{flex:1 1 auto !important;min-width:0 !important;max-width:none !important;}
+ #toolbar .cage-quote-panel blockquote{font-size:clamp(15px,1.25vw,20px) !important;line-height:1.23 !important;}
+ #toolbar .cage-quote-panel blockquote.cage-short-quote{font-size:clamp(17px,1.4vw,23px) !important;}
+ #toolbar #activityTop{
+  grid-area:activity !important;width:auto !important;min-width:0 !important;
+  display:grid !important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  gap:7px !important;padding:0 !important;border:0 !important;background:transparent !important;
+  align-self:stretch !important;
+ }
+ #toolbar #activityTop .game-dock-panel{min-height:0 !important;max-height:176px !important;height:auto !important;padding:8px !important;overflow:hidden !important;}
+ #toolbar #activityTop .game-dock-label{font-size:11px !important;letter-spacing:.045em !important;white-space:nowrap !important;}
+ #toolbar #activityTop #dockRecent{font-size:12px !important;line-height:1.27 !important;max-height:115px !important;overflow:auto !important;}
+ #toolbar #activityTop #dockChatMessages{height:80px !important;overflow-y:auto !important;font-size:12px !important;}
+ #toolbar #activityTop #dockChatForm{display:flex !important;height:28px !important;min-width:0 !important;}
+ #toolbar #activityTop #dockChatInput{min-width:0 !important;flex:1 1 auto !important;font-size:11px !important;}
+ #toolbar #activityTop #dockChatSend{flex:0 0 auto !important;}
+ #boardShell,body.dock-collapsed #boardShell{height:calc(100dvh - 277px) !important;min-height:240px !important;}
+}
+/* At narrower desktop sizes, the two panels become a compact full-width row
+   below the banner rather than crushing the quote or player stats. */
+@media(min-width:981px) and (max-width:1180px){
+ #toolbar{grid-template-columns:415px minmax(185px,215px) minmax(220px,1fr) !important;
+  grid-template-areas:"title title title" "actions status quote" "activity activity activity" !important;}
+ #toolbar #activityTop{grid-area:activity !important;display:grid !important;grid-template-columns:1.2fr 1fr !important;
+  padding:3px 0 !important;}
+ #boardShell,body.dock-collapsed #boardShell{height:calc(100dvh - 384px) !important;min-height:210px !important;}
+}
+@media(max-width:980px){
+ #toolbar{grid-template-areas:"title" "actions" "status" "quote" "activity" !important;}
+ #toolbar #activityTop{grid-area:activity !important;grid-template-columns:1fr 1fr !important;display:grid !important;min-width:0 !important;}
+ #toolbar #activityTop .game-dock-panel{max-height:90px !important;}
+ #boardShell,body.dock-collapsed #boardShell{height:calc(100dvh - 470px) !important;min-height:180px !important;}
+}
+@media(max-width:580px){
+ #toolbar #activityTop{grid-template-columns:1fr !important;}
+ #boardShell,body.dock-collapsed #boardShell{height:calc(100dvh - 565px) !important;min-height:180px !important;}
+}
+</style>
+
+<style id="cageHistoryPanelsAndOnlineScale">
+@media(min-width:1181px){
+ #toolbar #activityTop{grid-area:activity !important;align-self:stretch !important;}
+ #toolbar .cage-quote-panel{grid-area:quote !important;}
+ #toolbar #activityTop .game-dock-panel{max-height:164px !important;padding:6px 7px !important;}
+ #toolbar #activityTop #dockRecent{height:108px !important;max-height:108px !important;}
+ #toolbar #activityTop #dockChatMessages{height:78px !important;}
+}
+#onlineButton .top-symbol{font-size:38px !important;line-height:40px !important;width:46px !important;height:42px !important;filter:none !important;}
+#activityTop .game-dock-panel{min-width:0 !important;}
+#activityTop #dockRecent,#activityTop #dockChatMessages{overflow-y:auto !important;overscroll-behavior:contain !important;scrollbar-width:thin;}
+#activityTop .game-dock-label{display:flex !important;align-items:center !important;gap:5px !important;}
+#activityTop .cc-open-history{margin-left:auto !important;flex-shrink:0;background:#382819 !important;border:1px solid #947342 !important;color:#e4c68b !important;padding:3px 6px !important;font:700 10px Arial,sans-serif !important;border-radius:3px !important;cursor:pointer !important;}
+#ccHistoryOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:28990;}
+body.cc-history-is-open #ccHistoryOverlay{display:block;}
+#activityTop .game-dock-panel.cc-expanded-history{position:fixed !important;z-index:29000 !important;inset:8vh 12vw !important;width:auto !important;height:auto !important;max-height:none !important;min-height:0 !important;display:flex !important;flex-direction:column !important;padding:20px !important;background:#16120f !important;border:2px solid #b78b45 !important;border-radius:10px !important;overflow:hidden !important;}
+#activityTop .game-dock-panel.cc-expanded-history #dockRecent,
+#activityTop .game-dock-panel.cc-expanded-history #dockChatMessages{height:auto !important;max-height:none !important;min-height:0 !important;flex:1 1 auto !important;overflow-y:auto !important;font-size:15px !important;line-height:1.55 !important;padding:8px !important;}
+#activityTop .game-dock-panel.cc-expanded-history #dockChatForm{height:38px !important;flex:0 0 auto !important;}
+#activityTop .game-dock-panel.cc-expanded-history .game-dock-label{font-size:16px !important;}
+@media(max-width:700px){#activityTop .game-dock-panel.cc-expanded-history{inset:5vh 4vw !important;}}
+</style>
+
+<style id="cageOptionThreeStackFinal">
+/* OPTION 3: Action buttons / stacked chat+history+stats / photo+quote */
+@media(min-width:1181px){
+ #toolbar {grid-template-columns:415px minmax(320px,370px) minmax(270px,1fr) !important;
+ grid-template-areas:"title title title" "actions activity quote" !important;
+ column-gap:13px !important;row-gap:5px !important;}
+ #toolbar #activityTop {grid-area:activity !important;display:flex !important;flex-direction:column !important;
+ gap:6px !important;align-self:start !important;width:auto !important;padding:0 !important;border:0 !important;background:transparent !important;}
+ #toolbar #activityTop .game-dock-panel {height:auto !important;min-height:0 !important;max-height:none !important;overflow:hidden !important;padding:7px 10px !important;}
+ #toolbar #activityTop .game-dock-panel:first-child {height:88px !important;flex:0 0 88px !important;}
+ #toolbar #activityTop .game-dock-panel:nth-child(2) {height:59px !important;flex:0 0 59px !important;}
+ #toolbar #activityTop #dockChatMessages {height:23px !important;max-height:23px !important;font-size:12px !important;overflow-y:auto !important;margin:3px 0 !important;}
+ #toolbar #activityTop #dockChatForm {height:25px !important;display:flex !important;margin:0 !important;}
+ #toolbar #activityTop #dockChatInput,#toolbar #activityTop #dockChatSend {height:25px !important;}
+ #toolbar #activityTop #dockRecent {height:25px !important;max-height:25px !important;overflow-y:auto !important;font-size:12px !important;}
+ #toolbar #activityTop .compact-game-status {grid-area:auto !important;display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+ grid-template-rows:1fr !important;gap:5px !important;width:100% !important;min-height:0 !important;margin:0 !important;padding:0 !important;}
+ #toolbar #activityTop .compact-game-status .status-card {min-width:0 !important;min-height:59px !important;padding:7px 5px !important;overflow:hidden !important;}
+ #toolbar #activityTop .compact-game-status .status-kicker {font-size:9px !important;margin-bottom:3px !important;}
+ #toolbar #activityTop .compact-game-status .status-value {font-size:12px !important;line-height:1.15 !important;overflow-wrap:anywhere !important;white-space:normal !important;}
+ #toolbar #activityTop .compact-game-status .score-card{grid-column:auto !important;order:0 !important;}
+ #toolbar .cage-quote-panel{grid-area:quote !important;align-self:start !important;max-width:none !important;}
+ #toolbar .cage-quote-panel .cage-photo-wrap{flex:0 0 100px !important;width:100px !important;height:132px !important;}
+ #boardShell,body.dock-collapsed #boardShell {height:calc(100dvh - 282px) !important;min-height:240px !important;}
+}
+@media(min-width:981px) and (max-width:1180px){
+ #toolbar {grid-template-columns:415px minmax(300px,1fr) !important;
+ grid-template-areas:"title title" "actions activity" "quote quote" !important;}
+ #toolbar #activityTop{grid-area:activity !important;display:flex !important;flex-direction:column !important;gap:6px !important;padding:0 !important;}
+ #toolbar #activityTop .compact-game-status{display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:5px !important;}
+ #toolbar #activityTop .compact-game-status .score-card{grid-column:auto !important;order:0 !important;}
+ #toolbar .cage-quote-panel{grid-area:quote !important;}
+}
+@media(max-width:980px){
+ #toolbar{grid-template-areas:"title" "actions" "activity" "quote" !important;}
+ #toolbar #activityTop{grid-area:activity !important;display:flex !important;flex-direction:column !important;gap:6px !important;padding:6px !important;}
+ #toolbar #activityTop .compact-game-status{display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:5px !important;}
+ #toolbar #activityTop .compact-game-status .score-card{grid-column:auto !important;order:0 !important;}
+}
+#toolbar #activityTop .game-dock-panel.cc-expanded-history{flex:none !important;height:auto !important;max-height:none !important;}
+#toolbar #activityTop .game-dock-panel.cc-expanded-history #dockChatMessages,
+#toolbar #activityTop .game-dock-panel.cc-expanded-history #dockRecent{height:auto !important;max-height:none !important;min-height:0 !important;flex:1 1 auto !important;}
+#onlineButton .top-symbol{font-size:43px !important;width:46px !important;height:43px !important;line-height:43px !important;}
+</style>
+
+<style id="cageOptionThreeStatsMatchingTheme">
+/* Style TURN, SCORES, STATUS to match the chat/history cards. */
+#toolbar #activityTop .compact-game-status .status-card{
+ background:linear-gradient(180deg,#282016,#1b1712) !important;
+ border:1px solid #76592e !important;border-radius:7px !important;
+ box-shadow:inset 0 1px 0 rgba(255,232,182,.06) !important;
+ padding:7px 8px !important;
+}
+#toolbar #activityTop .compact-game-status .status-kicker{
+ color:#e7b85f !important;font:800 11px/1.1 Arial,sans-serif !important;
+ letter-spacing:.08em !important;margin:0 0 5px !important;
+}
+#toolbar #activityTop .compact-game-status .status-value,
+#toolbar #activityTop .compact-game-status .score-card .status-value{
+ color:#f1e6d2 !important;font:700 13px/1.22 Arial,sans-serif !important;
+ overflow-wrap:anywhere !important;white-space:normal !important;
+}
+#toolbar #activityTop .compact-game-status .score-card .status-value{color:#f0c76d !important;}
+</style>
 </head>
 <body>
 
@@ -2890,11 +3097,7 @@ body[data-board-view="list"] #boardListMode {
 <span class="online-status-badge" id="onlineStatusBadge">Offline</span>
 </div>
 </div>
-<div class="toolbar-status-row mockup-right-panel compact-game-status" aria-label="Live game information">
-  <div class="status-card turn-card"><div class="status-kicker">TURN</div><div class="status-value" id="turnDisplay">Turn: Player 1</div></div>
-  <div class="status-card score-card"><div class="status-kicker">SCORES</div><div class="status-value" id="scoreDisplay">Player 1: 0 | Player 2: 0</div></div>
-  <div class="status-card game-status-card"><div class="status-kicker">STATUS</div><div class="status-value" id="statusText">Ready.</div></div>
-</div>
+
 <aside class="cage-quote-panel" aria-label="Nicolas Cage quotation and photo">
   <div class="cage-photo-wrap">
     <img id="cageRandomPhoto" alt="Nicolas Cage" hidden>
@@ -2906,7 +3109,46 @@ body[data-board-view="list"] #boardListMode {
     <div class="cage-quote-credit">— NICOLAS CAGE</div>
   </div>
 </aside>
+<div id="activityTop" aria-label="Chat, recent actions and live game statistics">
+    <section class="game-dock-panel">
+      <div class="game-dock-label"><span class="dock-symbol">✦</span><span>Game Notes</span></div>
+      <div id="dockChatMessages"><div class="dock-chat-line">Join an online room to chat.</div></div>
+      <form id="dockChatForm" onsubmit="sendDockChat(event)">
+        <input id="dockChatInput" type="text" maxlength="180" placeholder="Message the other player..." disabled />
+        <button id="dockChatSend" type="submit" disabled>Send</button>
+      </form>
+    </section>
+<section class="game-dock-panel">
+      <div class="game-dock-label"><span class="dock-symbol">⚡</span><span>Recent Actions</span></div>
+      <div id="dockRecent"><div class="dock-recent-line">Game ready.</div></div>
+    </section>
+    
+<div class="toolbar-status-row mockup-right-panel compact-game-status" aria-label="Live game information">
+  <div class="status-card turn-card"><div class="status-kicker">TURN</div><div class="status-value" id="turnDisplay">Turn: Player 1</div></div>
+  <div class="status-card score-card"><div class="status-kicker">SCORES</div><div class="status-value" id="scoreDisplay">Player 1: 0 | Player 2: 0</div></div>
+  <div class="status-card game-status-card"><div class="status-kicker">STATUS</div><div class="status-value" id="statusText">Ready.</div></div>
 </div>
+</div>
+</div>
+
+<div id="gameDock" aria-hidden="true" style="display:none !important;">    <section class="game-dock-panel">
+      <div class="game-dock-label"><span class="dock-symbol">◎</span><span>Current Action</span></div>
+      <div id="dockGoalText">Ready to make a connection.</div>
+      <div id="dockGoalSub">Choose Add Movie, Connect, Bonus Round, or a Cheat.</div>
+    </section>    <section class="game-dock-panel">
+      <div class="game-dock-label"><span class="dock-symbol">↗</span><span>Discovered Connection</span></div>
+      <div id="dockConnectionBody">
+        <div class="dock-poster-pair" id="dockPosterPair" hidden>
+          <img id="dockPosterA" alt="First connected movie" />
+          <img id="dockPosterB" alt="Second connected movie" />
+        </div>
+        <div id="dockConnectionText">
+          <div id="dockConnectionTitle">No connection yet</div>
+          <div id="dockConnectionDetail">Your most recent successful connection will appear here.</div>
+          <div id="dockConnectionPoints"></div>
+        </div>
+      </div>
+    </section></div>
 
       <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
@@ -2929,40 +3171,6 @@ body[data-board-view="list"] #boardListMode {
   </div>
 
 
-  <div id="gameDock" aria-label="Game activity dock">
-    <button id="dockCollapse" type="button" onclick="toggleGameDock()">Hide Dock</button>
-    <section class="game-dock-panel">
-      <div class="game-dock-label"><span class="dock-symbol">◎</span><span>Current Action</span></div>
-      <div id="dockGoalText">Ready to make a connection.</div>
-      <div id="dockGoalSub">Choose Add Movie, Connect, Bonus Round, or a Cheat.</div>
-    </section>
-    <section class="game-dock-panel">
-      <div class="game-dock-label"><span class="dock-symbol">↗</span><span>Discovered Connection</span></div>
-      <div id="dockConnectionBody">
-        <div class="dock-poster-pair" id="dockPosterPair" hidden>
-          <img id="dockPosterA" alt="First connected movie" />
-          <img id="dockPosterB" alt="Second connected movie" />
-        </div>
-        <div id="dockConnectionText">
-          <div id="dockConnectionTitle">No connection yet</div>
-          <div id="dockConnectionDetail">Your most recent successful connection will appear here.</div>
-          <div id="dockConnectionPoints"></div>
-        </div>
-      </div>
-    </section>
-    <section class="game-dock-panel">
-      <div class="game-dock-label"><span class="dock-symbol">⚡</span><span>Recent Actions</span></div>
-      <div id="dockRecent"><div class="dock-recent-line">Game ready.</div></div>
-    </section>
-    <section class="game-dock-panel">
-      <div class="game-dock-label"><span class="dock-symbol">✦</span><span>Game Notes</span></div>
-      <div id="dockChatMessages"><div class="dock-chat-line">Join an online room to chat.</div></div>
-      <form id="dockChatForm" onsubmit="sendDockChat(event)">
-        <input id="dockChatInput" type="text" maxlength="180" placeholder="Message the other player..." disabled />
-        <button id="dockChatSend" type="submit" disabled>Send</button>
-      </form>
-    </section>
-  </div>
 
   <div id="onlineOverlay" class="hidden" onclick="closeOnlinePanel(event)">
     <div id="onlineModal" onclick="event.stopPropagation()">
@@ -3601,11 +3809,19 @@ let bonusHintUsed = false;
 let selectedBonusPointLevel = null;
 
 const BONUS_DATA_URL = "data/bonus-round.json";
+const EMBEDDED_BONUS_QUESTIONS = [{"id":"CF001","category":"Cage Fact","question":"What did Nicolas Cage do when he discovered his cat ate his magic mushrooms?","answer":"Took some as well and they stared at each others eyes for eight hours","answerType":"Single Choice","choices":["Took him for a walk","Personally pumped his stomach","Took some as well and they stared at each others eyes for eight hours","All of the above"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF002","category":"Cage Fact","question":"About how much did Cage say he once owed the IRS and creditors?","answer":"$6 million","answerType":"Single Choice","choices":["$2 million","$6 million","$12 million","$20 million"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF003","category":"Cage Fact","question":"Which exotic animal did Cage once own?","answer":"An octopus","answerType":"Single Choice","choices":["A kangaroo","A llama","A capuchin monkey","An octopus"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CF004","category":"Cage Fact","question":"What type of venomous snakes did Cage own?","answer":"King cobras","answerType":"Single Choice","choices":["King cobras","Rattlesnakes","Coral snakes","Black mambas"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF005","category":"Cage Fact","question":"What happened to Cage's two-headed snake?","answer":"He donated it to a zoo","answerType":"Single Choice","choices":["It escaped","He sold it at auction","He donated it to a zoo","It died during filming"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF006","category":"Cage Fact","question":"What is Nicolas Cage's birth surname?","answer":"Coppola","answerType":"Single Choice","choices":["Coppola","Corleone","Coppelius","Capra"],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"CF007","category":"Cage Fact","question":"Why did Cage begin using a different surname professionally?","answer":"To distance himself from the Coppola family name","answerType":"Single Choice","choices":["His agent told him it was easier to spell","Another actor already used Coppola","He lost a bet","To distance himself from the Coppola family name"],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"CF008","category":"Cage Fact","question":"What eventually happened to Cage's dinosaur skull?","answer":"He returned it after learning it had been illegally removed from Mongolia","answerType":"Single Choice","choices":["He donated it to the Smithsonian","He returned it after learning it had been illegally removed from Mongolia","He gave it to Leonardo DiCaprio","It was destroyed in a fire"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF009","category":"Cage Fact","question":"Which comic-book character helped inspire the name \"Cage\"?","answer":"Luke Cage","answerType":"Single Choice","choices":["Johnny Blaze","Bruce Wayne","Peter Parker","Luke Cage"],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"CF010","category":"Cage Fact","question":"He briefly owned a vintage hearse that he used as his everyday car in the early 1990s.","answer":"No","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF011","category":"Cage Fact","question":"How many times has Nicolas Cage been married?","answer":"Five","answerType":"Single Choice","choices":["Three","Four","Five","Six"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF012","category":"Cage Fact","question":"Cage keeps a handwritten journal ranking every movie he has made by how physically exhausting it was.","answer":"No","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF013","category":"Cage Fact","question":"Why did Cage say his two-headed snake was difficult to feed?","answer":"The heads fought over food","answerType":"Single Choice","choices":["It would only eat live fish","It refused to eat indoors","The heads fought over food","It had to be hand-fed"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF014","category":"Cage Fact","question":"Nicolas Cage once bought a decommissioned lighthouse because he wanted a private place to read scripts.","answer":"No","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF015","category":"Cage Fact","question":"What prehistoric object did Cage buy at auction?","answer":"A dinosaur skull","answerType":"Single Choice","choices":["A mammoth tusk","A dinosaur skull","A fossilized dinosaur egg","A saber-toothed tiger skull"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CQ001","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say? Select all that apply.","answer":"A, B, and C","answerType":"Multiple Select","choices":["There's a fine line between the Method actor and the schizophrenic","Sometimes people think I'm wearing a wig when I'm not wearing a wig, and then sometimes they think I'm not wering a wig when I am wearing a wig","A good performance should make at least one person slightly uncomfortable.","You can’t negotiate with a peacock. I’ve tried."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ002","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["To be a good actor you have to be something like a criminal, to be willing to break the rules to strive for something new."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ003","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"No","answerType":"Yes/No","choices":["I believe every room has a ghost. Sometimes the ghost is you."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ004","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"I do like to move and get physical in my movies","answerType":"Single Choice","choices":["I do like to move and get physical in my movies","If you’re going to steal a car, spiritually speaking, it should probably be a convertible.","There’s a very thin line between genius and wearing the wrong jacket.","I don’t prepare for chaos. I invite it in and see what it wants."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ005","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"I like both Blue-Ray and DVD but Blue-Ray gives you more options.","answerType":"Single Choice","choices":["I like both Blue-Ray and DVD but Blue-Ray gives you more options.","Sometimes the only way out is to become more confusing than the problem.","I don’t trust a man who owns more than three lamps.","I once ate an entire lemon because I needed to understand bitterness."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ006","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["I think I've become more relaxed throughout my career.  I don't feel the need to jump up and down and make a big noise to get people to pay attention to me.  I don't need to do punk rock gestures or eat a cockroach or do something weird to say I exist."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ007","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"All of the above","answerType":"Multiple Choice","choices":["I was always shocked when I went to the doctor's office and they did my X-ray and didn't find that I had eight more ribs than I should have or tht my blood was the color green.","I always add a year to myself, so I'm prepared for my next birthday.  So when I was 39, I was already 40","If you're really special meaning you're doing something unique and original, it could scare people.","All of the above"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ008","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"All of the above","answerType":"Multiple Choice","choices":["I have eclectic tastes in the movies I want to do.","I am not a demon. I am a lizard, a shark, a heat-seeking panther.  I want to be Bob Denver on acid playing the accordion.","Every great story seems to begin with a snake","All of the above"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ009","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["Nobody wants to watch perfection"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ010","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"No","answerType":"Yes/No","choices":["Sometimes the most honest thing you can do is make an unnecessarily dramatic entrance."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ011","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"No","answerType":"Yes/No","choices":["I don’t believe in bad luck. I believe in badly timed confidence."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ012","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["I don't believe in the term ‘over the top.’ I believe in the term ‘outside of the box.’"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ002","category":"Movie Quote","question":"You aren't a true internationalist until you've supplied weapons to kill your own countrymen.","answer":"Lord of War","answerType":"Multiple Choice","choices":["Trapped in Paradise","The Rock","Face/Off","Lord of War"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ003","category":"Movie Quote","question":"My name is Castor Troy","answer":"Face/Off","answerType":"Single Choice","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"MQ004","category":"Movie Quote","question":"I'll be taking these Huggies, and whatever cash you got.","answer":"Raising Arizona","answerType":"Single Choice","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ005","category":"Movie Quote","question":"This here is a snakeskin jacket.  It represents a symbol of my individuality, and my believe in personal freedom.","answer":"Wild at Heart","answerType":"Free text","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ006","category":"Movie Quote","question":"What do you say we cut the chit-chat, A-hole?","answer":"The Rock","answerType":"Single Choice","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"MQ007","category":"Movie Quote","question":"Sorry Boss, but there's only two men I trust.  One of them's me.  The other's not you.","answer":"Con Air","answerType":"Single Choice","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"MQ008","category":"Movie Quote","question":"Coffee and a muffin.  OK, so I need to establish the themes.  Maybe a banana-nut.  That's a good muffin.","answer":"Adaptation","answerType":"Free text","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ009","category":"Movie Quote","question":"People don't throw things at me anymore.  Maybe because I carry a bow around.","answer":"The Weather Man","answerType":"Multiple Choice","choices":["Racing with the Moon","Madden","Pig","The Weather Man"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ010","category":"Movie Quote","question":"I'm Nicolas FRIGGIN' Cage!","answer":"The Unbearable Weight of Massive Talent","answerType":"Free text","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ011","category":"Movie Quote","question":"Shoot him again…his soul's still dancing","answer":"Bad Lieutenant: Port of Call - New Orleans","answerType":"Multiple Choice","choices":["Bringing out the Dead","Longlegs","Face/Off","Bad Lieutenant: Port of Call - New Orleans"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ012","category":"Movie Quote","question":"I never disrobe before gunplay","answer":"Drive Angry","answerType":"Multiple Choice","choices":["Gunslingers","Drive Angry","Sympathy for the Devil","Adaptation"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ013","category":"Movie Quote","question":"I have an acronym for myself.  B.A.D.  Balls, Attitude, Direction.  You should give yourself an acronym…'cause it helps you visualize your goals","answer":"Kiss of Death","answerType":"Multiple Choice","choices":["Wild at Heart","Red Rock West","City of Angels","Kiss of Death"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ014","category":"Movie Quote","question":"Nobody ever thinks clearly at the airport","answer":"The Family Man","answerType":"Multiple Choice","choices":["Pig","It Could Happen to You","The Family Man","Madden"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ015","category":"Movie Quote","question":"Got My First Chemistry Set When I Was Seven, Blew My Eyebrows Off, We Never Saw The Cat Again, Been Into It Ever Since.","answer":"The Rock","answerType":"Multiple Choice","choices":["The Rock","Racing with the Moon","It Could Happen to You","Bangkok Dangerous"],"image":"bonus-images/photo_005.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ016","category":"Movie Quote","question":"They Say 'Evil Prevails When Good Men Fail To Act.' What They Oughta Say Is 'Evil Prevails.'","answer":"Lord of War","answerType":"Multiple Choice","choices":["Vampire's Kiss","Renfield","Longlegs","Lord of War"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MC001","category":"Multiple Choice","question":"Which came first?","answer":"The Rock","answerType":"Multiple Choice","choices":["The Rock","Con Air","Face/Off","Snake Eyes"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MC002","category":"Multiple Choice","question":"Which of these did Cage do to help prepare for Leaving Las Vegas?","answer":"Recorded himself binge drinking for two weeks","answerType":"Multiple Choice","choices":["Attended AA meetings for a month","Recorded himself binge drinking for two weeks","Nothing.  He's Nicolas Cage"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MC003","category":"Multiple Choice","question":"How many movies has Nicolas Cage appeared in with Sean Penn","answer":"2","answerType":"Multiple Choice","choices":["1","2","3","0"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"Cage had a minor role in Fast Times at Ridgemont High.  He also worked with Penn's brother Chris in Rumble Fish"},{"id":"MC004","category":"Multiple Choice","question":"What did The Family Man character Jack insist be returned so he could buy a $2,000 suit?","answer":"His daughter's Mary Janes","answerType":"Multiple Choice","choices":["His wife's new car"," His daughter's Mary Janes","All of his Christmas gifts","None of the above - the suit was $3000"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"PI001","category":"Photo Identification","question":"Name the movie","answer":"Lord of War","answerType":"Free text","choices":[],"image":"bonus-images/photo_001.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"You aren't a true internationalist until you've supplied weapons to kill your own countrymen.","image":""}},{"id":"PI002","category":"Photo Identification","question":"Name the movie","answer":"Face/Off","answerType":"Free text","choices":[],"image":"bonus-images/photo_002.png","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":"","hint":{"type":"Quote","text":"My name is Castor Troy","image":""}},{"id":"PI003","category":"Photo Identification","question":"Name the movie","answer":"Raising Arizona","answerType":"Free text","choices":[],"image":"bonus-images/photo_003.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"I'll be taking these Huggies, and whatever cash you got.","image":""}},{"id":"PI004","category":"Photo Identification","question":"Name the movie","answer":"Wild at Heart","answerType":"Free text","choices":[],"image":"bonus-images/photo_004.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"This here is a snakeskin jacket.  It represents a symbol of my individuality, and my believe in personal freedom.","image":""}},{"id":"PI005","category":"Photo Identification","question":"Name the movie","answer":"The Rock","answerType":"Free text","choices":[],"image":"bonus-images/photo_005.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"What do you say we cut the chit-chat, A-hole?","image":""}},{"id":"PI006","category":"Photo Identification","question":"Name the movie","answer":"Con Air","answerType":"Free text","choices":[],"image":"bonus-images/photo_006.png","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":"","hint":{"type":"Quote","text":"Sorry Boss, but there's only two men I trust.  One of them's me.  The other's not you.","image":""}},{"id":"PI007","category":"Photo Identification","question":"Name the movie","answer":"Adaptation","answerType":"Free text","choices":[],"image":"bonus-images/photo_007.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"Coffee and a muffin.  OK, so I need to establish the themes.  Maybe a banana-nut.  That's a good muffin.","image":""}},{"id":"PI008","category":"Photo Identification","question":"Name the movie","answer":"The Weather Man","answerType":"Free text","choices":[],"image":"bonus-images/photo_008.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"People don't throw things at me anymore.  Maybe because I carry a bow around.","image":""}},{"id":"PI009","category":"Photo Identification","question":"Name the movie","answer":"The Unbearable Weight of Massive Talent","answerType":"Free text","choices":[],"image":"bonus-images/photo_009.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"I'm Nicolas FRIGGIN' Cage!","image":""}},{"id":"PI010","category":"Photo Identification","question":"Name the movie","answer":"Bad Lieutenant: Port of Call - New Orleans","answerType":"Free text","choices":[],"image":"bonus-images/photo_010.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"Shoot him again…his soul's stil dancing","image":""}},{"id":"PI011","category":"Photo Identification","question":"Name the movie","answer":"Drive Angry","answerType":"Free text","choices":[],"image":"bonus-images/photo_011.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"I never disrobe before gunplay","image":""}},{"id":"PI012","category":"Photo Identification","question":"Name the movie","answer":"Kiss of Death","answerType":"Free text","choices":[],"image":"bonus-images/photo_012.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"I have an acronym for myself.  B.A.D.  Balls, Attitude, Direction.  You should give yourself an acronym…'cause it helps you visualize your goals","image":""}},{"id":"PI013","category":"Photo Identification","question":"Name the movie","answer":"The Family Man","answerType":"Free text","choices":[],"image":"bonus-images/photo_013.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"Nobody ever thinks clearly at the airport","image":""}},{"id":"TF001","category":"True or False","question":"Cage won the Oscar for Leaving Las Vegas","answer":"Yes","answerType":"Yes/No","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"TF002","category":"True or False","question":"He was originally cast as Brad in Fast Times at Ridgemont High","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"He was too young to work the hours"},{"id":"TF003","category":"True or False","question":"He appeared in a single season of The Best of Times in the 70s","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"The variety show starred Crispin Glover"},{"id":"TF004","category":"True or False","question":"Nicolas Cage once said that his crow would insult him after he left the room.","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"He described his crow calling after him and then insulting him, which he found funny. Los Angeles Times"},{"id":"TF005","category":"True or False","question":"Former co-star Sean Penn once said \"Nic Cage is no longer an actor. He’s more like a performer.”","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":"Sean Penn is a pretentious jerk"},{"id":"TF009","category":"True or False","question":"Nicolas Cage has filed for bankruptcy three times","answer":"","answerType":"Yes/No","choices":[],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"Cage had serious financial and tax problems and reportedly owed millions, but he has said he never filed for bankruptcy."},{"id":"TF010","category":"True or False","question":"Nicolas Cage's first credited film role was as Brad's Bud in Fast Times at Ridgemont High","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"He appeared in the 1982 film while still using the Coppola surname."},{"id":"PI014","category":"Photo Identification","question":"Name the movie","answer":"Lord of War","answerType":"Free text","choices":[],"image":"bonus-images/photo_014.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"They Say 'Evil Prevails When Good Men Fail To Act.' What They Oughta Say Is 'Evil Prevails.'","image":""}}];
+
 
 function loadBonusQuestionBank(force = false) {
   if (bonusQuestionBank.length && !force) return Promise.resolve(bonusQuestionBank);
   if (bonusQuestionBankPromise && !force) return bonusQuestionBankPromise;
 
+  // Bundled question bank works in local file previews and on GitHub Pages.
+  // data/bonus-round.json remains available as an editable publishing asset.
+  if (Array.isArray(EMBEDDED_BONUS_QUESTIONS) && EMBEDDED_BONUS_QUESTIONS.length) {
+    bonusQuestionBank = EMBEDDED_BONUS_QUESTIONS.slice();
+    return Promise.resolve(bonusQuestionBank);
+  }
   bonusQuestionBankPromise = fetch(`${BONUS_DATA_URL}?v=${Date.now()}`, { cache: "no-store" })
     .then(response => {
       if (!response.ok) throw new Error(`Bonus data returned ${response.status}`);
@@ -7165,7 +7381,7 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
           recentActions: [
             `${players[mover]?.name || `Player ${mover+1}`} connected ${nodes.find(n=>n.id===proposedConnection.aId)?.name || "Movie"} → ${nodes.find(n=>n.id===proposedConnection.bId)?.name || "Movie"} (+${pointsEarned})`,
             ...(Array.isArray(current.recentActions) ? current.recentActions : [])
-          ].slice(0,4),
+          ].slice(0,40),
           scores,
           currentPlayerIndex: nextPlayer,
           turnStartedAt: firebase.database.ServerValue.TIMESTAMP,
@@ -7283,10 +7499,11 @@ function showConnectionDialog(first, second) {
 }
 
 const BONUS_WRONG_REACTIONS = [
-  "bonus_wrong_03.gif",
-  "bonus_wrong_05.gif",
+  "reactions/wrong/bonus_wrong_1.gif",
   "reactions/wrong/bonus_wrong_03.gif",
-  "reactions/wrong/bonus_wrong_05.gif"
+  "reactions/wrong/bonus_wrong_05.gif",
+  "bonus_wrong_03.gif",
+  "bonus_wrong_05.gif"
 ];
 
 const BONUS_CORRECT_REACTIONS = [
@@ -7350,19 +7567,9 @@ function showBonusReaction(candidates, altText) {
   tryNext();
 }
 
-function showRandomWrongBonusReaction() {
-  const wrongSrc = bonusAssetUrl("reactions/wrong/bonus_wrong_1.gif");
-  bonusReactionImage.onload = () => {
-    bonusReactionImage.style.display = "block";
-    bonusReactionPanel.classList.remove("hidden");
-  };
-  bonusReactionImage.onerror = () => {
-    bonusReactionPanel.classList.add("hidden");
-    bonusReactionImage.style.display = "none";
-    console.warn("Bonus Round negative reaction image could not be loaded.");
-  };
-  bonusReactionImage.alt = "Nicolas Cage reaction to an incorrect Bonus Round answer";
-  bonusReactionImage.src = `${wrongSrc}?v=${Date.now()}`;
+function showRandomWrongBonusReaction(preferred) {
+  const all = [preferred, ...BONUS_WRONG_REACTIONS].filter(Boolean);
+  showBonusReaction([...new Set(all)], "Nicolas Cage reaction to an incorrect Bonus Round answer");
 }
 
 function showRandomCorrectBonusReaction() {
@@ -7404,8 +7611,10 @@ function normalizeBonusText(value) {
 function bonusAssetUrl(path) {
   const value = String(path || "").trim();
   if (!value) return "";
-  if (/^https?:\/\//i.test(value)) return value;
-  return value.replace(/^\/+/, "");
+  if (/^https?:\/\//i.test(value) || /^data:/i.test(value)) return value;
+  // Assets in the quiz spreadsheet are relative to the published game root.
+  // An absolute URL is required for downloaded HTML previews (file://).
+  return "https://cagerage.github.io/Cage-Connection/" + value.replace(/^\/+/, "");
 }
 
 function setBonusImage(imgEl, path) {
@@ -7522,7 +7731,7 @@ function renderRemoteBonusLive(live) {
     const preferred = answered ? bonusAssetUrl(live.reactionImage) : '';
     const candidates = !answered ? [] : live.correct
       ? [preferred, ...BONUS_CORRECT_REACTIONS.map(bonusAssetUrl)]
-      : [preferred, bonusAssetUrl('reactions/wrong/bonus_wrong_1.gif')];
+      : [preferred, ...BONUS_WRONG_REACTIONS.map(bonusAssetUrl)];
     const urls = [...new Set(candidates.filter(bonusSpectatorImageAllowed))];
     const noticeId = 'bonusLiveReactionNotice';
     let notice = document.getElementById(noticeId);
@@ -8085,7 +8294,7 @@ async function submitBonusAnswer() {
   const correct = isBonusAnswerCorrectV2(item, given);
   const reactionChoice = correct
     ? BONUS_CORRECT_REACTIONS[Math.floor(Math.random() * BONUS_CORRECT_REACTIONS.length)]
-    : 'reactions/wrong/bonus_wrong_1.gif';
+    : BONUS_WRONG_REACTIONS[Math.floor(Math.random() * BONUS_WRONG_REACTIONS.length)];
   const fullPoints = Number(item.points || 0);
   const earned = bonusHintUsed ? Math.max(0, fullPoints - 1) : fullPoints;
   const scoreChange = correct ? earned : -fullPoints;
@@ -8108,7 +8317,7 @@ async function submitBonusAnswer() {
       ? `INCORRECT. ${scoreChange}`
       : `INCORRECT. The answer was ${item.answer}. ${scoreChange}`;
     bonusResult.className = "bonus-fail";
-    try { showRandomWrongBonusReaction(); } catch (err) { console.error("Wrong Bonus reaction failed", err); }
+    try { showRandomWrongBonusReaction(reactionChoice); } catch (err) { console.error("Wrong Bonus reaction failed", err); }
   }
 
   if (item.answerExplanation) {
@@ -9444,7 +9653,7 @@ function toggleGameDock() {
 }
 
 function renderDockRecent(items) {
-  dockRecentItems = (Array.isArray(items) ? items : []).filter(Boolean).slice(0, 4);
+  dockRecentItems = (Array.isArray(items) ? items : []).filter(Boolean).slice(0, 40);
   if (!dockRecentItems.length) dockRecentItems = ["Game ready."];
   if (dockRecent) {
     dockRecent.innerHTML = dockRecentItems.map(x => `<div class="dock-recent-line">${escapeHtml(x)}</div>`).join("");
@@ -9777,7 +9986,7 @@ function clearDockChat(){const box=document.getElementById("dockChatMessages");i
 function appendDockChat(msg){const box=document.getElementById("dockChatMessages");if(!box||!msg)return;if(box.children.length===1&&box.textContent.includes("Join an online room"))box.innerHTML="";const line=document.createElement("div");line.className="dock-chat-line";const name=document.createElement("span");name.className="dock-chat-name";name.textContent=`${String(msg.name||"Player")}: `;const text=document.createElement("span");text.textContent=String(msg.text||"");line.append(name,text);box.appendChild(line);while(box.children.length>12)box.removeChild(box.firstChild);box.scrollTop=box.scrollHeight;}
 function sendDockChat(event){if(event)event.preventDefault();if(!remoteRoomRef||!Number.isInteger(remotePlayerIndex)||remotePlayerIndex<0||remotePlayerIndex>=remoteMaxPlayers){setStatus("Join an online room to use Game Notes chat.");return;}const input=document.getElementById("dockChatInput");const text=String(input?.value||"").trim().slice(0,180);if(!text)return;const name=players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`;remoteRoomRef.child("chat").push({name,playerIndex:remotePlayerIndex,text,createdAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{if(input){input.value="";input.focus();}}).catch(err=>{console.error("Chat send failed",err);setStatus("Chat message could not be sent.");});}
 function detachRemoteListeners(){renderRemoteBonusLive(null);if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
-function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(12);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
+function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(80);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
 function clearLocalBoardAfterRoomCreated(){
   nodes.forEach(n=>{try{n.el.remove()}catch{}});
   nodes=[];
@@ -10395,13 +10604,9 @@ ensureRemoteAuth().then(() => {
 (() => {
   const quotes = [
     "There's a fine line between the Method actor and the schizophrenic.",
-    "I use technology for communication, but I don't have a Blackberry or an iPhone. I use an outdated cell phone, but I'm fine with it.",
-    "Every great story seems to begin with a snake.",
     "I am not a demon. I am a lizard, a shark, a heat-seeking panther.",
     "It depends upon the method.",
     "I could never answer that.",
-    "Everything we do impacts someone else's life",
-    "Picasso said, 'Art is a lie that tells the truth.' What if you just want to tell the truth and not lie about it?",
     "I hope so. I try to be. I aspire to be.",
     "Work as much as you can.",
     "I don't chuckle. I have respect for the dollar.",
@@ -10472,10 +10677,30 @@ ensureRemoteAuth().then(() => {
   if (pic && chosenPhoto) {
     pic.onload = () => { pic.hidden = false; if(placeholder) placeholder.hidden = true; };
     pic.onerror = () => { pic.hidden = true; if(placeholder) placeholder.hidden = false; };
-    pic.src = chosenPhoto;
+    pic.src = window.location.protocol === 'file:' ? 'https://cagerage.github.io/Cage-Connection/' + chosenPhoto : chosenPhoto;
   }
 })();
 </script>
 
+
+<script id="cageHistoryExpander">
+(() => {
+ const activity=document.getElementById('activityTop');
+ if(!activity) return;
+ const overlay=document.createElement('div');overlay.id='ccHistoryOverlay';overlay.setAttribute('aria-hidden','true');document.body.appendChild(overlay);
+ const close=()=>{activity.querySelectorAll('.cc-expanded-history').forEach(panel=>{panel.classList.remove('cc-expanded-history');const b=panel.querySelector('.cc-open-history');if(b){b.textContent='Expand';b.setAttribute('aria-expanded','false');}});document.body.classList.remove('cc-history-is-open');};
+ overlay.addEventListener('click',close);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+ activity.querySelectorAll('.game-dock-panel').forEach(panel=>{
+   const label=panel.querySelector('.game-dock-label');if(!label)return;
+   const button=document.createElement('button');button.type='button';button.className='cc-open-history';button.textContent='Expand';button.setAttribute('aria-label','Expand '+label.textContent.trim());button.setAttribute('aria-expanded','false');
+   label.appendChild(button);
+   button.addEventListener('click',()=>{
+     const wasOpen=panel.classList.contains('cc-expanded-history');close();
+     if(!wasOpen){panel.classList.add('cc-expanded-history');button.textContent='Close';button.setAttribute('aria-expanded','true');document.body.classList.add('cc-history-is-open');}
+   });
+ });
+})();
+</script>
 </body>
 </html> 
