@@ -2756,6 +2756,76 @@ body[data-board-view="list"] #boardListMode {
 }
 </style>
 
+
+<style id="cageBannerTitleAndSpacing20261018">
+/* Dedicated brand masthead + enlarged action icons + right-aligned quote group. */
+@media(min-width:981px){
+ #toolbar{
+   grid-template-columns: 415px minmax(200px,245px) minmax(300px,1fr) !important;
+   grid-template-areas: "title title title" "actions status quote" !important;
+   column-gap:16px !important;
+   row-gap:7px !important;
+   align-items:stretch !important;
+   padding:8px 15px 10px !important;
+ }
+ .toolbar-title-row{
+   grid-area:title !important;
+   min-height:53px !important;
+   display:flex !important;align-items:center !important;
+   width:auto !important;
+   padding:2px 8px 7px !important;
+   border-bottom:1px solid rgba(189,137,57,.37) !important;
+ }
+ .brand-lockup{display:flex !important;align-items:center !important;gap:12px !important;}
+ .brand-wordmark{font-size:clamp(24px,2.15vw,32px) !important;line-height:1.08 !important;letter-spacing:.085em !important;}
+ .brand-tagline{font-size:11px !important;letter-spacing:.1em !important;}
+ .toolbar-actions-row{grid-area:actions !important;margin:0 !important;padding:0 !important;}
+ .top-action-grid{
+   grid-template-columns:repeat(4,98px) !important;
+   grid-template-rows:repeat(2,85px) !important;
+   gap:7px !important;
+ }
+ .top-action-grid > button,.top-action-grid > .toolbar-menu > summary{
+   width:98px !important;min-width:98px !important;
+   height:85px !important;min-height:85px !important;
+   gap:5px !important;
+ }
+ .top-action-grid .top-symbol.top-image-symbol,
+ .top-action-grid .top-symbol.top-image-symbol img{
+   width:49px !important;height:49px !important;
+   max-width:49px !important;max-height:49px !important;
+ }
+ .top-action-grid > button.challenge-main-button .top-symbol.top-image-symbol,
+ .top-action-grid > button.challenge-main-button .top-symbol.top-image-symbol img,
+ .top-action-grid > .toolbar-menu.tools-menu > summary .top-symbol.top-image-symbol,
+ .top-action-grid > .toolbar-menu.tools-menu > summary .top-symbol.top-image-symbol img{
+   width:49px !important;height:49px !important;min-width:49px !important;
+   max-width:49px !important;max-height:49px !important;
+ }
+ .top-action-grid .top-symbol:not(.top-image-symbol){font-size:33px !important;line-height:40px !important;}
+ .compact-game-status{grid-area:status !important;}
+ .cage-quote-panel{
+   grid-area:quote !important;
+   display:flex !important;
+   justify-content:flex-end !important;
+   gap:clamp(16px,1.8vw,30px) !important;
+   padding:10px clamp(16px,2.8vw,54px) 10px 20px !important;
+   margin:0 !important;
+ }
+ .cage-quote-panel .cage-photo-wrap{flex:0 0 138px !important;width:138px !important;height:151px !important;}
+ .cage-quote-panel .cage-quote-copy{flex:0 1 430px !important;max-width:430px !important;}
+ .cage-quote-panel blockquote{font-size:clamp(17px,1.5vw,23px) !important;}
+ .cage-quote-panel blockquote.cage-short-quote{font-size:clamp(21px,1.8vw,27px) !important;}
+ #boardShell{height:calc(100dvh - 414px) !important;}
+ body.dock-collapsed #boardShell{height:calc(100dvh - 326px) !important;}
+}
+@media(max-width:980px){
+ #toolbar{grid-template-areas:"title" "actions" "status" "quote" !important;}
+ .toolbar-title-row{min-height:50px !important;border-bottom:1px solid rgba(189,137,57,.35) !important;padding:7px 10px !important;}
+ .brand-wordmark{font-size:clamp(21px,4.5vw,28px) !important;}
+ .top-action-grid .top-symbol.top-image-symbol,.top-action-grid .top-symbol.top-image-symbol img{width:40px !important;height:40px !important;}
+}
+</style>
 </head>
 <body>
 
