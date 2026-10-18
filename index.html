@@ -2549,6 +2549,70 @@ body[data-board-view="list"] #boardListMode {
  #boardShell{height:calc(100dvh - 285px) !important;}
  body.dock-collapsed #boardShell{height:calc(100dvh - 196px) !important;}
 }
+
+/* Layout preview: larger action tiles and a single vertical status column. */
+@media (min-width:981px){
+ #toolbar{grid-template-columns:366px minmax(260px,335px) minmax(0,1fr) !important;grid-template-areas:"title status ." "actions status ." !important;column-gap:16px !important;}
+ .top-action-grid{grid-template-columns:repeat(4,88px) !important;grid-template-rows:repeat(2,66px) !important;gap:7px !important;}
+ .top-action-grid > button,.top-action-grid > .toolbar-menu > summary{width:88px !important;min-width:88px !important;height:66px !important;min-height:66px !important;font-size:11px !important;gap:5px !important;}
+ .top-action-grid .top-symbol.top-image-symbol,.top-action-grid .top-symbol.top-image-symbol img{width:32px !important;height:32px !important;}
+ .mockup-right-panel{grid-template-columns:minmax(0,1fr) !important;grid-template-rows:repeat(3,minmax(51px,auto)) !important;gap:7px !important;padding:2px 0 8px !important;}
+ .mockup-right-panel .status-card{min-height:51px !important;padding:8px 14px !important;}
+ .mockup-right-panel .status-kicker{margin-bottom:4px !important;}
+ .mockup-right-panel .status-value{font-size:15px !important;}
+ #boardShell{height:calc(100dvh - 340px) !important;}
+ body.dock-collapsed #boardShell{height:calc(100dvh - 252px) !important;}
+}
+@media (min-width:561px) and (max-width:980px){
+ .top-action-grid{grid-template-columns:repeat(4,82px) !important;grid-template-rows:repeat(2,62px) !important;}
+ .top-action-grid > button,.top-action-grid > .toolbar-menu > summary{width:82px !important;min-width:82px !important;height:62px !important;min-height:62px !important;}
+ .mockup-right-panel{grid-template-columns:1fr !important;}
+ .mockup-right-panel .score-card{grid-column:auto !important;order:0 !important;}
+}
+
+/* Emphasize the external ChatGPT challenge-check link, without altering behavior. */
+#challengeEventActions a.challenge-chatgpt-link,
+#challengeEventActions a.challenge-chatgpt-link:visited {
+  color:#e58b42 !important;
+  border:2px solid #af5b26 !important;
+  background:#2d1c12 !important;
+  font-size:18px !important;
+  font-weight:800 !important;
+  line-height:1.3;
+  padding:14px 18px;
+}
+#challengeEventActions a.challenge-chatgpt-link:hover {
+  color:#ffb36b !important;
+  background:#442713 !important;
+  border-color:#e58b42 !important;
+}
+
+</style>
+
+<style id="bonusLiveSpectatorStyle">
+#bonusLiveSpectator { display:none; position:fixed; z-index:15000; right:16px; top:12vh;
+  width:min(430px,calc(100vw - 32px)); max-height:78vh; overflow:auto;
+  padding:18px; color:#eee5d3; border:2px solid #bb8d39; border-radius:10px;
+  background:linear-gradient(160deg,#241b14,#0e1013); box-shadow:0 14px 40px #000c;
+  font:14px/1.4 Arial,sans-serif; pointer-events:auto; }
+#bonusLiveDismiss { cursor:pointer; background:#32291d !important; border:1px solid #a88448 !important; border-radius:5px !important; color:#f6ddaa !important; padding:5px 10px !important; font-size:12px !important; }
+.bonus-live-heading { display:flex; flex-wrap:wrap; justify-content:space-between; gap:7px;
+  color:#f3c962; font-size:16px; margin-bottom:12px; }
+#bonusLiveStage { color:#deb870; margin-bottom:8px; }
+#bonusLiveQuestion { font-size:17px; font-weight:bold; margin:8px 0 12px; white-space:pre-wrap; }
+#bonusLiveImage { max-width:100%; max-height:240px; object-fit:contain; display:block; margin:8px auto; }
+#bonusLiveImage[hidden], #bonusLiveReactionImage[hidden] { display:none !important; }
+#bonusLiveReactionImage { max-width:100%; max-height:225px; object-fit:contain; display:block; margin:10px auto; border-radius:6px; }
+.bonus-live-choice { border:1px solid #675133; border-radius:5px; padding:7px; margin:5px 0; }
+.bonus-live-choice.selected {border-color:#edc468;background:#3b301f;color:#ffe2a0;font-weight:800;}
+#bonusLiveHintImage { max-width:100%; max-height:180px; object-fit:contain; margin-top:8px; }
+#bonusLiveHint { color:#e0c288; margin-top:12px; }
+#bonusLiveSelection { margin-top:12px; font-weight:bold; }
+#bonusLiveResult { margin-top:12px; color:#75e49f; font-weight:bold; font-size:17px; }
+.bonus-live-caption { border-top:1px solid #403322; padding-top:8px; margin-top:12px;
+  color:#a9a39c; font-size:11px; }
+@media(max-width:600px) { #bonusLiveSpectator { top:8vh; left:8px; right:8px;
+ width:auto; max-height:70vh; } }
 </style>
 </head>
 <body>
@@ -2610,6 +2674,7 @@ body[data-board-view="list"] #boardListMode {
 </div>
 <div class="top-utility-row">
 <button id="mainStartFreshButton" onclick="hardStartFresh()" type="button"><span>Start Fresh</span></button>
+<button id="arrangeExistingBoardBtn" type="button" onclick="arrangeExistingBoardTest()" title="Repair existing movie positions without changing scores or connections"><span>Arrange Board</span></button>
 <span class="online-status-badge" id="onlineStatusBadge">Offline</span>
 </div>
 </div>
@@ -5618,16 +5683,47 @@ function hideChallengeEventModal(){
   if(challengeWaiting) challengeWaiting.textContent="";
 }
 
+let dismissedChallengeId = null;
+function dismissChallengeSpectator(challenge){
+  dismissedChallengeId = String(challenge.id || "");
+  hideChallengeEventModal();
+}
+async function closeResolvedChallenge(challenge){
+  if(remoteRoomRef){
+    try {
+      await remoteRoomRef.child("challenge").transaction(existing => existing && existing.id === challenge.id && existing.result ? null : undefined);
+    }catch(err){console.error("Challenge close sync failed",err);}
+  }
+  hideChallengeEventModal();
+}
 function showChallengeEventModal(challenge){
   if(!challengeEventOverlay||!challengeEventText||!challengeEventActions||!challengeWaiting)return;
-  if(!challenge){hideChallengeEventModal();return;}
+  if(!challenge){dismissedChallengeId=null;hideChallengeEventModal();return;}
+  if (String(challenge.id) === dismissedChallengeId) return;
   const challengerIndex=Number(challenge.challengerIndex);
   const challenger=players[challengerIndex]?.name||`Player ${challengerIndex+1}`;
   const route=challenge.route||"This connection";
   challengeEventText.innerHTML=`<strong>${escapeHtml(route)}</strong><br>has been challenged by <strong>${escapeHtml(challenger)}</strong>.`;
   challengeEventActions.innerHTML="";
   challengeWaiting.textContent="";
-  if(remotePlayerIndex===challengerIndex || (!remoteRoomRef && currentPlayerIndex===challengerIndex)){
+  const isChallenger = remotePlayerIndex===challengerIndex || (!remoteRoomRef && currentPlayerIndex===challengerIndex);
+  if(challenge.result === "won" || challenge.result === "lost") {
+    const resultLine = document.createElement("div");
+    resultLine.style.cssText = "margin:18px 0;font-weight:700;color:#f0ce79;line-height:1.5";
+    resultLine.textContent = challenge.result === "won"
+      ? `Challenge successful! The incorrect connection was broken; ${players[Number(challenge.challengedPlayerIndex)]?.name || "the challenged player"} loses ${Number(challenge.points || 2)*2} points.`
+      : `Challenge unsuccessful. The connection stands; ${challenger} loses 3 points.`;
+    challengeEventActions.appendChild(resultLine);
+    const closeBtn = document.createElement("button");
+    closeBtn.type="button";
+    closeBtn.textContent="Close";
+    closeBtn.addEventListener("click",()=>isChallenger ? closeResolvedChallenge(challenge) : dismissChallengeSpectator(challenge));
+    challengeEventActions.appendChild(closeBtn);
+    challengeWaiting.textContent=isChallenger ? "Closing this window will close it for everyone." : "The challenger can close this result for everyone.";
+    challengeEventOverlay.classList.remove("hidden");
+    return;
+  }
+  if(isChallenger){
     let prompt="";
     if(challenge.type==="shared"){
       const left=challenge.leftMovie||"the first movie";
@@ -5647,6 +5743,7 @@ function showChallengeEventModal(challenge){
     test.target="_blank";
     test.rel="noopener";
     test.textContent="Run Challenge Test in ChatGPT";
+    test.className="challenge-chatgpt-link";
     const win=document.createElement("button");
     win.type="button";
     win.textContent="✓ Challenge successful — break connection";
@@ -5659,6 +5756,11 @@ function showChallengeEventModal(challenge){
     challengeWaiting.textContent="Open ChatGPT to run the test. Then return here and declare the result. A successful challenge removes the incorrect connection from the board.";
   }else{
     challengeWaiting.textContent=`Waiting for ${challenger} to declare the result…`;
+    const closeBtn=document.createElement("button");
+    closeBtn.type="button";
+    closeBtn.textContent="Close spectator window";
+    closeBtn.addEventListener("click",()=>dismissChallengeSpectator(challenge));
+    challengeEventActions.append(closeBtn);
   }
   challengeEventOverlay.classList.remove("hidden");
 }
@@ -5787,8 +5889,9 @@ async function resolveChallengeEvent(result, challenge){
       }
       committed = true;
       applyRemoteState(outcome.snapshot.val());
-      // Only remove the matching pending challenge; a new challenge must survive.
-      await room.child("challenge").transaction(existing => existing && existing.id === challengeId ? null : undefined);
+      // Keep the resolved challenge visible on both screens until the challenger closes it.
+      // A compare-by-ID transaction avoids overwriting a newer challenge.
+      await room.child("challenge").transaction(existing => existing && existing.id === challengeId && !existing.result ? {...existing, result, resolvedAt:Date.now()} : undefined);
     } else {
       if (result === "won") {
         const idx = connections.findIndex(c=>c.id===challenge.connectionId);
@@ -5806,10 +5909,11 @@ async function resolveChallengeEvent(result, challenge){
     if (result === "won") {
       addDockRecent(`${challenger} won the challenge. Incorrect connection broken. ${challengedPlayer} -${penalty}.`);
       resetAfterBrokenConnection(`Challenge successful. Connection broken. ${challengedPlayer} -${penalty}.`);
+      if (!remoteRoomRef) showChallengeEventModal({...challenge,result});
     } else {
       addDockRecent(`${challenger} lost the challenge (-3): the connection stands.`);
       setStatus(`Challenge unsuccessful. ${challenger} -3. Connection remains.`);
-      hideChallengeEventModal();
+      if (!remoteRoomRef) showChallengeEventModal({...challenge,result});
     }
   } catch (err) {
     console.error("Challenge resolution failed",err);
@@ -6800,6 +6904,9 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     }
     remoteConnectionCommitPending = true;
     clearTimeout(remoteSyncTimer);
+    // Arrange before the atomic save: all peers must receive the same card positions.
+    // Do not issue a separate maintenance write while the connection transaction is pending.
+    autoArrangeAllComponents(true);
     const boardSnapshot = getBoardData();
     const proposedConnection = boardSnapshot.connections[boardSnapshot.connections.length - 1];
     const pointsEarned = Number(players[mover].score || 0) - scoreBeforeConnection;
@@ -6820,7 +6927,18 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
         scores[mover] = Number(scores[mover] || 0) + pointsEarned;
         return {
           ...current,
-          board: {...serverBoard, connections:[...serverConnections, proposedConnection]},
+          board: {
+            ...serverBoard,
+            nodes: remoteNodes.map(node => {
+              const arranged = boardSnapshot.nodes.find(local => local.id === node.id);
+              return arranged ? {...node, x: arranged.x, y: arranged.y} : node;
+            }),
+            connections:[...serverConnections, proposedConnection]
+          },
+          recentActions: [
+            `${players[mover]?.name || `Player ${mover+1}`} connected ${nodes.find(n=>n.id===proposedConnection.aId)?.name || "Movie"} → ${nodes.find(n=>n.id===proposedConnection.bId)?.name || "Movie"} (+${pointsEarned})`,
+            ...(Array.isArray(current.recentActions) ? current.recentActions : [])
+          ].slice(0,4),
           scores,
           currentPlayerIndex: nextPlayer,
           turnStartedAt: firebase.database.ServerValue.TIMESTAMP,
@@ -7074,7 +7192,201 @@ function setBonusImage(imgEl, path) {
   imgEl.src = src;
 }
 
+
+// Multiplayer Bonus Round spectator stream. Public fields intentionally omit the
+// correct answer until the submitting player reveals the result.
+let liveBonusPublishSerial = 0;
+let liveBonusSelectedTimer = null;
+let liveBonusLastRendered = '';
+let liveBonusPublishing = false;
+let liveBonusWriteQueue = Promise.resolve();
+let liveBonusRoundEpoch = 0;
+let liveBonusDismissedRound = null;
+let liveBonusRoundId = '';
+
+function bonusSpectatorPanel() {
+  let panel = document.getElementById('bonusLiveSpectator');
+  if (panel) return panel;
+  panel = document.createElement('section');
+  panel.id = 'bonusLiveSpectator';
+  panel.setAttribute('role', 'status');
+  panel.setAttribute('aria-live', 'polite');
+  panel.innerHTML = `<div class="bonus-live-heading"><strong>LIVE BONUS ROUND</strong><span id="bonusLiveOwner"></span><button id="bonusLiveDismiss" type="button" aria-label="Close spectator window">Close ×</button></div>
+    <div id="bonusLiveStage"></div><div id="bonusLiveQuestion"></div>
+    <img id="bonusLiveImage" alt="Bonus Round question image" hidden>
+    <div id="bonusLiveChoices"></div><div id="bonusLiveHint"></div>
+    <img id="bonusLiveHintImage" alt="Bonus Round hint image" hidden>
+    <div id="bonusLiveSelection"></div><div id="bonusLiveResult"></div>
+    <img id="bonusLiveReactionImage" alt="Bonus Round reaction" hidden>
+    <div class="bonus-live-caption">Spectator view — only the current player can answer.</div>`;
+  document.body.appendChild(panel);
+  document.getElementById('bonusLiveDismiss').addEventListener('click', () => {
+    // Local-only dismissal. The active player's question and scoring continue.
+    liveBonusDismissedRound = panel.dataset.roundId || null;
+    panel.style.display = 'none';
+  });
+  return panel;
+}
+function bonusSpectatorImageAllowed(value) {
+  const src=String(value || '').trim();
+  if (!src || src.includes('..') || /^(?:javascript|blob|file):/i.test(src)) return false;
+  return /^(https?:\/\/|data:image\/(?:png|jpe?g|webp|gif);base64,|[a-zA-Z0-9_./%?=&-]+$)/i.test(src);
+}
+function renderRemoteBonusLive(live) {
+  const panel = bonusSpectatorPanel();
+  if (!live || !remoteRoomRef || Number(live.seat) === Number(remotePlayerIndex) || live.phase === 'closed') {
+    panel.style.display = 'none';
+    liveBonusLastRendered = '';
+    return;
+  }
+  const roundId = String(live.roundId || `${live.seat}:${live.updatedAt || ''}`);
+  panel.dataset.roundId = roundId;
+  if (roundId === liveBonusDismissedRound) {
+    panel.style.display = 'none';
+    return;
+  }
+  // The spectator must be passive. Never feed remote answers to the active
+  // player's form or call any scoring/turn handlers.
+  const key = JSON.stringify(live);
+  if (key === liveBonusLastRendered) return;
+  liveBonusLastRendered = key;
+  panel.style.display = 'block';
+  const put = (id, value) => { const e=document.getElementById(id); if(e) e.textContent=String(value ?? ''); };
+  put('bonusLiveOwner', `${String(live.player || 'Player')} is playing`);
+  put('bonusLiveStage', live.phase === 'choosing' ? `Choosing a question ${live.points ? `(${live.points} points)` : ''}` : `${String(live.category || '')} · ${Number(live.points)||0} points`);
+  put('bonusLiveQuestion', live.question || 'Waiting for a question…');
+  const image = document.getElementById('bonusLiveImage');
+  if (image) {
+    const url = String(live.image || '');
+    const allowed = bonusSpectatorImageAllowed(url);
+    image.hidden = !allowed;
+    if (allowed) image.src = url; else image.removeAttribute('src');
+  }
+  const choices = document.getElementById('bonusLiveChoices');
+  choices.replaceChildren();
+  const selectedValues = Array.isArray(live.selection) ? live.selection.map(String)
+    : live.selection == null || live.selection === '' ? [] : [String(live.selection)];
+  const options = Array.isArray(live.choices) ? live.choices : [];
+  const selectedLabels = [];
+  options.forEach((choice,index) => {
+    const item = document.createElement('div');
+    const selected = selectedValues.includes(String(index)) || selectedValues.includes(String(choice));
+    item.className = 'bonus-live-choice' + (selected ? ' selected' : '');
+    item.textContent = String(choice);
+    if (selected) selectedLabels.push(String(choice));
+    choices.appendChild(item);
+  });
+  put('bonusLiveHint', live.hintUsed ? `Hint: ${String(live.hintText || 'Assist used')}` : '');
+  const displaySelection = selectedLabels.length ? selectedLabels.join(', ') : selectedValues.join(', ');
+  put('bonusLiveSelection', displaySelection ? `Selected answer: ${displaySelection}` : '');
+  const hintImg = document.getElementById('bonusLiveHintImage');
+  if (hintImg) {
+    const url = live.hintUsed ? String(live.hintImage || '') : '';
+    const allowed = bonusSpectatorImageAllowed(url);
+    hintImg.hidden = !allowed;
+    if (allowed) hintImg.src = url; else hintImg.removeAttribute('src');
+  }
+  put('bonusLiveResult', live.phase === 'answered' ? `${live.correct ? 'CORRECT' : 'INCORRECT'} · ${Number(live.scoreChange)>=0?'+':''}${Number(live.scoreChange)||0} points · Correct answer: ${String(live.correctAnswer||'')}` : '');
+  const reaction = document.getElementById('bonusLiveReactionImage');
+  if (reaction) {
+    const answered = live.phase === 'answered';
+    // Mirror the acting player's existing GIF fallback. A reaction filename may
+    // be absent on GitHub Pages even though the Bonus result itself synced.
+    const preferred = answered ? bonusAssetUrl(live.reactionImage) : '';
+    const candidates = !answered ? [] : live.correct
+      ? [preferred, ...BONUS_CORRECT_REACTIONS.map(bonusAssetUrl)]
+      : [preferred, bonusAssetUrl('reactions/wrong/bonus_wrong_1.gif')];
+    const urls = [...new Set(candidates.filter(bonusSpectatorImageAllowed))];
+    const noticeId = 'bonusLiveReactionNotice';
+    let notice = document.getElementById(noticeId);
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = noticeId;
+      notice.style.cssText = 'font-size:12px;color:#d9c5a3;text-align:center;margin:5px 0';
+      reaction.insertAdjacentElement('afterend', notice);
+    }
+    notice.textContent = '';
+    reaction.onerror = null;
+    reaction.onload = null;
+    reaction.hidden = true;
+    reaction.removeAttribute('src');
+    if (answered) {
+      const showNext = () => {
+        if (!urls.length) {
+          reaction.hidden = true;
+          notice.textContent = 'Reaction GIF unavailable';
+          return;
+        }
+        const next = urls.shift();
+        reaction.onload = () => { reaction.hidden = false; notice.textContent = ''; };
+        reaction.onerror = showNext;
+        reaction.src = next;
+      };
+      showNext();
+    }
+  }
+}
+function publishBonusLive(change) {
+  if (!remoteRoomRef || remotePlayerIndex !== currentPlayerIndex || remoteBonusCommitPending) return Promise.resolve(false);
+  const room = remoteRoomRef;
+  const seat = remotePlayerIndex;
+  const patch = {...change};
+  const epoch = liveBonusRoundEpoch;
+  // Queue each step, so a slow Firebase response cannot make an earlier
+  // selection overwrite a newer hint, question, or result.
+  const update = async () => {
+    if (epoch !== liveBonusRoundEpoch || remoteRoomRef !== room || remoteBonusCommitPending) return false;
+    const result = await room.child('state').transaction(current => {
+      if (!current || current.currentPlayerIndex !== seat) return;
+      const existing = current.bonusLive || {};
+      if (existing.seat !== undefined && existing.seat !== seat && !['closed','answered'].includes(existing.phase)) return;
+      if (existing.phase === 'answered' && patch.phase !== 'choosing') return;
+      return {...current, bonusLive: {...((patch.phase === 'choosing' && existing.seat !== seat) ? {} : existing),...patch,seat,
+        player:players[seat]?.name || `Player ${seat+1}`,
+        updatedAt:firebase.database.ServerValue.TIMESTAMP}};
+    }, undefined, false);
+    return !!result.committed;
+  };
+  liveBonusWriteQueue = liveBonusWriteQueue.catch(() => false).then(update).catch(err => {
+    console.error('Live Bonus Round sync failed', err);
+    setStatus('Bonus spectator updates could not be synchronized.');
+    return false;
+  });
+  return liveBonusWriteQueue;
+}
+function bonusLiveSelection() {
+  if(!activeBonus) return;
+  const value=selectedBonusAnswer(activeBonus);
+  publishBonusLive({phase:'question',selection:value == null ? '' : value});
+}
+function scheduleBonusLiveSelection() {
+  clearTimeout(liveBonusSelectedTimer);
+  liveBonusSelectedTimer=setTimeout(bonusLiveSelection,220);
+}
+
+function closeBonusLiveForOwner() {
+  if (!remoteRoomRef || remotePlayerIndex < 0) return;
+  const room = remoteRoomRef;
+  const seat = remotePlayerIndex;
+  const roundId = liveBonusRoundId;
+  // The score transaction advances the turn before Close is clicked. The
+  // previous player may still close *their* finished spectator round.
+  liveBonusWriteQueue = liveBonusWriteQueue.catch(() => false).then(async () => {
+    if (remoteRoomRef !== room) return false;
+    const outcome = await room.child('state').transaction(current => {
+      if (!current || !current.bonusLive || Number(current.bonusLive.seat) !== seat) return;
+      const live = current.bonusLive;
+      if (roundId && live.roundId && live.roundId !== roundId) return;
+      if (live.phase === 'closed') return;
+      if (Number(current.currentPlayerIndex) !== seat && live.phase !== 'answered') return;
+      return {...current, bonusLive:{...live, phase:'closed', updatedAt:firebase.database.ServerValue.TIMESTAMP}};
+    }, undefined, false);
+    return !!outcome.committed;
+  }).catch(err => { console.error('Bonus spectator close failed', err); return false; });
+}
 function closeBonusRound() {
+  clearTimeout(liveBonusSelectedTimer);
+  if (remoteRoomRef) closeBonusLiveForOwner();
   bonusOverlay.classList.add("hidden");
   bonusChooser.classList.remove("hidden");
   bonusChooser.style.display = "block";
@@ -7132,7 +7444,11 @@ function resetBonusPlayUi() {
 }
 
 async function openBonusRound() {
+  clearTimeout(liveBonusSelectedTimer);
+  liveBonusRoundEpoch++;
+  liveBonusRoundId = `${remotePlayerIndex}-${Date.now()}-${liveBonusRoundEpoch}`;
   const me = players[currentPlayerIndex];
+  if (remoteRoomRef && remotePlayerIndex === currentPlayerIndex && !bonusUsedThisTurn) publishBonusLive({phase:'choosing',roundId:liveBonusRoundId,points:null,category:'',question:'',choices:[],selection:'',hintUsed:false,correctAnswer:''});
 
   if (bonusUsedThisTurn) {
     bonusOverlay.classList.remove("hidden");
@@ -7352,6 +7668,9 @@ async function startBonusCategory(category) {
   bonusUsedThisTurn = true;
   saveTwoPlayerState();
   renderBonusQuestion(item);
+  publishBonusLive({phase:'question',category:item.category||category,points:Number(item.points)||0,
+    question:String(item.question||''),choices:Array.isArray(item.choices)?item.choices.map(String):[],
+    image:bonusAssetUrl(item.image),selection:'',hintUsed:false,hintText:'',correctAnswer:'',reactionImage:''});
 }
 
 function useBonusHint() {
@@ -7365,6 +7684,7 @@ function useBonusHint() {
   if (!hasText && !hasImage) return;
 
   bonusHintUsed = true;
+  publishBonusLive({phase:'question',hintUsed:true,hintText:String(hint.text||''),hintImage:bonusAssetUrl(hint.image)});
   bonusHintBtn.disabled = true;
   bonusHintBtn.textContent = "Assist used";
   bonusHintPanel.classList.remove("hidden");
@@ -7521,10 +7841,24 @@ async function submitBonusAnswer() {
     bonusResult.textContent = "Bonus Round is already being saved, or it is not your turn.";
     return;
   }
-  if (remoteRoomRef) remoteBonusCommitPending = true;
+  clearTimeout(liveBonusSelectedTimer);
+  // Publish the final selected answer first, then wait for all earlier steps.
+  // This prevents delayed updates from landing after the scoring transaction.
+  if (remoteRoomRef) {
+    await bonusLiveSelection();
+    await liveBonusWriteQueue;
+    if (remotePlayerIndex !== currentPlayerIndex) {
+      bonusResult.textContent = 'The turn changed before the Bonus Round could be saved.';
+      return;
+    }
+    remoteBonusCommitPending = true;
+  }
   lockBonusInputs();
 
   const correct = isBonusAnswerCorrectV2(item, given);
+  const reactionChoice = correct
+    ? BONUS_CORRECT_REACTIONS[Math.floor(Math.random() * BONUS_CORRECT_REACTIONS.length)]
+    : 'reactions/wrong/bonus_wrong_1.gif';
   const fullPoints = Number(item.points || 0);
   const earned = bonusHintUsed ? Math.max(0, fullPoints - 1) : fullPoints;
   const scoreChange = correct ? earned : -fullPoints;
@@ -7541,7 +7875,7 @@ async function submitBonusAnswer() {
       ? `CORRECT! +${earned}`
       : "CORRECT!";
     bonusResult.className = "bonus-success";
-    try { showRandomCorrectBonusReaction(); } catch (err) { console.error("Correct Bonus reaction failed", err); }
+    try { showBonusReaction([reactionChoice, ...BONUS_CORRECT_REACTIONS.filter(p => p !== reactionChoice)], "Nicolas Cage reaction to a correct Bonus Round answer"); } catch (err) { console.error("Correct Bonus reaction failed", err); }
   } else {
     bonusResult.textContent = hasChoiceReveal
       ? `INCORRECT. ${scoreChange}`
@@ -7576,6 +7910,7 @@ async function submitBonusAnswer() {
           turnStartedAt: firebase.database.ServerValue.TIMESTAMP,
           bonusUsedThisTurn: false,
           usedBonusQuestionIds: [...new Set([...(Array.isArray(current.usedBonusQuestionIds) ? current.usedBonusQuestionIds : []), String(item.id)])],
+          bonusLive: {...(current.bonusLive || {}),phase:'answered',seat,selection:given,correct:!!correct,correctAnswer:String(item.answer||''),scoreChange,reactionImage:bonusAssetUrl(reactionChoice)},
           updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
       }, undefined, false);
@@ -7605,6 +7940,7 @@ bonusPointChoices.addEventListener("click", e => {
   if (!btn || btn.disabled) return;
 
   selectedBonusPointLevel = Number(btn.dataset.bonusPoints);
+  publishBonusLive({phase:'choosing',points:selectedBonusPointLevel});
   bonusSubtitle.textContent = "";
 
   bonusPointChoices.querySelectorAll("button").forEach(pointBtn => {
@@ -7631,6 +7967,8 @@ bonusCategoryChoices.addEventListener("click", e => {
   if (!btn || btn.disabled || !selectedBonusPointLevel) return;
   startBonusCategory(btn.dataset.bonusCategory);
 });
+bonusChoices.addEventListener('change', scheduleBonusLiveSelection);
+bonusAnswer.addEventListener('input', scheduleBonusLiveSelection);
 bonusHintBtn.addEventListener("click", useBonusHint);
 bonusCloseBtn.addEventListener("click", () => closeBonusRound());
 bonusCancelBtn.addEventListener("click", () => closeBonusRound());
@@ -7946,7 +8284,7 @@ function clearFocus() {
       startX,
       startY + (currentRow * yGap)
     );
-    currentRow += Math.max(1, rowsUsed);
+    currentRow += Math.max(1, typeof rowsUsed === "number" ? rowsUsed : rowsUsed.rows);
   });
 
   // All unconnected movies go back into one common pool/grid.
@@ -8737,115 +9075,103 @@ function makeDraggable(obj) {
     }
 
     function layoutBranchComponent(componentIds, startX, startY) {
-      const metrics = getLayoutMetrics();
-      const xGap = metrics.xGap;
-      const yGap = metrics.yGap;
-      const branchGap = metrics.branchGap;
+      // Measure actual rendered cards. CSS may change their sizes independently
+      // of getLayoutMetrics(), so constants like 105px or 210px are unsafe.
+      const componentNodes = nodes.filter(n => componentIds.has(n.id));
+      const cardW = Math.max(140, ...componentNodes.map(n => n.el.offsetWidth || 140));
+      const cardH = Math.max(200, ...componentNodes.map(n => n.el.offsetHeight || 200));
+      const xGap = cardW + 115; // generous space for connection labels
+      const yGap = cardH + 66; // compact rows with 66px clearance below measured cards
       const spine = chooseMainSpine(componentIds);
       const spineIds = new Set(spine.map(n => n.id));
       const placed = new Set();
+      const rows = new Map();
       let maxRow = 0;
-
-      spine.forEach((node, index) => {
-        node.x = startX + (index * xGap);
-        node.y = startY;
-        node.el.style.left = node.x + "px";
-        node.el.style.top = node.y + "px";
+      function put(node, row, desiredCol) {
+        const occupied = rows.get(row) || new Set();
+        let col = Math.max(0, desiredCol);
+        while (occupied.has(col)) col++;
+        occupied.add(col);
+        rows.set(row, occupied);
+        node.x = startX + col * xGap;
+        node.y = startY + row * yGap;
+        node.el.style.left = node.x + 'px';
+        node.el.style.top = node.y + 'px';
         placed.add(node.id);
-      });
-
-      function placeChildren(parent, parentDepth, ancestry) {
-        const children = getNeighbors(parent.id)
-          .filter(n => componentIds.has(n.id))
-          .filter(n => !spineIds.has(n.id))
-          .filter(n => !placed.has(n.id))
-          .filter(n => !ancestry.has(n.id));
-
-        if (!children.length) return;
-        children.sort((a, b) => a.x - b.x || a.name.localeCompare(b.name));
-        const center = (children.length - 1) / 2;
-
-        children.forEach((child, index) => {
-          const depth = parentDepth + 1;
-          child.x = parent.x + ((index - center) * branchGap);
-          child.y = startY + (depth * yGap);
-          child.el.style.left = child.x + "px";
-          child.el.style.top = child.y + "px";
-          placed.add(child.id);
-          maxRow = Math.max(maxRow, depth);
-          const nextAncestry = new Set(ancestry);
-          nextAncestry.add(parent.id);
-          placeChildren(child, depth, nextAncestry);
+        maxRow = Math.max(maxRow, row);
+        return col;
+      }
+      spine.forEach((node, index) => put(node, 0, index));
+      function childrenOf(parent, depth, col) {
+        const children = getNeighbors(parent.id).filter(n =>
+          componentIds.has(n.id) && !spineIds.has(n.id) && !placed.has(n.id)
+        ).sort((a,b) => a.name.localeCompare(b.name));
+        children.forEach(child => {
+          const childCol = put(child, depth+1, col);
+          childrenOf(child, depth+1, childCol);
         });
       }
-
-      spine.forEach(node => placeChildren(node, 0, new Set()));
-
-      // Safety fallback for unusual cyclic graphs: place any unhandled nodes beneath the component.
-      const leftovers = nodes.filter(n => componentIds.has(n.id) && !placed.has(n.id));
-      leftovers.forEach((node, index) => {
-        node.x = startX + (index * xGap);
-        node.y = startY + ((maxRow + 1) * yGap);
-        node.el.style.left = node.x + "px";
-        node.el.style.top = node.y + "px";
-      });
-      if (leftovers.length) maxRow += 1;
-
-      return Math.max(1, maxRow + 1);
+      spine.forEach((node,i) => childrenOf(node,0,i));
+      componentNodes.filter(n => !placed.has(n.id)).forEach((node,i) => put(node,maxRow+1,i));
+      return {rows: maxRow+1, rowHeight:yGap};
     }
 
-    function autoArrangeAllComponents() {
-      const metrics = getLayoutMetrics();
-      const startX = 60;
-      const startY = 70;
-      const yGap = metrics.yGap;
-      const singleCols = metrics.singleCols;
-      const xGap = metrics.xGap;
-
-      const visited = new Set();
-      const connectedComponents = [];
-      const singleNodes = [];
-
-      nodes.forEach(node => {
-        if (visited.has(node.id)) return;
-        const componentIds = getConnectedComponentNodeIds(node.id);
-        componentIds.forEach(id => visited.add(id));
-        if (componentIds.size > 1) connectedComponents.push(componentIds);
-        else singleNodes.push(node);
+    function autoArrangeAllComponents(skipRemoteMaintenance = false) {
+      const startX = 80, startY = 90;
+      const visited = new Set(), connected = [], singles = [];
+      nodes.forEach(n => {
+        if (visited.has(n.id)) return;
+        const ids = getConnectedComponentNodeIds(n.id);
+        ids.forEach(id => visited.add(id));
+        if (ids.size > 1) connected.push(ids); else singles.push(n);
       });
-
-      connectedComponents.sort((a, b) => b.size - a.size);
-      singleNodes.sort((a, b) => a.name.localeCompare(b.name));
-
-      let currentRow = 0;
-      connectedComponents.forEach(componentIds => {
-        const rowsUsed = layoutBranchComponent(
-          componentIds,
-          startX,
-          startY + (currentRow * yGap)
-        );
-        currentRow += rowsUsed;
+      connected.sort((a,b) => b.size-a.size);
+      singles.sort((a,b) => a.name.localeCompare(b.name));
+      let currentY = startY;
+      for (const ids of connected) {
+        const result = layoutBranchComponent(ids, startX, currentY);
+        currentY += result.rows * result.rowHeight + 55;
+      }
+      // Loose movies have the same measured clearance as connected cards.
+      const maxWidth = Math.max(140,...nodes.map(n => n.el.offsetWidth || 140));
+      const maxHeight = Math.max(200,...nodes.map(n => n.el.offsetHeight || 200));
+      const xStep = maxWidth+90, yStep = maxHeight+60;
+      const singleCols = Math.max(1,Math.floor((Math.max(board.clientWidth,700)-100)/xStep));
+      singles.forEach((n,i)=>{
+        n.x = startX+(i%singleCols)*xStep;
+        n.y = currentY+Math.floor(i/singleCols)*yStep;
+        n.el.style.left=n.x+'px'; n.el.style.top=n.y+'px';
       });
-
-      singleNodes.forEach((node, index) => {
-        const col = index % singleCols;
-        const row = Math.floor(index / singleCols);
-        node.x = startX + (col * xGap);
-        node.y = startY + ((currentRow + row) * yGap);
-        node.el.style.left = node.x + "px";
-        node.el.style.top = node.y + "px";
-      });
-
-      focusedNodeId = null;
-      clearNodeStates();
-      redrawNodes();
-      draw();
-      applyFocusStyles();
-      saveBoard();
-    syncBoardMaintenanceNow("Edited-connection board");
+      focusedNodeId=null;
+      clearNodeStates(); redrawNodes(); draw(); applyFocusStyles(); saveBoard();
+      if (!skipRemoteMaintenance) syncBoardMaintenanceNow('Edited-connection board');
       updateWinStatus();
-      setStatus("Board arranged with branches below their connected movies.");
+      setStatus('Board arranged with full card clearance.');
     }
+
+    function arrangeExistingBoardTest() {
+      if (!nodes.length) return setStatus('Add some movies first.');
+      // Never change a multiplayer game from a non-playing browser just to repair layout.
+      if (remoteRoomRef && (!v5CanPlay() || remotePlayerIndex !== currentPlayerIndex)) {
+        setStatus('Arrange Board is available to the player whose turn it is.');
+        return;
+      }
+      autoArrangeAllComponents(true);
+      if (!remoteRoomRef) return;
+      const positions = new Map(nodes.map(n=>[n.id,{x:n.x,y:n.y}]));
+      const ref = remoteRoomRef;
+      // Preserve every live server field, including score, turn, activity and connections.
+      ref.child('state/board').transaction(boardData=>{
+        if (!boardData || !Array.isArray(boardData.nodes)) return;
+        if (boardData.nodes.length !== positions.size) return;
+        if (!boardData.nodes.every(n=>positions.has(n.id))) return;
+        return {...boardData,nodes:boardData.nodes.map(n=>({...n,...positions.get(n.id)}))};
+      }).then(result=>{
+        if (!result.committed) setStatus('Board changed during layout repair; reload and try again.');
+        else setStatus('Board layout synchronized to the online game.');
+      }).catch(err=>setStatus('Could not synchronize layout: '+(err.message||err)));
+    }
+
    function protectConnectModeBoardClicks(e) {
   // If we are not connecting, do nothing.
   if (!connectModeActive) return;
@@ -8920,6 +9246,33 @@ function updateDockFromStatus(text) {
     dockGoalText.textContent = value;
     dockGoalSub.textContent = `Turn: ${players[currentPlayerIndex]?.name || "Player 1"}`;
   }
+}
+
+// Draw a saved connection without recording a new action or writing Firebase.
+function restoreDockConnectionFromBoard() {
+  const recent = connections.length ? connections[connections.length - 1] : null;
+  if (!recent || !recent.a || !recent.b) {
+    if (dockPosterPair) dockPosterPair.hidden = true;
+    if (dockPosterA) { dockPosterA.hidden = true; dockPosterA.removeAttribute("src"); }
+    if (dockPosterB) { dockPosterB.hidden = true; dockPosterB.removeAttribute("src"); }
+    if (dockConnectionTitle) dockConnectionTitle.textContent = "No connection yet";
+    if (dockConnectionDetail) dockConnectionDetail.textContent = "Your most recent successful connection will appear here.";
+    if (dockConnectionPoints) dockConnectionPoints.textContent = "";
+    return;
+  }
+  if (dockPosterPair) dockPosterPair.hidden = false;
+  for (const [poster, movie] of [[dockPosterA, recent.a], [dockPosterB, recent.b]]) {
+    if (!poster) continue;
+    poster.hidden = false;
+    poster.onerror = () => { poster.hidden = true; };
+    poster.onload = () => { poster.hidden = false; };
+    poster.src = posterSrcForMovie(movie.name);
+  }
+  if (dockConnectionTitle) dockConnectionTitle.textContent = `${recent.a.name}  →  ${recent.b.name}`;
+  if (dockConnectionDetail) dockConnectionDetail.textContent = recent.type === "shared"
+    ? `Shared actor: ${recent.sharedActor || "Not specified"}`
+    : `${recent.leftActor || ""} → ${recent.bridgeTitle || ""} → ${recent.rightActor || ""}`;
+  if (dockConnectionPoints) dockConnectionPoints.textContent = recent.type === "shared" ? "+1 POINT" : "+2 POINTS";
 }
 
 function showDockConnection(c, playerName) {
@@ -9175,7 +9528,9 @@ function applyRemoteState(state){
     usedBonusQuestionIds=Array.isArray(state.usedBonusQuestionIds)
       ? [...new Set(state.usedBonusQuestionIds.map(String))]
       : [];
-    if(Array.isArray(state.recentActions))renderDockRecent(state.recentActions);
+    renderDockRecent(Array.isArray(state.recentActions) ? state.recentActions : []);
+    restoreDockConnectionFromBoard();
+    renderRemoteBonusLive(state.bonusLive || null);
 
     localStorage.setItem(STORAGE_KEY,JSON.stringify(incomingBoard));
     localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn,usedBonusQuestionIds}));
@@ -9194,7 +9549,7 @@ function setDockChatEnabled(enabled){const i=document.getElementById("dockChatIn
 function clearDockChat(){const box=document.getElementById("dockChatMessages");if(box)box.innerHTML='<div class="dock-chat-line">Join an online room to chat.</div>';}
 function appendDockChat(msg){const box=document.getElementById("dockChatMessages");if(!box||!msg)return;if(box.children.length===1&&box.textContent.includes("Join an online room"))box.innerHTML="";const line=document.createElement("div");line.className="dock-chat-line";const name=document.createElement("span");name.className="dock-chat-name";name.textContent=`${String(msg.name||"Player")}: `;const text=document.createElement("span");text.textContent=String(msg.text||"");line.append(name,text);box.appendChild(line);while(box.children.length>12)box.removeChild(box.firstChild);box.scrollTop=box.scrollHeight;}
 function sendDockChat(event){if(event)event.preventDefault();if(!remoteRoomRef||!Number.isInteger(remotePlayerIndex)||remotePlayerIndex<0||remotePlayerIndex>=remoteMaxPlayers){setStatus("Join an online room to use Game Notes chat.");return;}const input=document.getElementById("dockChatInput");const text=String(input?.value||"").trim().slice(0,180);if(!text)return;const name=players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`;remoteRoomRef.child("chat").push({name,playerIndex:remotePlayerIndex,text,createdAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{if(input){input.value="";input.focus();}}).catch(err=>{console.error("Chat send failed",err);setStatus("Chat message could not be sent.");});}
-function detachRemoteListeners(){if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
+function detachRemoteListeners(){renderRemoteBonusLive(null);if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
 function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(12);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
 function clearLocalBoardAfterRoomCreated(){
   nodes.forEach(n=>{try{n.el.remove()}catch{}});
