@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-title" content="Cage Connection">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cage Connection — Combined Test V25</title>
+  <title>Cage Connection — V36</title>
   <style>
     body {
       margin: 0;
@@ -3838,6 +3838,9 @@ body[data-card-size="compact"] #surface .node-title {font-size:8px !important;}
 body[data-card-size="normal"] #surface .node-title {font-size:11px !important;}
 body[data-card-size="large"] #surface .node-title {font-size:13px !important;}
 </style>
+<style id="cageV36MovieTooltip">
+#cageTitlePop{position:fixed;z-index:31000;max-width:min(320px,90vw);padding:8px 12px;background:#211814;color:#fff4df;border:1px solid #c7a35c;border-radius:5px;box-shadow:0 6px 22px #000a;pointer-events:none;display:none;font:600 14px/1.35 Georgia,serif;overflow-wrap:anywhere}
+</style>
 </head>
 <body>
 
@@ -6543,9 +6546,59 @@ function saveUserCastAdditions() {
 }
 
 function normalizeMovieTitleForCast(title) {
-  return String(title || "").trim().toLowerCase();
+  return String(title || "").normalize("NFKD").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,"");
 }
 
+function cageTitleKey(title){ return String(title||"").normalize("NFKD").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
+function cageEditDistance(a,b){
+ if(Math.abs(a.length-b.length)>2)return 99;
+ let row=Array.from({length:b.length+1},(_,i)=>i);
+ for(let i=1;i<=a.length;i++){
+  const next=[i];
+  for(let j=1;j<=b.length;j++)next[j]=Math.min(next[j-1]+1,row[j]+1,row[j-1]+(a[i-1]===b[j-1]?0:1));
+  row=next;
+ }return row[b.length];
+}
+function cageFindTitles(q, titles){
+ const key=cageTitleKey(q);if(!key)return titles;
+ const exact=titles.filter(t=>cageTitleKey(t)===key);
+ if(exact.length)return exact;
+ const partial=titles.filter(t=>cageTitleKey(t).includes(key));
+ if(partial.length)return partial;
+ if(key.length<5)return [];
+ const near=titles.map(t=>({t,d:cageEditDistance(key,cageTitleKey(t))})).filter(x=>x.d<=Math.min(2,Math.floor(key.length/5))).sort((a,b)=>a.d-b.d);
+ return near.slice(0,12).map(x=>x.t);
+}
+function cageMergeCastMaps(base, incoming){
+ const result={...base};
+ for(const [title, actors] of Object.entries(incoming||{})){
+  if(!Array.isArray(actors))continue;
+  const key=Object.keys(result).find(k=>cageTitleKey(k)===cageTitleKey(title))||title;
+  const names=new Set((result[key]||[]).map(normalizeActorName));
+  result[key]=[...(result[key]||[])];
+  for(const a of actors){if(typeof a==='string'&&a.trim()&&!names.has(normalizeActorName(a))){result[key].push(a.trim());names.add(normalizeActorName(a));}}
+ }return result;
+}
+let cageRoomCastHandler=null;
+function cagePublishCastAdditions(movie, actor, remove=false){
+ if(!remoteRoomRef)return Promise.resolve(false);
+ return remoteRoomRef.child('castAdditions').transaction(current=>{
+  const map=(current&&typeof current==='object')?{...current}:{};
+  const key=Object.keys(map).find(k=>cageTitleKey(k)===cageTitleKey(movie))||movie;
+  const actors=Array.isArray(map[key])?[...map[key]]:[];
+  map[key]=remove?actors.filter(x=>normalizeActorName(x)!==normalizeActorName(actor)):[...actors.filter(x=>normalizeActorName(x)!==normalizeActorName(actor)),actor];
+  if(!map[key].length)delete map[key];
+  return map;
+ }).then(()=>true).catch(err=>{console.error('Cast sync failed',err);setStatus('Actor saved locally; shared cast update failed.');return false;});
+}
+function cageStartCastRoomListener(){
+ if(!remoteRoomRef)return;
+ if(cageRoomCastHandler)remoteRoomRef.child('castAdditions').off('value',cageRoomCastHandler);
+ cageRoomCastHandler=snap=>{const map=snap.val();if(map&&typeof map==='object'){
+  userCastAdditions=cageMergeCastMaps(userCastAdditions,map);saveUserCastAdditions();
+ }};
+ remoteRoomRef.child('castAdditions').on('value',cageRoomCastHandler,err=>console.error('Cast additions sync unavailable:',err));
+}
 function findCanonicalCastMovieTitle(title) {
   const target = normalizeMovieTitleForCast(title);
   if (!target) return "";
@@ -6640,11 +6693,12 @@ function addCastMemberTool() {
 
   userCastAdditions[storageKey].push(actor);
   saveUserCastAdditions();
+  const sharedPromise=cagePublishCastAdditions(storageKey,actor);
 
   setStatus(`Cast memory updated: ${actor} added to ${canonicalMovie}.`);
   alert(
     `${actor} has been added to "${canonicalMovie}".\n\n` +
-    "Cage Check will use this cast addition immediately and remember it on this device."
+    remoteRoomRef ? "Cage Check will use it now. The addition is also being shared with this game room." : "Cage Check will use it now and remember it on this device. Join an online room to share future additions."
   );
 }
 
@@ -6701,6 +6755,7 @@ function removeCastMemberTool() {
   }
 
   saveUserCastAdditions();
+  cagePublishCastAdditions(movieKey,removed,true);
   setStatus(`Cast memory updated: ${removed} removed from ${movieKey}.`);
   alert(`${removed} has been removed from "${movieKey}" on this device.`);
 }
@@ -7323,9 +7378,8 @@ function findMovie() {
     return;
   }
 
-  const matches = nodes.filter(n =>
-    n.name.toLowerCase().includes(search)
-  );
+  const matchNames=cageFindTitles(search,nodes.map(n=>n.name));
+  const matches=matchNames.map(name=>nodes.find(n=>n.name===name)).filter(Boolean);
 
   if (!matches.length) {
     alert("No matching movie found.");
@@ -7570,6 +7624,8 @@ function renderNode(nodeObj) {
       const title = document.createElement("div");
       title.className = "node-title";
       title.textContent = nodeObj.name;
+      nodeObj.el.title = nodeObj.name;
+      nodeObj.el.setAttribute('aria-label',nodeObj.name);
 
       const usage = document.createElement("div");
       usage.className = "node-usage";
@@ -7787,7 +7843,7 @@ function renderNode(nodeObj) {
       const onBoard = new Set(nodes.map(n => normalizeTitle(n.name)));
 
       const filtered = titles.filter(title => {
-        const matchesSearch = title.toLowerCase().includes(q);
+        const matchesSearch = !q || cageFindTitles(q,titles).includes(title);
         const notAlreadyOnBoard = !onBoard.has(normalizeTitle(title));
         return matchesSearch && notAlreadyOnBoard;
       });
@@ -8175,6 +8231,15 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
       }
 
       setStatus("Manual override accepted. Connection saved.");
+      if(confirm(`Add ${result.sharedActor} to the cast lists of ${first.name} and ${obj.name}?\n\nThis helps Cage Check recognize the connection in future.`)){
+        for(const movie of [first.name,obj.name]){
+          const key=findCanonicalCastMovieTitle(movie);
+          if(!(getCombinedCast(key)||[]).some(a=>normalizeActorName(a)===normalizeActorName(result.sharedActor))){
+            userCastAdditions[key]=[...(userCastAdditions[key]||[]),result.sharedActor];
+            cagePublishCastAdditions(key,result.sharedActor);
+          }
+        }saveUserCastAdditions();
+      }
     }
 
     if (validation.status === "unknown") {
@@ -10929,8 +10994,8 @@ function setDockChatEnabled(enabled){const i=document.getElementById("dockChatIn
 function clearDockChat(){const box=document.getElementById("dockChatMessages");if(box)box.innerHTML='<div class="dock-chat-line">Join an online room to chat.</div>';}
 function appendDockChat(msg){const box=document.getElementById("dockChatMessages");if(!box||!msg)return;if(box.children.length===1&&box.textContent.includes("Join an online room"))box.innerHTML="";const line=document.createElement("div");line.className="dock-chat-line";const name=document.createElement("span");name.className="dock-chat-name";name.textContent=`${String(msg.name||"Player")}: `;const text=document.createElement("span");text.textContent=String(msg.text||"");line.append(name,text);box.appendChild(line);while(box.children.length>12)box.removeChild(box.firstChild);box.scrollTop=box.scrollHeight;}
 function sendDockChat(event){if(event)event.preventDefault();if(!remoteRoomRef||!Number.isInteger(remotePlayerIndex)||remotePlayerIndex<0||remotePlayerIndex>=remoteMaxPlayers){setStatus("Join an online room to use Game Notes chat.");return;}const input=document.getElementById("dockChatInput");const text=String(input?.value||"").trim().slice(0,180);if(!text)return;const name=players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`;remoteRoomRef.child("chat").push({name,playerIndex:remotePlayerIndex,text,createdAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{if(input){input.value="";input.focus();}}).catch(err=>{console.error("Chat send failed",err);setStatus("Chat message could not be sent.");});}
-function detachRemoteListeners(){renderRemoteBonusLive(null);if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
-function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(80);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
+function detachRemoteListeners(){if(remoteRoomRef&&cageRoomCastHandler){remoteRoomRef.child("castAdditions").off("value",cageRoomCastHandler);cageRoomCastHandler=null;}renderRemoteBonusLive(null);if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
+function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();cageStartCastRoomListener();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(80);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
 function clearLocalBoardAfterRoomCreated(){
   nodes.forEach(n=>{try{n.el.remove()}catch{}});
   nodes=[];
@@ -11976,6 +12041,27 @@ body > .cc-expanded-history #dockRecent .dock-recent-line:nth-last-child(n+3){di
 <script>
 document.getElementById("cageNotYourTurnOverlay")?.addEventListener("click", function(e){ if(e.target === this) dismissCageNotYourTurnWarning(); });
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismissCageNotYourTurnWarning(); });
+</script>
+<script id="cageV36TitleTouch">
+(function(){
+ let timer=null,x=0,y=0;
+ const pop=document.createElement('div');pop.id='cageTitlePop';
+ document.body.appendChild(pop);
+ function hide(){clearTimeout(timer);pop.style.display='none';}
+ document.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse')return;
+  const el=e.target.closest('.node');if(!el)return;
+  x=e.clientX;y=e.clientY;hide();
+  timer=setTimeout(()=>{
+   const title=el.getAttribute('title');if(!title)return;
+   pop.textContent=title;pop.style.display='block';
+   pop.style.left=Math.max(8,Math.min(x-pop.offsetWidth/2,innerWidth-pop.offsetWidth-8))+'px';
+   pop.style.top=Math.max(8,y-pop.offsetHeight-16)+'px';
+  },600);
+ },{passive:true});
+ document.addEventListener('pointermove',e=>{if(Math.hypot(e.clientX-x,e.clientY-y)>10)hide();},{passive:true});
+ for(const event of ['pointerup','pointercancel','scroll'])document.addEventListener(event,hide,{capture:true,passive:true});
+})();
 </script>
 </body>
 </html> 
