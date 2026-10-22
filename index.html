@@ -8751,6 +8751,7 @@ function bonusSpectatorPanel() {
     <div id="bonusLiveChoices"></div><div id="bonusLiveHint"></div>
     <img id="bonusLiveHintImage" alt="Bonus Round hint image" hidden>
     <div id="bonusLiveSelection"></div><div id="bonusLiveResult"></div>
+    <div id="bonusLiveExplanation" hidden style="margin:10px 0;padding:12px;border-left:3px solid #6f8fb7;background:#172133;color:#e7edf7;line-height:1.45;white-space:pre-wrap;"></div>
     <img id="bonusLiveReactionImage" alt="Bonus Round reaction" hidden>
     <div class="bonus-live-caption">Spectator view — only the current player can answer.</div>`;
   document.body.appendChild(panel);
@@ -8821,6 +8822,12 @@ function renderRemoteBonusLive(live) {
     if (allowed) hintImg.src = url; else hintImg.removeAttribute('src');
   }
   put('bonusLiveResult', live.phase === 'answered' ? `${live.correct ? 'CORRECT' : 'INCORRECT'} · ${Number(live.scoreChange)>=0?'+':''}${Number(live.scoreChange)||0} points · Correct answer: ${String(live.correctAnswer||'')}` : '');
+  const explanation = document.getElementById('bonusLiveExplanation');
+  if (explanation) {
+    const comment = live.phase === 'answered' ? String(live.answerExplanation || '').trim() : '';
+    explanation.textContent = comment;
+    explanation.hidden = !comment;
+  }
   const reaction = document.getElementById('bonusLiveReactionImage');
   if (reaction) {
     const answered = live.phase === 'answered';
@@ -9555,7 +9562,7 @@ async function submitBonusAnswer() {
           turnStartedAt: firebase.database.ServerValue.TIMESTAMP,
           bonusUsedThisTurn: false,
           usedBonusQuestionIds: [...new Set([...(Array.isArray(current.usedBonusQuestionIds) ? current.usedBonusQuestionIds : []), String(item.id)])],
-          bonusLive: {...(current.bonusLive || {}),phase:'answered',seat,selection:given,correct:!!correct,correctAnswer:String(item.answer||''),scoreChange,reactionImage:bonusAssetUrl(reactionChoice)},
+          bonusLive: {...(current.bonusLive || {}),phase:'answered',seat,selection:given,correct:!!correct,correctAnswer:String(item.answer||''),scoreChange,reactionImage:bonusAssetUrl(reactionChoice),answerExplanation:String(item.answerExplanation || '')},
           updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
       }, undefined, false);
