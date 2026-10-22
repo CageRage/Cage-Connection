@@ -4056,10 +4056,11 @@ body[data-card-size="compact"] #surface .node::before {
           <input id="onlineCreateName" type="text" maxlength="24" value="Player 1" />
           <label for="onlineCreateMaxPlayers">Maximum players</label>
           <select id="onlineCreateMaxPlayers"><option value="2">2 players</option><option value="3">3 players</option><option value="4">4 players</option></select>
-          <p>Game can start once two players join; empty seats are skipped.</p>
+          <p>Create Game for multiplayer, or Play Solo now. Another player can join your solo room later.</p>
           <label for="onlineCreatePhone">Mobile number (optional)</label>
           <input id="onlineCreatePhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For future turn notifications" />
           <button type="button" class="online-primary" onclick="createRemoteGame()">Create Game</button>
+          <button type="button" onclick="createRemoteGame(true)">Play Solo</button>
         </section>
         <section class="online-card">
           <h3>Join a game</h3>
@@ -8480,7 +8481,7 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     const nextPlayer = nextPlayablePlayerIndex(mover);
     try {
       const outcome = await remoteRoomRef.child("state").transaction(current => {
-        if (!current || !v5CanPlay() || current.currentPlayerIndex !== mover || !proposedConnection || nextPlayer === mover) return;
+        if (!current || !v5CanPlay() || current.currentPlayerIndex !== mover || !proposedConnection) return;
         const serverBoard = current.board || {nodes:[],connections:[]};
         const remoteNodes = Array.isArray(serverBoard.nodes) ? serverBoard.nodes : [];
         const serverConnections = Array.isArray(serverBoard.connections) ? serverBoard.connections : [];
@@ -9964,10 +9965,10 @@ function loadTwoPlayerState() {
 }
 // V5 waiting-room gate. Firebase state remains authoritative for occupied seats.
 function v5OccupiedCount(){return remoteOccupiedSeats.slice(0,remoteMaxPlayers).filter(Boolean).length;}
-function v5CanPlay(){return !remoteRoomRef || v5OccupiedCount()>=2;}
+function v5CanPlay(){return !remoteRoomRef || (v5OccupiedCount()>=1 && remotePlayerIndex!==null && remoteOccupiedSeats[remotePlayerIndex]);}
 function v5RequirePlayers(){
   if(v5CanPlay())return true;
-  const text=`Waiting for another player (${v5OccupiedCount()}/${remoteMaxPlayers} seats occupied). At least 2 are required.`;
+  const text="Join or create a game to play.";
   setStatus(text);setOnlineMessage(text);return false;
 }
 function nextPlayablePlayerIndex(fromIndex) {
@@ -10913,6 +10914,28 @@ function makeDraggable(obj) {
       const xGap = cardW + (compactSquare ? 48 : 85); // allow room for connection labels
       const yGap = cardH + (compactSquare ? 18 : 20);
       const spine = chooseMainSpine(componentIds);
+      // V62: Snake unbranched movie chains after 10 cards per row. Keeping
+      // adjacent movies next to each other (including the vertical turn) lets
+      // the existing SVG draw an unbroken, clickable connection at each step.
+      // Branched graphs retain the earlier layout to avoid overlapping branches.
+      const isSimpleChain = componentNodes.length > 10 &&
+        componentNodes.every(n => getNeighbors(n.id).filter(other => componentIds.has(other.id)).length <= 2) &&
+        spine.length === componentNodes.length;
+      if (isSimpleChain) {
+        const perRow = 10;
+        // Extra vertical room makes room for the connection's 48px label at turns.
+        const chainRowGap = Math.max(yGap, cardH + 115);
+        spine.forEach((node, i) => {
+          const row = Math.floor(i / perRow);
+          const offset = i % perRow;
+          const col = row % 2 ? perRow - 1 - offset : offset;
+          node.x = startX + col * xGap;
+          node.y = startY + row * chainRowGap;
+          node.el.style.left = node.x + 'px';
+          node.el.style.top = node.y + 'px';
+        });
+        return {rows: Math.ceil(spine.length / perRow), rowHeight: chainRowGap};
+      }
       const spineIds = new Set(spine.map(n => n.id));
       const placed = new Set();
       const rows = new Map();
@@ -11334,7 +11357,7 @@ function applyRemoteMembers(members){
   updateScoreDisplay();
   updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);
   refreshOnlinePanel();
-  if(remoteRoomRef && !v5CanPlay())setOnlineMessage(`Waiting for another player (${v5OccupiedCount()}/${remoteMaxPlayers} seats occupied).`);
+  if(remoteRoomRef && !v5CanPlay())setOnlineMessage("Game unavailable: your player seat is not active.");
 }
 let cageLastRemoteSkipNotice = undefined;
 let cageLastObservedRemoteTurn = undefined;
@@ -11473,7 +11496,7 @@ function withFirebaseTimeout(promise, ms=12000){
     new Promise((_,reject)=>setTimeout(()=>reject(new Error("Firebase did not respond within 12 seconds, even using long polling.")),ms))
   ]);
 }
-async function createRemoteGame(){
+async function createRemoteGame(soloMode=false){
   const name=cleanPlayerName(document.getElementById("onlineCreateName")?.value,"Player 1");
   const selectedMax=Number(document.getElementById("onlineCreateMaxPlayers")?.value||2);
   if(![2,3,4].includes(selectedMax)){setOnlineMessage("Choose 2, 3, or 4 players.");return;}
@@ -11495,8 +11518,8 @@ async function createRemoteGame(){
     remoteMaxPlayers=selectedMax;players=Array.from({length:selectedMax},(_,i)=>({name:i===0?name:`Player ${i+1}`,score:0}));
     remoteRoomCode=code;remotePlayerIndex=0;remoteRoomRoot=SECURE_ROOM_ROOT;remoteRoomRef=roomRef;remoteOccupiedSeats=Array.from({length:selectedMax},(_,i)=>i===0);
     clearLocalBoardAfterRoomCreated();attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
-    setOnlineMessage(`Private room ${code} created. Share this code with Player 2.`);
-    setStatus(`Room ${code} created. Waiting for Player 2.`);
+    setOnlineMessage(soloMode ? `Solo game ${code} ready. You can invite Player 2 later.` : `Private room ${code} created. Share this code with Player 2.`);
+    setStatus(soloMode ? `Solo game ready — ${players[0].name} goes first.` : `Room ${code} created. Invite Player 2 when ready.`);
   }catch(error){console.error(error);setOnlineMessage(`Create failed: ${error.message||error}`)}
 }
 async function joinRemoteGame(){
