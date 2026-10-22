@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-title" content="Cage Connection">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cage Connection — Combined Test V39</title>
+  <title>Cage Connection — Bonus and Quotes V46 Test</title>
   <style>
     body {
       margin: 0;
@@ -696,6 +696,8 @@
 #cheatOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.74); display:flex; align-items:center; justify-content:center; z-index:22000; padding:20px; }
 #challengeEventOverlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:26000;padding:20px;}
 #challengeEventOverlay.hidden{display:none;}
+/* V50: allow the Challenge Result OK button to hide its overlay. */
+#challengeResultOverlay.hidden{display:none !important;}
 #challengeEventCard{width:min(560px,92vw);background:#171717;border:2px solid #b78a24;border-radius:14px;padding:26px;box-shadow:0 18px 60px rgba(0,0,0,.55);text-align:center;}
 #challengeEventCard h2{margin:0 0 14px;font-size:28px;}
 #challengeEventText{font-size:18px;line-height:1.45;margin-bottom:18px;}
@@ -4193,6 +4195,7 @@ body[data-card-size="compact"] #surface .node::before {
   <div id="bonusDialog" role="dialog" aria-modal="true" aria-labelledby="bonusTitle">
     <h2 id="bonusTitle">Bonus Round</h2>
     <div id="bonusSubtitle" class="bonus-sub"></div>
+    <div id="bonusHistoryCountV52" class="bonus-sub" style="font-size:12px; margin-top:-10px;"></div>
 
     <div id="bonusChooser">
       <div id="bonusPointStep">
@@ -4255,6 +4258,13 @@ body[data-card-size="compact"] #surface .node::before {
   </div>
 </div>
 
+<div id="challengeResultOverlay" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:27000;padding:20px">
+  <div role="dialog" aria-modal="true" aria-labelledby="challengeResultTitle" style="width:min(520px,92vw);background:#171717;border:2px solid #b78a24;border-radius:14px;padding:26px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.55)">
+    <h2 id="challengeResultTitle">Challenge Result</h2>
+    <p id="challengeResultText" style="font-size:18px;line-height:1.5"></p>
+    <button type="button" id="challengeResultOK">OK</button>
+  </div>
+</div>
 <div id="challengeEventOverlay" class="hidden">
   <div id="challengeEventCard" role="dialog" aria-modal="true" aria-labelledby="challengeEventTitle">
     <h2 id="challengeEventTitle">Connection Challenged</h2>
@@ -4672,7 +4682,7 @@ let bonusHintUsed = false;
 let selectedBonusPointLevel = null;
 
 const BONUS_DATA_URL = "data/bonus-round.json";
-const EMBEDDED_BONUS_QUESTIONS = [{"id":"CF001","category":"Cage Fact","question":"What did Nicolas Cage do when he discovered his cat ate his magic mushrooms?","answer":"Took some as well and they stared at each others eyes for eight hours","answerType":"Single Choice","choices":["Took him for a walk","Personally pumped his stomach","Took some as well and they stared at each others eyes for eight hours","All of the above"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF002","category":"Cage Fact","question":"About how much did Cage say he once owed the IRS and creditors?","answer":"$6 million","answerType":"Single Choice","choices":["$2 million","$6 million","$12 million","$20 million"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF003","category":"Cage Fact","question":"Which exotic animal did Cage once own?","answer":"An octopus","answerType":"Single Choice","choices":["A kangaroo","A llama","A capuchin monkey","An octopus"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CF004","category":"Cage Fact","question":"What type of venomous snakes did Cage own?","answer":"King cobras","answerType":"Single Choice","choices":["King cobras","Rattlesnakes","Coral snakes","Black mambas"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF005","category":"Cage Fact","question":"What happened to Cage's two-headed snake?","answer":"He donated it to a zoo","answerType":"Single Choice","choices":["It escaped","He sold it at auction","He donated it to a zoo","It died during filming"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF006","category":"Cage Fact","question":"What is Nicolas Cage's birth surname?","answer":"Coppola","answerType":"Single Choice","choices":["Coppola","Corleone","Coppelius","Capra"],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"CF007","category":"Cage Fact","question":"Why did Cage begin using a different surname professionally?","answer":"To distance himself from the Coppola family name","answerType":"Single Choice","choices":["His agent told him it was easier to spell","Another actor already used Coppola","He lost a bet","To distance himself from the Coppola family name"],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"CF008","category":"Cage Fact","question":"What eventually happened to Cage's dinosaur skull?","answer":"He returned it after learning it had been illegally removed from Mongolia","answerType":"Single Choice","choices":["He donated it to the Smithsonian","He returned it after learning it had been illegally removed from Mongolia","He gave it to Leonardo DiCaprio","It was destroyed in a fire"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF009","category":"Cage Fact","question":"Which comic-book character helped inspire the name \"Cage\"?","answer":"Luke Cage","answerType":"Single Choice","choices":["Johnny Blaze","Bruce Wayne","Peter Parker","Luke Cage"],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"CF010","category":"Cage Fact","question":"He briefly owned a vintage hearse that he used as his everyday car in the early 1990s.","answer":"No","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF011","category":"Cage Fact","question":"How many times has Nicolas Cage been married?","answer":"Five","answerType":"Single Choice","choices":["Three","Four","Five","Six"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF012","category":"Cage Fact","question":"Cage keeps a handwritten journal ranking every movie he has made by how physically exhausting it was.","answer":"No","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF013","category":"Cage Fact","question":"Why did Cage say his two-headed snake was difficult to feed?","answer":"The heads fought over food","answerType":"Single Choice","choices":["It would only eat live fish","It refused to eat indoors","The heads fought over food","It had to be hand-fed"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF014","category":"Cage Fact","question":"Nicolas Cage once bought a decommissioned lighthouse because he wanted a private place to read scripts.","answer":"No","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF015","category":"Cage Fact","question":"What prehistoric object did Cage buy at auction?","answer":"A dinosaur skull","answerType":"Single Choice","choices":["A mammoth tusk","A dinosaur skull","A fossilized dinosaur egg","A saber-toothed tiger skull"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CQ001","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say? Select all that apply.","answer":"A, B, and C","answerType":"Multiple Select","choices":["There's a fine line between the Method actor and the schizophrenic","Sometimes people think I'm wearing a wig when I'm not wearing a wig, and then sometimes they think I'm not wering a wig when I am wearing a wig","A good performance should make at least one person slightly uncomfortable.","You can’t negotiate with a peacock. I’ve tried."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ002","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["To be a good actor you have to be something like a criminal, to be willing to break the rules to strive for something new."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ003","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"No","answerType":"Yes/No","choices":["I believe every room has a ghost. Sometimes the ghost is you."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ004","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"I do like to move and get physical in my movies","answerType":"Single Choice","choices":["I do like to move and get physical in my movies","If you’re going to steal a car, spiritually speaking, it should probably be a convertible.","There’s a very thin line between genius and wearing the wrong jacket.","I don’t prepare for chaos. I invite it in and see what it wants."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ005","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"I like both Blue-Ray and DVD but Blue-Ray gives you more options.","answerType":"Single Choice","choices":["I like both Blue-Ray and DVD but Blue-Ray gives you more options.","Sometimes the only way out is to become more confusing than the problem.","I don’t trust a man who owns more than three lamps.","I once ate an entire lemon because I needed to understand bitterness."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ006","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["I think I've become more relaxed throughout my career.  I don't feel the need to jump up and down and make a big noise to get people to pay attention to me.  I don't need to do punk rock gestures or eat a cockroach or do something weird to say I exist."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ007","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"All of the above","answerType":"Multiple Choice","choices":["I was always shocked when I went to the doctor's office and they did my X-ray and didn't find that I had eight more ribs than I should have or tht my blood was the color green.","I always add a year to myself, so I'm prepared for my next birthday.  So when I was 39, I was already 40","If you're really special meaning you're doing something unique and original, it could scare people.","All of the above"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ008","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"All of the above","answerType":"Multiple Choice","choices":["I have eclectic tastes in the movies I want to do.","I am not a demon. I am a lizard, a shark, a heat-seeking panther.  I want to be Bob Denver on acid playing the accordion.","Every great story seems to begin with a snake","All of the above"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ009","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["Nobody wants to watch perfection"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ010","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"No","answerType":"Yes/No","choices":["Sometimes the most honest thing you can do is make an unnecessarily dramatic entrance."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ011","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"No","answerType":"Yes/No","choices":["I don’t believe in bad luck. I believe in badly timed confidence."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ012","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["I don't believe in the term ‘over the top.’ I believe in the term ‘outside of the box.’"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ002","category":"Movie Quote","question":"You aren't a true internationalist until you've supplied weapons to kill your own countrymen.","answer":"Lord of War","answerType":"Multiple Choice","choices":["Trapped in Paradise","The Rock","Face/Off","Lord of War"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ003","category":"Movie Quote","question":"My name is Castor Troy","answer":"Face/Off","answerType":"Single Choice","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"MQ004","category":"Movie Quote","question":"I'll be taking these Huggies, and whatever cash you got.","answer":"Raising Arizona","answerType":"Single Choice","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ005","category":"Movie Quote","question":"This here is a snakeskin jacket.  It represents a symbol of my individuality, and my believe in personal freedom.","answer":"Wild at Heart","answerType":"Free text","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ006","category":"Movie Quote","question":"What do you say we cut the chit-chat, A-hole?","answer":"The Rock","answerType":"Single Choice","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"MQ007","category":"Movie Quote","question":"Sorry Boss, but there's only two men I trust.  One of them's me.  The other's not you.","answer":"Con Air","answerType":"Single Choice","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"MQ008","category":"Movie Quote","question":"Coffee and a muffin.  OK, so I need to establish the themes.  Maybe a banana-nut.  That's a good muffin.","answer":"Adaptation","answerType":"Free text","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ009","category":"Movie Quote","question":"People don't throw things at me anymore.  Maybe because I carry a bow around.","answer":"The Weather Man","answerType":"Multiple Choice","choices":["Racing with the Moon","Madden","Pig","The Weather Man"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ010","category":"Movie Quote","question":"I'm Nicolas FRIGGIN' Cage!","answer":"The Unbearable Weight of Massive Talent","answerType":"Free text","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ011","category":"Movie Quote","question":"Shoot him again…his soul's still dancing","answer":"Bad Lieutenant: Port of Call - New Orleans","answerType":"Multiple Choice","choices":["Bringing out the Dead","Longlegs","Face/Off","Bad Lieutenant: Port of Call - New Orleans"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ012","category":"Movie Quote","question":"I never disrobe before gunplay","answer":"Drive Angry","answerType":"Multiple Choice","choices":["Gunslingers","Drive Angry","Sympathy for the Devil","Adaptation"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ013","category":"Movie Quote","question":"I have an acronym for myself.  B.A.D.  Balls, Attitude, Direction.  You should give yourself an acronym…'cause it helps you visualize your goals","answer":"Kiss of Death","answerType":"Multiple Choice","choices":["Wild at Heart","Red Rock West","City of Angels","Kiss of Death"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ014","category":"Movie Quote","question":"Nobody ever thinks clearly at the airport","answer":"The Family Man","answerType":"Multiple Choice","choices":["Pig","It Could Happen to You","The Family Man","Madden"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ015","category":"Movie Quote","question":"Got My First Chemistry Set When I Was Seven, Blew My Eyebrows Off, We Never Saw The Cat Again, Been Into It Ever Since.","answer":"The Rock","answerType":"Multiple Choice","choices":["The Rock","Racing with the Moon","It Could Happen to You","Bangkok Dangerous"],"image":"bonus-images/photo_005.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ016","category":"Movie Quote","question":"They Say 'Evil Prevails When Good Men Fail To Act.' What They Oughta Say Is 'Evil Prevails.'","answer":"Lord of War","answerType":"Multiple Choice","choices":["Vampire's Kiss","Renfield","Longlegs","Lord of War"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MC001","category":"Multiple Choice","question":"Which came first?","answer":"The Rock","answerType":"Multiple Choice","choices":["The Rock","Con Air","Face/Off","Snake Eyes"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MC002","category":"Multiple Choice","question":"Which of these did Cage do to help prepare for Leaving Las Vegas?","answer":"Recorded himself binge drinking for two weeks","answerType":"Multiple Choice","choices":["Attended AA meetings for a month","Recorded himself binge drinking for two weeks","Nothing.  He's Nicolas Cage"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MC003","category":"Multiple Choice","question":"How many movies has Nicolas Cage appeared in with Sean Penn","answer":"2","answerType":"Multiple Choice","choices":["1","2","3","0"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"Cage had a minor role in Fast Times at Ridgemont High.  He also worked with Penn's brother Chris in Rumble Fish"},{"id":"MC004","category":"Multiple Choice","question":"What did The Family Man character Jack insist be returned so he could buy a $2,000 suit?","answer":"His daughter's Mary Janes","answerType":"Multiple Choice","choices":["His wife's new car"," His daughter's Mary Janes","All of his Christmas gifts","None of the above - the suit was $3000"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"PI001","category":"Photo Identification","question":"Name the movie","answer":"Lord of War","answerType":"Free text","choices":[],"image":"bonus-images/photo_001.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"You aren't a true internationalist until you've supplied weapons to kill your own countrymen.","image":""}},{"id":"PI002","category":"Photo Identification","question":"Name the movie","answer":"Face/Off","answerType":"Free text","choices":[],"image":"bonus-images/photo_002.png","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":"","hint":{"type":"Quote","text":"My name is Castor Troy","image":""}},{"id":"PI003","category":"Photo Identification","question":"Name the movie","answer":"Raising Arizona","answerType":"Free text","choices":[],"image":"bonus-images/photo_003.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"I'll be taking these Huggies, and whatever cash you got.","image":""}},{"id":"PI004","category":"Photo Identification","question":"Name the movie","answer":"Wild at Heart","answerType":"Free text","choices":[],"image":"bonus-images/photo_004.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"This here is a snakeskin jacket.  It represents a symbol of my individuality, and my believe in personal freedom.","image":""}},{"id":"PI005","category":"Photo Identification","question":"Name the movie","answer":"The Rock","answerType":"Free text","choices":[],"image":"bonus-images/photo_005.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"What do you say we cut the chit-chat, A-hole?","image":""}},{"id":"PI006","category":"Photo Identification","question":"Name the movie","answer":"Con Air","answerType":"Free text","choices":[],"image":"bonus-images/photo_006.png","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":"","hint":{"type":"Quote","text":"Sorry Boss, but there's only two men I trust.  One of them's me.  The other's not you.","image":""}},{"id":"PI007","category":"Photo Identification","question":"Name the movie","answer":"Adaptation","answerType":"Free text","choices":[],"image":"bonus-images/photo_007.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"Coffee and a muffin.  OK, so I need to establish the themes.  Maybe a banana-nut.  That's a good muffin.","image":""}},{"id":"PI008","category":"Photo Identification","question":"Name the movie","answer":"The Weather Man","answerType":"Free text","choices":[],"image":"bonus-images/photo_008.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"People don't throw things at me anymore.  Maybe because I carry a bow around.","image":""}},{"id":"PI009","category":"Photo Identification","question":"Name the movie","answer":"The Unbearable Weight of Massive Talent","answerType":"Free text","choices":[],"image":"bonus-images/photo_009.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"I'm Nicolas FRIGGIN' Cage!","image":""}},{"id":"PI010","category":"Photo Identification","question":"Name the movie","answer":"Bad Lieutenant: Port of Call - New Orleans","answerType":"Free text","choices":[],"image":"bonus-images/photo_010.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"Shoot him again…his soul's stil dancing","image":""}},{"id":"PI011","category":"Photo Identification","question":"Name the movie","answer":"Drive Angry","answerType":"Free text","choices":[],"image":"bonus-images/photo_011.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"I never disrobe before gunplay","image":""}},{"id":"PI012","category":"Photo Identification","question":"Name the movie","answer":"Kiss of Death","answerType":"Free text","choices":[],"image":"bonus-images/photo_012.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"I have an acronym for myself.  B.A.D.  Balls, Attitude, Direction.  You should give yourself an acronym…'cause it helps you visualize your goals","image":""}},{"id":"PI013","category":"Photo Identification","question":"Name the movie","answer":"The Family Man","answerType":"Free text","choices":[],"image":"bonus-images/photo_013.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"Nobody ever thinks clearly at the airport","image":""}},{"id":"TF001","category":"True or False","question":"Cage won the Oscar for Leaving Las Vegas","answer":"Yes","answerType":"Yes/No","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"TF002","category":"True or False","question":"He was originally cast as Brad in Fast Times at Ridgemont High","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"He was too young to work the hours"},{"id":"TF003","category":"True or False","question":"He appeared in a single season of The Best of Times in the 70s","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"The variety show starred Crispin Glover"},{"id":"TF004","category":"True or False","question":"Nicolas Cage once said that his crow would insult him after he left the room.","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"He described his crow calling after him and then insulting him, which he found funny. Los Angeles Times"},{"id":"TF005","category":"True or False","question":"Former co-star Sean Penn once said \"Nic Cage is no longer an actor. He’s more like a performer.”","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":"Sean Penn is a pretentious jerk"},{"id":"TF009","category":"True or False","question":"Nicolas Cage has filed for bankruptcy three times","answer":"","answerType":"Yes/No","choices":[],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"Cage had serious financial and tax problems and reportedly owed millions, but he has said he never filed for bankruptcy."},{"id":"TF010","category":"True or False","question":"Nicolas Cage's first credited film role was as Brad's Bud in Fast Times at Ridgemont High","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"He appeared in the 1982 film while still using the Coppola surname."},{"id":"PI014","category":"Photo Identification","question":"Name the movie","answer":"Lord of War","answerType":"Free text","choices":[],"image":"bonus-images/photo_014.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"They Say 'Evil Prevails When Good Men Fail To Act.' What They Oughta Say Is 'Evil Prevails.'","image":""}}];
+const EMBEDDED_BONUS_QUESTIONS = [{"id":"CF001","category":"Cage Fact","question":"What did Nicolas Cage do when he discovered his cat ate his magic mushrooms?","answer":"Took some as well and they stared at each others eyes for eight hours","answerType":"Single Choice","choices":["Took him for a walk","Personally pumped his stomach","Took some as well and they stared at each others eyes for eight hours","All of the above"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF002","category":"Cage Fact","question":"About how much did Cage say he once owed the IRS and creditors?","answer":"$6 million","answerType":"Single Choice","choices":["$2 million","$6 million","$12 million","$20 million"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF003","category":"Cage Fact","question":"Which exotic animal did Cage once own?","answer":"An octopus","answerType":"Single Choice","choices":["A kangaroo","A llama","A capuchin monkey","An octopus"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CF004","category":"Cage Fact","question":"What type of venomous snakes did Cage own?","answer":"King cobras","answerType":"Single Choice","choices":["King cobras","Rattlesnakes","Coral snakes","Black mambas"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF005","category":"Cage Fact","question":"What happened to Cage's two-headed snake?","answer":"He donated it to a zoo","answerType":"Single Choice","choices":["It escaped","He sold it at auction","He donated it to a zoo","It died during filming"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF006","category":"Cage Fact","question":"What is Nicolas Cage's birth surname?","answer":"Coppola","answerType":"Single Choice","choices":["Coppola","Corleone","Coppelius","Capra"],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"CF007","category":"Cage Fact","question":"Why did Cage begin using a different surname professionally?","answer":"To distance himself from the Coppola family name","answerType":"Single Choice","choices":["His agent told him it was easier to spell","Another actor already used Coppola","He lost a bet","To distance himself from the Coppola family name"],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"CF008","category":"Cage Fact","question":"What eventually happened to Cage's dinosaur skull?","answer":"He returned it after learning it had been illegally removed from Mongolia","answerType":"Single Choice","choices":["He donated it to the Smithsonian","He returned it after learning it had been illegally removed from Mongolia","He gave it to Leonardo DiCaprio","It was destroyed in a fire"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF009","category":"Cage Fact","question":"Which comic-book character helped inspire the name \"Cage\"?","answer":"Luke Cage","answerType":"Single Choice","choices":["Johnny Blaze","Bruce Wayne","Peter Parker","Luke Cage"],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"CF010","category":"Cage Fact","question":"He briefly owned a vintage hearse that he used as his everyday car in the early 1990s.","answer":"No","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF011","category":"Cage Fact","question":"How many times has Nicolas Cage been married?","answer":"Five","answerType":"Single Choice","choices":["Three","Four","Five","Six"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF012","category":"Cage Fact","question":"Cage keeps a handwritten journal ranking every movie he has made by how physically exhausting it was.","answer":"No","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF013","category":"Cage Fact","question":"Why did Cage say his two-headed snake was difficult to feed?","answer":"The heads fought over food","answerType":"Single Choice","choices":["It would only eat live fish","It refused to eat indoors","The heads fought over food","It had to be hand-fed"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF014","category":"Cage Fact","question":"Nicolas Cage once bought a decommissioned lighthouse because he wanted a private place to read scripts.","answer":"No","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CF015","category":"Cage Fact","question":"What prehistoric object did Cage buy at auction?","answer":"A dinosaur skull","answerType":"Single Choice","choices":["A mammoth tusk","A dinosaur skull","A fossilized dinosaur egg","A saber-toothed tiger skull"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"CQ001","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say? Select all that apply.","answer":"A, B, and C","answerType":"Multiple Select","choices":["There's a fine line between the Method actor and the schizophrenic","Sometimes people think I'm wearing a wig when I'm not wearing a wig, and then sometimes they think I'm not wering a wig when I am wearing a wig","A good performance should make at least one person slightly uncomfortable.","You can’t negotiate with a peacock. I’ve tried."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ002","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["To be a good actor you have to be something like a criminal, to be willing to break the rules to strive for something new."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ003","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"No","answerType":"Yes/No","choices":["I believe every room has a ghost. Sometimes the ghost is you."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ004","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"I do like to move and get physical in my movies","answerType":"Single Choice","choices":["I do like to move and get physical in my movies","If you’re going to steal a car, spiritually speaking, it should probably be a convertible.","There’s a very thin line between genius and wearing the wrong jacket.","I don’t prepare for chaos. I invite it in and see what it wants."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ005","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"I like both Blue-Ray and DVD but Blue-Ray gives you more options.","answerType":"Single Choice","choices":["I like both Blue-Ray and DVD but Blue-Ray gives you more options.","Sometimes the only way out is to become more confusing than the problem.","I don’t trust a man who owns more than three lamps.","I once ate an entire lemon because I needed to understand bitterness."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ006","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["I think I've become more relaxed throughout my career.  I don't feel the need to jump up and down and make a big noise to get people to pay attention to me.  I don't need to do punk rock gestures or eat a cockroach or do something weird to say I exist."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ007","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"All of the above","answerType":"Multiple Choice","choices":["I was always shocked when I went to the doctor's office and they did my X-ray and didn't find that I had eight more ribs than I should have or tht my blood was the color green.","I always add a year to myself, so I'm prepared for my next birthday.  So when I was 39, I was already 40","If you're really special meaning you're doing something unique and original, it could scare people.","All of the above"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ008","category":"Cage Quote","question":"Which of these did Nicolas Cage actually say?","answer":"All of the above","answerType":"Multiple Choice","choices":["I have eclectic tastes in the movies I want to do.","I am not a demon. I am a lizard, a shark, a heat-seeking panther.  I want to be Bob Denver on acid playing the accordion.","Every great story seems to begin with a snake","All of the above"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ009","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["Nobody wants to watch perfection"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ010","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"No","answerType":"Yes/No","choices":["Sometimes the most honest thing you can do is make an unnecessarily dramatic entrance."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ011","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"No","answerType":"Yes/No","choices":["I don’t believe in bad luck. I believe in badly timed confidence."],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"CQ012","category":"Cage Quote","question":"Did Nicolas Cage really say this?","answer":"Yes","answerType":"Yes/No","choices":["I don't believe in the term ‘over the top.’ I believe in the term ‘outside of the box.’"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ002","category":"Movie Quote","question":"You aren't a true internationalist until you've supplied weapons to kill your own countrymen.","answer":"Lord of War","answerType":"Multiple Choice","choices":["Trapped in Paradise","The Rock","Face/Off","Lord of War"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ003","category":"Movie Quote","question":"My name is Castor Troy","answer":"Face/Off","answerType":"Single Choice","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"MQ004","category":"Movie Quote","question":"I'll be taking these Huggies, and whatever cash you got.","answer":"Raising Arizona","answerType":"Single Choice","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ005","category":"Movie Quote","question":"This here is a snakeskin jacket.  It represents a symbol of my individuality, and my believe in personal freedom.","answer":"Wild at Heart","answerType":"Free text","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ006","category":"Movie Quote","question":"What do you say we cut the chit-chat, A-hole?","answer":"The Rock","answerType":"Single Choice","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"MQ007","category":"Movie Quote","question":"Sorry Boss, but there's only two men I trust.  One of them's me.  The other's not you.","answer":"Con Air","answerType":"Single Choice","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"MQ008","category":"Movie Quote","question":"Coffee and a muffin.  OK, so I need to establish the themes.  Maybe a banana-nut.  That's a good muffin.","answer":"Adaptation","answerType":"Free text","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ009","category":"Movie Quote","question":"People don't throw things at me anymore.  Maybe because I carry a bow around.","answer":"The Weather Man","answerType":"Multiple Choice","choices":["Racing with the Moon","Madden","Pig","The Weather Man"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ010","category":"Movie Quote","question":"I'm Nicolas FRIGGIN' Cage!","answer":"The Unbearable Weight of Massive Talent","answerType":"Free text","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ011","category":"Movie Quote","question":"Shoot him again…his soul's still dancing","answer":"Bad Lieutenant: Port of Call - New Orleans","answerType":"Multiple Choice","choices":["Bringing out the Dead","Longlegs","Face/Off","Bad Lieutenant: Port of Call - New Orleans"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ012","category":"Movie Quote","question":"I never disrobe before gunplay","answer":"Drive Angry","answerType":"Multiple Choice","choices":["Gunslingers","Drive Angry","Sympathy for the Devil","Adaptation"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ013","category":"Movie Quote","question":"I have an acronym for myself.  B.A.D.  Balls, Attitude, Direction.  You should give yourself an acronym…'cause it helps you visualize your goals","answer":"Kiss of Death","answerType":"Multiple Choice","choices":["Wild at Heart","Red Rock West","City of Angels","Kiss of Death"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ014","category":"Movie Quote","question":"Nobody ever thinks clearly at the airport","answer":"The Family Man","answerType":"Multiple Choice","choices":["Pig","It Could Happen to You","The Family Man","Madden"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MQ015","category":"Movie Quote","question":"Got My First Chemistry Set When I Was Seven, Blew My Eyebrows Off, We Never Saw The Cat Again, Been Into It Ever Since.","answer":"The Rock","answerType":"Multiple Choice","choices":["The Rock","Racing with the Moon","It Could Happen to You","Bangkok Dangerous"],"image":"bonus-images/photo_005.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MQ016","category":"Movie Quote","question":"They Say 'Evil Prevails When Good Men Fail To Act.' What They Oughta Say Is 'Evil Prevails.'","answer":"Lord of War","answerType":"Multiple Choice","choices":["Vampire's Kiss","Renfield","Longlegs","Lord of War"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MC001","category":"Multiple Choice","question":"Which came first?","answer":"The Rock","answerType":"Multiple Choice","choices":["The Rock","Con Air","Face/Off","Snake Eyes"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"MC002","category":"Multiple Choice","question":"Which of these did Cage do to help prepare for Leaving Las Vegas?","answer":"Recorded himself binge drinking for two weeks","answerType":"Multiple Choice","choices":["Attended AA meetings for a month","Recorded himself binge drinking for two weeks","Nothing.  He's Nicolas Cage"],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":""},{"id":"MC003","category":"Multiple Choice","question":"How many movies has Nicolas Cage appeared in with Sean Penn","answer":"2","answerType":"Multiple Choice","choices":["1","2","3","0"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"Cage had a minor role in Fast Times at Ridgemont High.  He also worked with Penn's brother Chris in Rumble Fish"},{"id":"MC004","category":"Multiple Choice","question":"What did The Family Man character Jack insist be returned so he could buy a $2,000 suit?","answer":"His daughter's Mary Janes","answerType":"Multiple Choice","choices":["His wife's new car"," His daughter's Mary Janes","All of his Christmas gifts","None of the above - the suit was $3000"],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":""},{"id":"PI001","category":"Photo Identification","question":"Name the movie","answer":"Lord of War","answerType":"Free text","choices":[],"image":"bonus-images/photo_001.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"You aren't a true internationalist until you've supplied weapons to kill your own countrymen.","image":""}},{"id":"PI002","category":"Photo Identification","question":"Name the movie","answer":"Face/Off","answerType":"Free text","choices":[],"image":"bonus-images/photo_002.png","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":"","hint":{"type":"Quote","text":"My name is Castor Troy","image":""}},{"id":"PI003","category":"Photo Identification","question":"Name the movie","answer":"Raising Arizona","answerType":"Free text","choices":[],"image":"bonus-images/photo_003.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"I'll be taking these Huggies, and whatever cash you got.","image":""}},{"id":"PI004","category":"Photo Identification","question":"Name the movie","answer":"Wild at Heart","answerType":"Free text","choices":[],"image":"bonus-images/photo_004.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"This here is a snakeskin jacket.  It represents a symbol of my individuality, and my believe in personal freedom.","image":""}},{"id":"PI005","category":"Photo Identification","question":"Name the movie","answer":"The Rock","answerType":"Free text","choices":[],"image":"bonus-images/photo_005.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"What do you say we cut the chit-chat, A-hole?","image":""}},{"id":"PI006","category":"Photo Identification","question":"Name the movie","answer":"Con Air","answerType":"Free text","choices":[],"image":"bonus-images/photo_006.png","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":"","hint":{"type":"Quote","text":"Sorry Boss, but there's only two men I trust.  One of them's me.  The other's not you.","image":""}},{"id":"PI007","category":"Photo Identification","question":"Name the movie","answer":"Adaptation","answerType":"Free text","choices":[],"image":"bonus-images/photo_007.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"Coffee and a muffin.  OK, so I need to establish the themes.  Maybe a banana-nut.  That's a good muffin.","image":""}},{"id":"PI008","category":"Photo Identification","question":"Name the movie","answer":"The Weather Man","answerType":"Free text","choices":[],"image":"bonus-images/photo_008.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"People don't throw things at me anymore.  Maybe because I carry a bow around.","image":""}},{"id":"PI009","category":"Photo Identification","question":"Name the movie","answer":"The Unbearable Weight of Massive Talent","answerType":"Free text","choices":[],"image":"bonus-images/photo_009.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"I'm Nicolas FRIGGIN' Cage!","image":""}},{"id":"PI010","category":"Photo Identification","question":"Name the movie","answer":"Bad Lieutenant: Port of Call - New Orleans","answerType":"Free text","choices":[],"image":"bonus-images/photo_010.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"Shoot him again…his soul's stil dancing","image":""}},{"id":"PI011","category":"Photo Identification","question":"Name the movie","answer":"Drive Angry","answerType":"Free text","choices":[],"image":"bonus-images/photo_011.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"I never disrobe before gunplay","image":""}},{"id":"PI012","category":"Photo Identification","question":"Name the movie","answer":"Kiss of Death","answerType":"Free text","choices":[],"image":"bonus-images/photo_012.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"I have an acronym for myself.  B.A.D.  Balls, Attitude, Direction.  You should give yourself an acronym…'cause it helps you visualize your goals","image":""}},{"id":"PI013","category":"Photo Identification","question":"Name the movie","answer":"The Family Man","answerType":"Free text","choices":[],"image":"bonus-images/photo_013.png","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"","hint":{"type":"Quote","text":"Nobody ever thinks clearly at the airport","image":""}},{"id":"TF001","category":"True or False","question":"Cage won the Oscar for Leaving Las Vegas","answer":"Yes","answerType":"Yes/No","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":""},{"id":"TF002","category":"True or False","question":"He was originally cast as Brad in Fast Times at Ridgemont High","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"He was too young to work the hours"},{"id":"TF003","category":"True or False","question":"He appeared in a single season of The Best of Times in the 70s","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"The variety show starred Crispin Glover"},{"id":"TF004","category":"True or False","question":"Nicolas Cage once said that his crow would insult him after he left the room.","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"He described his crow calling after him and then insulting him, which he found funny. Los Angeles Times"},{"id":"TF005","category":"True or False","question":"Former co-star Sean Penn once said \"Nic Cage is no longer an actor. He’s more like a performer.”","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":1,"correctNoHint":1,"correctAfterHint":0,"wrong":-1,"answerExplanation":"Sean Penn is a pretentious jerk"},{"id":"TF009","category":"True or False","question":"Nicolas Cage has filed for bankruptcy three times","answer":"False","answerType":"Yes/No","choices":[],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"Cage had serious financial and tax problems and reportedly owed millions, but he has said he never filed for bankruptcy."},{"id":"TF010","category":"True or False","question":"Nicolas Cage's first credited film role was as Brad's Bud in Fast Times at Ridgemont High","answer":"True","answerType":"Yes/No","choices":[],"image":"","points":5,"correctNoHint":5,"correctAfterHint":4,"wrong":-5,"answerExplanation":"He appeared in the 1982 film while still using the Coppola surname."},{"id":"PI014","category":"Photo Identification","question":"Name the movie","answer":"Lord of War","answerType":"Free text","choices":[],"image":"bonus-images/photo_014.png","points":3,"correctNoHint":3,"correctAfterHint":2,"wrong":-3,"answerExplanation":"","hint":{"type":"Quote","text":"They Say 'Evil Prevails When Good Men Fail To Act.' What They Oughta Say Is 'Evil Prevails.'","image":""}}];
 
 
 function loadBonusQuestionBank(force = false) {
@@ -7057,7 +7067,8 @@ challengeMode = true;
   connectModeActive = false;
   connectFirstNode = null;
   clearNodeStates();
-  setStatus("Challenge mode ON. Click the connection you want to challenge.");
+  setStatus("Challenge mode ON. Click the connection LINE or LABEL—not a movie card.");
+  openCheatDialog("Challenge Mode", "<p>Select the <strong>actual connection line or its label</strong> between the two movie cards you want to challenge—not either movie card.</p><p>Close this message, then tap or click that connection.</p>");
 }
 
 function closeCheatDialog() {
@@ -7098,6 +7109,45 @@ function escapeAttr(text) {
   return String(text || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
+// V49: A per-seat result notice survives clearing the active challenge. Only
+// the recipient's OK button removes their own notice; no other player's click
+// can dismiss it remotely.
+let remoteChallengeResultHandler = null;
+let activeChallengeResultId = null;
+function displayChallengeResultNotice(notice){
+  const overlay=document.getElementById("challengeResultOverlay");
+  if(!overlay)return;
+  if(!notice || !notice.id){
+    overlay.classList.add("hidden");
+    activeChallengeResultId=null;
+    return;
+  }
+  activeChallengeResultId=String(notice.id);
+  const won=notice.result==="won";
+  document.getElementById("challengeResultTitle").textContent=won ? "Challenge Successful" : "Challenge Unsuccessful";
+  document.getElementById("challengeResultText").textContent=won
+    ? `${notice.route || "Connection"}: connection broken. ${notice.challengedPlayer || "The challenged player"} loses ${notice.penalty || 0} points.`
+    : `${notice.route || "Connection"}: connection stands. ${notice.challenger || "The challenger"} loses 3 points.`;
+  overlay.classList.remove("hidden");
+}
+document.getElementById("challengeResultOK")?.addEventListener("click", async () => {
+  const id=activeChallengeResultId;
+  const overlay=document.getElementById("challengeResultOverlay");
+  if(!id)return;
+  // Hide immediately for this client, but don't touch another seat's notice.
+  overlay?.classList.add("hidden");
+  activeChallengeResultId=null;
+  if(remoteRoomRef && Number.isInteger(remotePlayerIndex)){
+    try {
+      await remoteRoomRef.child(`challengeResults/${remotePlayerIndex}`).transaction(
+        current => current && String(current.id)===id ? null : undefined
+      );
+    }catch(err){
+      console.error("Challenge result acknowledgement failed",err);
+      setStatus("Could not acknowledge the challenge result; it may reappear.");
+    }
+  }
+});
 function hideChallengeEventModal(){
   if(challengeEventOverlay) challengeEventOverlay.classList.add("hidden");
   if(challengeEventActions) challengeEventActions.innerHTML="";
@@ -7325,6 +7375,20 @@ async function resolveChallengeEvent(result, challenge){
       dismissedChallengeId = challengeId;
       hideChallengeEventModal();
       applyRemoteState(outcome.snapshot.val());
+      // Publish independent result notices before removing the shared prompt.
+      // Keep each visible until that player presses OK. This is deliberately
+      // separate from the active challenge, which should still close promptly.
+      const resultNotice={id:challengeId,result,route:challenge.route || "Connection",
+        challenger,challengedPlayer,penalty,createdAt:firebase.database.ServerValue.TIMESTAMP};
+      try {
+        await room.child("challengeResults").update({
+          [String(challengerIndex)]:resultNotice,
+          [String(challengedPlayerIndex)]:resultNotice
+        });
+      } catch(noticeErr){
+        console.error("Challenge resolved but result notification was not delivered",noticeErr);
+        setStatus("Challenge was resolved, but the result message could not be delivered.");
+      }
       // The player's choice is final once the score/board transaction succeeds.
       // Remove the shared challenge prompt so both devices close it automatically.
       // Only clear the matching challenge: never erase a newer challenge.
@@ -7544,6 +7608,7 @@ function findMovie() {
         currentPlayerIndex: 0,
         bonusUsedThisTurn: false,
         usedBonusQuestionIds: [],
+        bonusGameId: `reset-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         recentActions: [],
         updatedAt: (window.firebase && firebase.database) ? firebase.database.ServerValue.TIMESTAMP : Date.now()
       };
@@ -8854,6 +8919,7 @@ function closeBonusLiveForOwner() {
   }).catch(err => { console.error('Bonus spectator close failed', err); return false; });
 }
 function closeBonusRound() {
+  if (bonusSubmissionInFlight) return;
   clearTimeout(liveBonusSelectedTimer);
   if (remoteRoomRef) closeBonusLiveForOwner();
   bonusOverlay.classList.add("hidden");
@@ -8913,6 +8979,7 @@ function resetBonusPlayUi() {
 }
 
 async function openBonusRound() {
+  showBonusHistoryCount();
   clearTimeout(liveBonusSelectedTimer);
   liveBonusRoundEpoch++;
   liveBonusRoundId = `${remotePlayerIndex}-${Date.now()}-${liveBonusRoundEpoch}`;
@@ -8973,7 +9040,7 @@ function pickUnusedBonusQuestion(category) {
   const available = bonusQuestionBank.filter(q =>
     q.category === category &&
     Number(q.points) === Number(selectedBonusPointLevel) &&
-    !usedBonusQuestionIds.includes(String(q.id))
+    !new Set([...usedBonusQuestionIds, ...readBonusHistoryBackup(null)]).has(String(q.id))
   );
   if (!available.length) return null;
   return available[Math.floor(Math.random() * available.length)];
@@ -8985,7 +9052,9 @@ function renderBonusChoices(item) {
 
   if (answerType === "yes/no") {
     bonusChoices.classList.remove("hidden");
-    ["Yes", "No"].forEach((choice, index) => {
+    const booleanChoices = String(item.category || "").trim().toLowerCase() === "true or false"
+      ? ["True", "False"] : ["Yes", "No"];
+    booleanChoices.forEach((choice, index) => {
       const label = document.createElement("label");
       label.className = "bonus-option";
       const input = document.createElement("input");
@@ -9109,37 +9178,119 @@ function renderBonusQuestion(item) {
   bonusPlay.style.display = "block";
 }
 
+// Prevent rapid double clicks from drawing more than one question.
+let bonusQuestionDrawPending = false;
+
+// V52: local backup for the shared, per-game Bonus Round question history.
+// The authoritative reservation still occurs in the existing Firebase transaction.
+function bonusHistoryBackupKey(gameId) {
+  const room = (typeof remoteRoomCode !== 'undefined' && remoteRoomCode) ? remoteRoomCode : 'local';
+  return `cageBonusHistoryV52:${room}:${String(gameId || 'legacy')}`;
+}
+function readBonusHistoryBackup(gameId) {
+  try {
+    const ids = JSON.parse(localStorage.getItem(bonusHistoryBackupKey(gameId)) || '[]');
+    return Array.isArray(ids) ? ids.map(String) : [];
+  } catch (_) { return []; }
+}
+function rememberBonusHistory(ids, gameId) {
+  const merged = [...new Set([...readBonusHistoryBackup(gameId), ...(Array.isArray(ids) ? ids.map(String) : [])])];
+  try { localStorage.setItem(bonusHistoryBackupKey(gameId), JSON.stringify(merged)); } catch (_) {}
+  return merged;
+}
+function showBonusHistoryCount() {
+  const label = document.getElementById('bonusHistoryCountV52');
+  if (label) label.textContent = `Questions used this game: ${usedBonusQuestionIds.length} / ${bonusQuestionBank.length || 67}`;
+}
+
 async function startBonusCategory(category) {
+  if (bonusQuestionDrawPending) return;
   if (bonusUsedThisTurn) {
     bonusSubtitle.textContent = "Bonus Round has already been used this turn.";
     return;
   }
-
   if (![1, 3, 5].includes(Number(selectedBonusPointLevel))) return;
 
+  bonusQuestionDrawPending = true;
+  bonusCategoryChoices.querySelectorAll("button").forEach(btn => btn.disabled = true);
+  bonusSubtitle.textContent = "Choosing a question…";
   try {
     await loadBonusQuestionBank();
-  } catch {
-    return;
+    let item = null;
+    if (remoteRoomRef) {
+      // Reserve the question on Firebase BEFORE showing it. The transaction
+      // uses the latest shared history and retries if another writer changed it.
+      // This prevents another player or stale client from reusing the same ID.
+      const room = remoteRoomRef;
+      const seat = remotePlayerIndex;
+      const points = Number(selectedBonusPointLevel);
+      let reservedId = null;
+      let exhausted = false;
+      const result = await room.child("state").transaction(current => {
+        reservedId = null;
+        exhausted = false;
+        if (!current || current.currentPlayerIndex !== seat || current.bonusUsedThisTurn) return;
+        const used = new Set([
+          ...(Array.isArray(current.usedBonusQuestionIds) ? current.usedBonusQuestionIds : []).map(String),
+          ...readBonusHistoryBackup(current.bonusGameId)
+        ]);
+        const eligible = bonusQuestionBank.filter(q =>
+          q.category === category && Number(q.points) === points &&
+          !used.has(String(q.id))
+        );
+        if (!eligible.length) { exhausted = true; return; }
+        const chosen = eligible[Math.floor(Math.random() * eligible.length)];
+        reservedId = String(chosen.id);
+        used.add(reservedId);
+        return {
+          ...current,
+          bonusUsedThisTurn: true,
+          usedBonusQuestionIds: [...used],
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+      }, undefined, false);
+      if (!result.committed || !reservedId) {
+        if (result.snapshot?.val()) applyRemoteState(result.snapshot.val());
+        bonusSubtitle.textContent = exhausted
+          ? `No unused ${points}-point ${category} questions remain.`
+          : "Could not reserve a question. Check whose turn it is and try again.";
+        return;
+      }
+      applyRemoteState(result.snapshot.val());
+      rememberBonusHistory(result.snapshot.val()?.usedBonusQuestionIds, result.snapshot.val()?.bonusGameId);
+      showBonusHistoryCount();
+      item = bonusQuestionBank.find(q => String(q.id) === reservedId) || null;
+    } else {
+      item = pickUnusedBonusQuestion(category);
+      if (item) {
+        if (!usedBonusQuestionIds.includes(String(item.id))) usedBonusQuestionIds.push(String(item.id));
+        usedBonusQuestionIds = rememberBonusHistory(usedBonusQuestionIds, null);
+        showBonusHistoryCount();
+        bonusUsedThisTurn = true;
+        saveTwoPlayerState();
+      }
+    }
+    if (!item) {
+      bonusSubtitle.textContent = `No unused ${selectedBonusPointLevel}-point ${category} questions remain.`;
+      return;
+    }
+    renderBonusQuestion(item);
+    publishBonusLive({phase:'question',category:item.category||category,points:Number(item.points)||0,
+      question:String(item.question||''),choices:Array.isArray(item.choices)?item.choices.map(String):[],
+      image:bonusAssetUrl(item.image),selection:'',hintUsed:false,hintText:'',correctAnswer:'',reactionImage:''});
+  } catch (error) {
+    console.error("Bonus question reservation failed", error);
+    bonusSubtitle.textContent = "Could not save the question selection. Please try again.";
+  } finally {
+    bonusQuestionDrawPending = false;
+    if (!bonusUsedThisTurn) {
+      const unused = bonusQuestionBank.filter(q => !usedBonusQuestionIds.includes(String(q.id)));
+      bonusCategoryChoices.querySelectorAll("button").forEach(btn => {
+        btn.disabled = !unused.some(q => q.category === btn.dataset.bonusCategory &&
+          Number(q.points) === Number(selectedBonusPointLevel));
+      });
+    }
   }
-
-  const item = pickUnusedBonusQuestion(category);
-  if (!item) {
-    bonusSubtitle.textContent = `No unused ${selectedBonusPointLevel}-point ${category} questions remain.`;
-    return;
-  }
-
-  // A question counts as used as soon as it is drawn. Closing it cannot cause
-  // it to reappear later in the same game.
-  if (!usedBonusQuestionIds.includes(String(item.id))) {
-    usedBonusQuestionIds.push(String(item.id));
-  }
-  bonusUsedThisTurn = true;
-  saveTwoPlayerState();
-  renderBonusQuestion(item);
-  publishBonusLive({phase:'question',category:item.category||category,points:Number(item.points)||0,
-    question:String(item.question||''),choices:Array.isArray(item.choices)?item.choices.map(String):[],
-    image:bonusAssetUrl(item.image),selection:'',hintUsed:false,hintText:'',correctAnswer:'',reactionImage:''});
 }
 
 function useBonusHint() {
@@ -9192,11 +9343,19 @@ function selectedBonusAnswer(item) {
 
 function parseExpectedMultipleSelect(answer, choiceCount) {
   const text = String(answer || "").toUpperCase();
-  const letters = [...new Set((text.match(/[A-D]/g) || []))];
+  const tokens = text.replace(/\bAND\b/g, ",").split(/[\s,;&/]+/).filter(Boolean);
+  const letters = [...new Set(tokens.flatMap(token => /^[A-D]+$/.test(token) ? [...token] : []))];
   return letters
     .map(letter => letter.charCodeAt(0) - 65)
     .filter(index => index >= 0 && index < choiceCount)
     .sort((a, b) => a - b);
+}
+
+function bonusYesNoEquivalent(value) {
+  const normalized = normalizeBonusText(value);
+  if (normalized === "true" || normalized === "yes") return "yes";
+  if (normalized === "false" || normalized === "no") return "no";
+  return normalized;
 }
 
 function isBonusAnswerCorrectV2(item, given) {
@@ -9210,6 +9369,7 @@ function isBonusAnswerCorrectV2(item, given) {
   }
 
   if (given === null || given === undefined || String(given).trim() === "") return false;
+  if (answerType === "yes/no") return bonusYesNoEquivalent(given) === bonusYesNoEquivalent(item.answer);
   return normalizeBonusText(given) === normalizeBonusText(item.answer);
 }
 
@@ -9239,11 +9399,11 @@ function revealCorrectBonusChoices(item, given) {
   }
 
   if (answerType === "yes/no") {
-    const expectedText = normalizeBonusText(item.answer);
+    const expectedText = bonusYesNoEquivalent(item.answer);
     const inputs = [...bonusChoices.querySelectorAll('input[name="bonusChoice"]')];
     inputs.forEach((input, index) => {
-      if (normalizeBonusText(input.value) === expectedText) markCorrectIndex(index);
-      if (input.checked && normalizeBonusText(input.value) !== expectedText && labels[index]) {
+      if (bonusYesNoEquivalent(input.value) === expectedText) markCorrectIndex(index);
+      if (input.checked && bonusYesNoEquivalent(input.value) !== expectedText && labels[index]) {
         labels[index].classList.add("wrong-answer");
       }
     });
@@ -9286,6 +9446,8 @@ function lockBonusInputs() {
 }
 
 let remoteBonusCommitPending = false;
+// A synchronous local latch closes the gap before the first Firebase await.
+let bonusSubmissionInFlight = false;
 async function submitBonusAnswer() {
   if (!activeBonus) {
     bonusResult.textContent = "No active Bonus Round question.";
@@ -9306,10 +9468,16 @@ async function submitBonusAnswer() {
 
   // An online Bonus Round must be finalized by Firebase, not by a local score
   // write followed by a separate turn change.
-  if (remoteRoomRef && (remoteBonusCommitPending || remotePlayerIndex !== currentPlayerIndex)) {
-    bonusResult.textContent = "Bonus Round is already being saved, or it is not your turn.";
+  if (bonusSubmissionInFlight || remoteBonusCommitPending) return;
+  if (remoteRoomRef && remotePlayerIndex !== currentPlayerIndex) {
+    bonusResult.textContent = "It is not your turn.";
     return;
   }
+  bonusSubmissionInFlight = true;
+  bonusSubmitBtn.disabled = true;
+  bonusSubmitBtn.textContent = "Submitting…";
+  bonusResult.textContent = "Submitting answer…";
+  try {
   clearTimeout(liveBonusSelectedTimer);
   // Publish the final selected answer first, then wait for all earlier steps.
   // This prevents delayed updates from landing after the scoring transaction.
@@ -9409,6 +9577,16 @@ async function submitBonusAnswer() {
     try { saveTwoPlayerState(); } catch (err) { console.error("Bonus save failed", err); }
     try { updateScoreDisplay(); } catch (err) { console.error("Bonus score display failed", err); }
     try { endTurn(); } catch (err) { console.error("Bonus end-turn failed", err); }
+  }
+  } catch (err) {
+    console.error("Bonus submission failed", err);
+    bonusResult.textContent = "Answer could not be submitted. Please check your connection and try again.";
+  } finally {
+    bonusSubmissionInFlight = false;
+    if (activeBonus === item && !bonusSubmitBtn.classList.contains("answered-hidden")) {
+      bonusSubmitBtn.disabled = false;
+      bonusSubmitBtn.textContent = "Submit Answer";
+    }
   }
 }
 
@@ -11004,12 +11182,24 @@ function applyRemoteState(state){
   try{
     const incomingBoard = state.board && typeof state.board === "object"
       ? state.board : {nodes:[],connections:[]};
+    // Keep an in-progress connection across routine Firebase board refreshes.
+    // loadBoardFromData rebuilds every card and resets the Connect state.
+    // Record the ID (not the old node object) and restore it after rebuilding.
+    const connectingPlayerStillActive = !Number.isInteger(state.currentPlayerIndex) ||
+      state.currentPlayerIndex === currentPlayerIndex;
+    const pendingConnectMode = connectModeActive && connectingPlayerStillActive;
+    const pendingConnectId = pendingConnectMode ? connectFirstNode?.id : null;
     // Prevent penalties from a different, local game affecting a shared room.
     const penalties = state.boardPenalties || {};
     remoteBoardPenalties.cast = Math.max(0, Number(penalties.cast) || 0);
     remoteBoardPenalties.shared = Math.max(0, Number(penalties.shared) || 0);
     remoteBoardPenalties.bridge = Math.max(0, Number(penalties.bridge) || 0);
     loadBoardFromData(incomingBoard);
+    if (pendingConnectMode) {
+      connectModeActive = true;
+      connectFirstNode = pendingConnectId ? nodes.find(n => n.id === pendingConnectId) || null : null;
+      if (connectFirstNode) connectFirstNode.el.classList.add("connecting");
+    }
 
     if(Array.isArray(state.scores)){
       for(let i=0;i<remoteMaxPlayers;i++){
@@ -11032,9 +11222,11 @@ function applyRemoteState(state){
       hideChallengeEventModal();
     }
     bonusUsedThisTurn=!!state.bonusUsedThisTurn;
-    usedBonusQuestionIds=Array.isArray(state.usedBonusQuestionIds)
-      ? [...new Set(state.usedBonusQuestionIds.map(String))]
-      : [];
+    usedBonusQuestionIds=rememberBonusHistory(
+      Array.isArray(state.usedBonusQuestionIds) ? state.usedBonusQuestionIds : [],
+      state.bonusGameId
+    );
+    showBonusHistoryCount();
     renderDockRecent(Array.isArray(state.recentActions) ? state.recentActions : []);
     restoreDockConnectionFromBoard();
     renderRemoteBonusLive(state.bonusLive || null);
@@ -11063,8 +11255,20 @@ function setDockChatEnabled(enabled){const i=document.getElementById("dockChatIn
 function clearDockChat(){const box=document.getElementById("dockChatMessages");if(box)box.innerHTML='<div class="dock-chat-line">Join an online room to chat.</div>';}
 function appendDockChat(msg){const box=document.getElementById("dockChatMessages");if(!box||!msg)return;if(box.children.length===1&&box.textContent.includes("Join an online room"))box.innerHTML="";const line=document.createElement("div");line.className="dock-chat-line";const name=document.createElement("span");name.className="dock-chat-name";name.textContent=`${String(msg.name||"Player")}: `;const text=document.createElement("span");text.textContent=String(msg.text||"");line.append(name,text);box.appendChild(line);while(box.children.length>12)box.removeChild(box.firstChild);box.scrollTop=box.scrollHeight;}
 function sendDockChat(event){if(event)event.preventDefault();if(!remoteRoomRef||!Number.isInteger(remotePlayerIndex)||remotePlayerIndex<0||remotePlayerIndex>=remoteMaxPlayers){setStatus("Join an online room to use Game Notes chat.");return;}const input=document.getElementById("dockChatInput");const text=String(input?.value||"").trim().slice(0,180);if(!text)return;const name=players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`;remoteRoomRef.child("chat").push({name,playerIndex:remotePlayerIndex,text,createdAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{if(input){input.value="";input.focus();}}).catch(err=>{console.error("Chat send failed",err);setStatus("Chat message could not be sent.");});}
-function detachRemoteListeners(){renderRemoteBonusLive(null);if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
-function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(80);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
+function detachRemoteListeners(){
+  if(remoteRoomRef && remoteChallengeResultHandler && Number.isInteger(remotePlayerIndex)){
+    remoteRoomRef.child(`challengeResults/${remotePlayerIndex}`).off("value",remoteChallengeResultHandler);
+  }
+  remoteChallengeResultHandler=null;
+  displayChallengeResultNotice(null);
+  renderRemoteBonusLive(null);if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
+function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();
+  if(Number.isInteger(remotePlayerIndex)){
+    remoteChallengeResultHandler=snap=>displayChallengeResultNotice(snap.val());
+    remoteRoomRef.child(`challengeResults/${remotePlayerIndex}`).on("value",remoteChallengeResultHandler,
+      err=>{console.error("Challenge result listener failed",err);setStatus("Challenge result notifications were interrupted.");});
+  }
+remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(80);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
 function clearLocalBoardAfterRoomCreated(){
   nodes.forEach(n=>{try{n.el.remove()}catch{}});
   nodes=[];
@@ -11100,7 +11304,7 @@ async function createRemoteGame(){
   try {
     const user=await ensureRemoteAuth();
     remoteOwnPhone=""; // Never upload phone numbers in staging.
-    const freshState={version:3,board:{nodes:[],connections:[]},scores:Array(selectedMax).fill(0),currentPlayerIndex:0,turnStartedAt:firebase.database.ServerValue.TIMESTAMP,bonusUsedThisTurn:false,recentActions:[],updatedAt:Date.now()};
+    const freshState={version:3,board:{nodes:[],connections:[]},scores:Array(selectedMax).fill(0),currentPlayerIndex:0,turnStartedAt:firebase.database.ServerValue.TIMESTAMP,bonusUsedThisTurn:false,usedBonusQuestionIds:[],bonusGameId:`new-${Date.now()}-${Math.random().toString(36).slice(2)}`,recentActions:[],updatedAt:Date.now()};
     let code,roomRef,created=false;
     for(let attempt=0;attempt<6&&!created;attempt++){
       code=makeRoomCode();
@@ -11802,31 +12006,50 @@ async function confirmCageSkip(){
     try { sessionStorage.setItem(key, String(index)); } catch (_) {}
     return items[index];
   }
-  // Persistent shuffle bag: every quote appears once before the next cycle.
-  // Shares history across the separate test page versions on this domain.
+  // Quote shuffle bag. Track quote text rather than positions so new quotes
+  // can be added without losing the rest of the current cycle.
+  const quoteStorageKey = 'cageQuoteShuffleBagV2';
+  let quoteStateMemory = null;
   function nextShuffledQuote(items) {
-    if (!items.length) return null;
-    const key = 'cageQuoteShuffleBagV1';
-    let state = null;
-    try { state = JSON.parse(localStorage.getItem(key) || 'null'); } catch (_) {}
-    if (!state || !Array.isArray(state.remaining) || state.count !== items.length) {
-      state = {count:items.length, remaining:[], last:-1};
+    const unique = [...new Set(items.filter(v => typeof v === 'string' && v.trim()))];
+    if (!unique.length) return null;
+    let state = quoteStateMemory;
+    try {
+      const stored = JSON.parse(localStorage.getItem(quoteStorageKey) || 'null');
+      if (stored && Array.isArray(stored.remaining) && Array.isArray(stored.seen)) state = stored;
+    } catch (_) {}
+    if (!state || !Array.isArray(state.remaining) || !Array.isArray(state.seen)) {
+      state = { remaining: [], seen: [], last: null };
     }
+    // Keep all unshown quotes, including new additions to the source list.
+    const eligible = unique.filter(q => !state.seen.includes(q));
+    state.remaining = [...new Set(state.remaining.filter(q => eligible.includes(q)))];
+    const arrivals = eligible.filter(q => !state.remaining.includes(q));
+    for (let i = arrivals.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arrivals[i], arrivals[j]] = [arrivals[j], arrivals[i]];
+    }
+    state.remaining.push(...arrivals);
     if (!state.remaining.length) {
-      state.remaining = items.map((_, i) => i);
-      for (let i=state.remaining.length-1; i>0; i--) {
-        const j=Math.floor(Math.random()*(i+1));
-        [state.remaining[i],state.remaining[j]]=[state.remaining[j],state.remaining[i]];
-      }
-      if (state.remaining.length > 1 && state.remaining[state.remaining.length-1] === state.last) {
-        const swap=0;
-        [state.remaining[swap],state.remaining[state.remaining.length-1]]=[state.remaining[state.remaining.length-1],state.remaining[swap]];
+      // Every quote was shown: begin a new shuffled cycle.
+      state.seen = [];
+      state.remaining = unique.slice();
+      for (let i = state.remaining.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [state.remaining[i], state.remaining[j]] = [state.remaining[j], state.remaining[i]];
       }
     }
-    const index=state.remaining.pop();
-    state.last=index;
-    try { localStorage.setItem(key,JSON.stringify(state)); } catch (_) {}
-    return items[index];
+    // Prevent the last quote of one cycle from repeating immediately.
+    if (state.remaining.length > 1 && state.remaining[state.remaining.length - 1] === state.last) {
+      [state.remaining[0], state.remaining[state.remaining.length - 1]] =
+        [state.remaining[state.remaining.length - 1], state.remaining[0]];
+    }
+    const chosen = state.remaining.pop();
+    state.seen.push(chosen);
+    state.last = chosen;
+    quoteStateMemory = state;
+    try { localStorage.setItem(quoteStorageKey, JSON.stringify(state)); } catch (_) {}
+    return chosen;
   }
   const q = document.getElementById('cageRandomQuote');
   function rotateCageQuotePhoto(){
