@@ -9077,7 +9077,7 @@ async function openBonusRound() {
   bonusCategoryStep.style.display = "block";
   selectedBonusPointLevel = null;
 
-  bonusSubtitle.textContent = "";
+  bonusSubtitle.textContent = "Loading available Bonus questions…";
   bonusPointChoices.querySelectorAll("button").forEach(btn => {
     btn.disabled = true;
     btn.classList.remove("selected");
@@ -9104,8 +9104,12 @@ async function openBonusRound() {
       btn.disabled = !available;
       btn.title = available ? "" : `No unused ${points}-point questions remain.`;
     });
+    const availableLevels = [...new Set(unused.map(q => Number(q.points)))].filter(n => [1, 3, 5].includes(n)).sort((a,b) => a-b);
+    bonusSubtitle.textContent = availableLevels.length
+      ? `Available point levels: ${availableLevels.join(', ')}. Select a level to see categories.`
+      : 'No unused Bonus questions remain in this game.';
   } catch (err) {
-    bonusSubtitle.textContent = "Could not load Bonus Round data.";
+    bonusSubtitle.textContent = "Could not load Bonus Round data. Close and reopen to retry.";
     setStatus("Bonus Round data could not be loaded.");
   }
 }
