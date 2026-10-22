@@ -8925,22 +8925,77 @@ function closeBonusLiveForOwner() {
     return !!outcome.committed;
   }).catch(err => { console.error('Bonus spectator close failed', err); return false; });
 }
-function closeBonusRound() {
-  if (bonusSubmissionInFlight) return;
+// V54: A drawn Bonus question is a committed attempt. Closing it forfeits.
+let bonusForfeitPending = false;
+async function closeBonusRound() {
+  let justForfeited = false;
+  if (bonusSubmissionInFlight || bonusForfeitPending || remoteBonusCommitPending) return;
+  if (activeBonus && !bonusSubmitBtn.classList.contains('answered-hidden')) {
+    const item = activeBonus;
+    if (!window.confirm(`Forfeit this ${Number(item.points)||0}-point Bonus question?\n\nYou will lose ${Number(item.points)||0} points and your turn will end.`)) return;
+    bonusForfeitPending = true;
+    bonusCancelBtn.disabled = true;
+    bonusResult.textContent = 'Forfeiting Bonus Round…';
+    const points = Number(item.points) || 0;
+    try {
+      clearTimeout(liveBonusSelectedTimer);
+      if (remoteRoomRef) {
+        if (remotePlayerIndex !== currentPlayerIndex) throw new Error('Your turn has changed.');
+        // Flush older spectator updates before writing the definitive outcome.
+        await liveBonusWriteQueue;
+        const seat = remotePlayerIndex;
+        const outcome = await remoteRoomRef.child('state').transaction(current => {
+          if (!current || current.currentPlayerIndex !== seat || !Array.isArray(current.scores)) return;
+          // The question must still be the reserved, unanswered current round.
+          if (current.bonusLive?.phase === 'answered' || current.bonusLive?.phase === 'closed') return;
+          const scores = current.scores.slice();
+          scores[seat] = Number(scores[seat] || 0) - points;
+          return {...current,
+            scores,
+            currentPlayerIndex: nextPlayablePlayerIndex(seat),
+            bonusUsedThisTurn:false,
+            turnStartedAt:firebase.database.ServerValue.TIMESTAMP,
+            usedBonusQuestionIds:[...new Set([...(current.usedBonusQuestionIds || []).map(String), String(item.id)])],
+            recentActions:[`${players[seat]?.name || `Player ${seat+1}`} forfeited Bonus Round (-${points}).`, ...(current.recentActions || [])].slice(0,4),
+            bonusLive:{...(current.bonusLive || {}),phase:'answered',seat,correct:false,selection:'Forfeited',correctAnswer:String(item.answer || ''),scoreChange:-points,answerExplanation:'Question forfeited without submitting an answer.',updatedAt:firebase.database.ServerValue.TIMESTAMP},
+            updatedAt:firebase.database.ServerValue.TIMESTAMP
+          };
+        },undefined,false);
+        if (!outcome.committed) {
+          if (outcome.snapshot?.val()) applyRemoteState(outcome.snapshot.val());
+          throw new Error('The turn or Bonus Round changed before the forfeit could be saved.');
+        }
+        applyRemoteState(outcome.snapshot.val());
+      } else {
+        players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) - points;
+        endTurn();
+      }
+      activeBonus = null;
+      justForfeited = true;
+    } catch(err) {
+      console.error('Bonus forfeit failed', err);
+      bonusResult.textContent = `Forfeit not saved: ${err.message || err}. Please try again.`;
+      return;
+    } finally {
+      bonusForfeitPending = false;
+      bonusCancelBtn.disabled = false;
+    }
+  }
   clearTimeout(liveBonusSelectedTimer);
-  if (remoteRoomRef) closeBonusLiveForOwner();
-  bonusOverlay.classList.add("hidden");
-  bonusChooser.classList.remove("hidden");
-  bonusChooser.style.display = "block";
-  bonusPointStep.style.display = "block";
-  bonusCategoryStep.style.display = "block";
-  bonusPlay.classList.add("hidden");
-  bonusPlay.style.display = "none";
-  bonusPointStep.classList.remove("hidden");
-  bonusCategoryStep.classList.remove("hidden");
+  // Keep a forfeited round's result visible on the spectator screen.
+  if (remoteRoomRef && !justForfeited) closeBonusLiveForOwner();
+  bonusOverlay.classList.add('hidden');
+  bonusChooser.classList.remove('hidden');
+  bonusChooser.style.display = 'block';
+  bonusPointStep.style.display = 'block';
+  bonusCategoryStep.style.display = 'block';
+  bonusPlay.classList.add('hidden');
+  bonusPlay.style.display = 'none';
+  bonusPointStep.classList.remove('hidden');
+  bonusCategoryStep.classList.remove('hidden');
   selectedBonusPointLevel = null;
-  bonusPointChoices.querySelectorAll("button").forEach(btn => btn.classList.remove("selected"));
-  bonusCategoryChoices.querySelectorAll("button").forEach(btn => btn.disabled = true);
+  bonusPointChoices.querySelectorAll('button').forEach(btn => btn.classList.remove('selected'));
+  bonusCategoryChoices.querySelectorAll('button').forEach(btn => btn.disabled = true);
   activeBonus = null;
   bonusHintUsed = false;
 }
@@ -9029,6 +9084,13 @@ async function openBonusRound() {
 
   try {
     await loadBonusQuestionBank();
+    if (remoteRoomRef) {
+      const latest = (await remoteRoomRef.child('state').once('value')).val();
+      if (latest) {
+        usedBonusQuestionIds = rememberBonusHistory(Array.isArray(latest.usedBonusQuestionIds) ? latest.usedBonusQuestionIds : [], latest.bonusGameId);
+        showBonusHistoryCount();
+      }
+    }
     const unused = bonusQuestionBank.filter(q => !usedBonusQuestionIds.includes(String(q.id)));
 
     bonusPointChoices.querySelectorAll("button").forEach(btn => {
