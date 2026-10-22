@@ -3846,6 +3846,45 @@ body[data-card-size="compact"] #surface .node::before {
   }
 }
 </style>
+
+<style id="ccV58BonusSafetyAndTitles">
+/* Always present gameplay dialogs above the board, dock, and spectator cards. */
+#bonusOverlay { z-index:60000 !important; box-sizing:border-box !important; }
+#bonusDialog { position:relative !important; z-index:1 !important; box-sizing:border-box !important; max-height:calc(100dvh - 30px) !important; overscroll-behavior:contain; }
+#bonusLiveSpectator { z-index:59000 !important; max-height:calc(100dvh - 30px) !important; box-sizing:border-box !important; overscroll-behavior:contain; }
+#bonusOverlay:not(.hidden) { pointer-events:auto !important; }
+#bonusImage,#bonusHintImage,#bonusLiveImage,#bonusLiveHintImage { max-width:100% !important; height:auto !important; }
+#bonusPointChoices button:disabled { opacity:.48 !important; cursor:not-allowed !important; }
+#bonusEmptyNoticeV58 { font-size:13px; color:#e9c477; margin:7px 0; }
+/* Native tooltips display the unclipped title while preserving compact card geometry. */
+#surface .node[title] { cursor:grab; }
+</style>
+<style id="cageChatNoBoardShiftV59">
+/* Chat messages scroll inside a fixed-height header panel instead of growing
+   the masthead and pushing the board down. Preserve existing board cards. */
+@media (min-width:1360px) {
+  #toolbar #activityTop {
+    height:236px !important;
+    min-height:236px !important;
+    max-height:236px !important;
+    align-self:start !important;
+    overflow:hidden !important;
+  }
+  #toolbar #activityTop > .game-dock-panel:first-child {
+    height:88px !important;
+    min-height:88px !important;
+    max-height:88px !important;
+    flex:0 0 88px !important;
+    overflow:hidden !important;
+  }
+  #toolbar #activityTop #dockChatMessages {
+    min-height:0 !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    overscroll-behavior:contain !important;
+  }
+}
+</style>
 </head>
 <body>
 
@@ -7755,6 +7794,7 @@ function renderNode(nodeObj) {
       const title = document.createElement("div");
       title.className = "node-title";
       title.textContent = nodeObj.name;
+      nodeObj.el.title = String(nodeObj.name || '');
 
       const usage = document.createElement("div");
       usage.className = "node-usage";
@@ -9104,10 +9144,16 @@ async function openBonusRound() {
       btn.disabled = !available;
       btn.title = available ? "" : `No unused ${points}-point questions remain.`;
     });
+    bonusPointChoices.querySelectorAll('button').forEach(btn => {
+      const points=Number(btn.dataset.bonusPoints);
+      const available=unused.some(q=>Number(q.points)===points);
+      btn.textContent=available?`${points} Point${points===1?'':'s'}`:`${points} Point${points===1?'':'s'} — None Left`;
+    });
     const availableLevels = [...new Set(unused.map(q => Number(q.points)))].filter(n => [1, 3, 5].includes(n)).sort((a,b) => a-b);
     bonusSubtitle.textContent = availableLevels.length
       ? `Available point levels: ${availableLevels.join(', ')}. Select a level to see categories.`
       : 'No unused Bonus questions remain in this game.';
+    refreshBonusPointCategories();
   } catch (err) {
     bonusSubtitle.textContent = "Could not load Bonus Round data. Close and reopen to retry.";
     setStatus("Bonus Round data could not be loaded.");
@@ -9436,6 +9482,39 @@ function bonusYesNoEquivalent(value) {
   return normalized;
 }
 
+function bonusTypoDistanceV58(a,b) {
+  const n=a.length,m=b.length;
+  const d=Array.from({length:n+1},()=>Array(m+1).fill(0));
+  for(let i=0;i<=n;i++) d[i][0]=i;
+  for(let j=0;j<=m;j++) d[0][j]=j;
+  for(let i=1;i<=n;i++) for(let j=1;j<=m;j++) {
+    const cost=a[i-1]===b[j-1]?0:1;
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+cost);
+    if(i>1 && j>1 && a[i-1]===b[j-2] && a[i-2]===b[j-1])
+      d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1);
+  }
+  return d[n][m];
+}
+function bonusTypedMatchV58(given,expected) {
+  const a=normalizeBonusText(given),b=normalizeBonusText(expected);
+  if(!a || !b) return false;
+  if(a===b) return true;
+  const compactA=a.replace(/\s+/g,''), compactB=b.replace(/\s+/g,'');
+  if(compactA===compactB) return true;
+  // Never fuzzy-match short or materially different responses.
+  if(Math.min(compactA.length,compactB.length)<6) return false;
+  const allowed=Math.min(compactA.length,compactB.length)>=11 ? 2 : 1;
+  if(Math.abs(compactA.length-compactB.length)>allowed) return false;
+  const distance=bonusTypoDistanceV58(compactA,compactB);
+  if(distance>allowed) return false;
+  // If an alternative valid answer in the bank is equally close, reject the ambiguity.
+  const competitors=(Array.isArray(bonusQuestionBank)?bonusQuestionBank:[])
+    .filter(q=>q && (q.category===undefined || q.category===activeBonus?.category))
+    .map(q=>normalizeBonusText(q.answer).replace(/\s+/g,''))
+    .filter(x=>x.length>=6 && x!==compactB);
+  return !competitors.some(x=>Math.abs(x.length-compactA.length)<=distance && bonusTypoDistanceV58(compactA,x)<=distance);
+}
+
 function isBonusAnswerCorrectV2(item, given) {
   const answerType = String(item.answerType || "").toLowerCase();
 
@@ -9448,7 +9527,10 @@ function isBonusAnswerCorrectV2(item, given) {
 
   if (given === null || given === undefined || String(given).trim() === "") return false;
   if (answerType === "yes/no") return bonusYesNoEquivalent(given) === bonusYesNoEquivalent(item.answer);
-  return normalizeBonusText(given) === normalizeBonusText(item.answer);
+  // Choice answers must match exactly; spelling tolerance is for typed answers.
+  if (["single choice","multiple choice"].includes(answerType) && Array.isArray(item.choices) && item.choices.length)
+    return normalizeBonusText(given) === normalizeBonusText(item.answer);
+  return bonusTypedMatchV58(given, item.answer);
 }
 
 function revealCorrectBonusChoices(item, given) {
@@ -9668,6 +9750,23 @@ async function submitBonusAnswer() {
   }
 }
 
+// Recalculate categories whenever shared question history changes. In particular,
+// the joining client can receive a state snapshot after choosing 1/3/5 points.
+function refreshBonusPointCategories() {
+  if (![1,3,5].includes(Number(selectedBonusPointLevel))) return;
+  if (bonusOverlay.classList.contains('hidden') || bonusChooser.classList.contains('hidden')) return;
+  if (bonusUsedThisTurn) return;
+  const unused = bonusQuestionBank.filter(q =>
+    Number(q.points) === Number(selectedBonusPointLevel) &&
+    !usedBonusQuestionIds.includes(String(q.id))
+  );
+  bonusCategoryChoices.querySelectorAll('button').forEach(btn => {
+    const available = unused.some(q => q.category === btn.dataset.bonusCategory);
+    btn.disabled = !available;
+    btn.title = available ? '' : `No unused ${selectedBonusPointLevel}-point questions remain in this category.`;
+  });
+}
+
 bonusPointChoices.addEventListener("click", e => {
   const btn = e.target.closest("[data-bonus-points]");
   if (!btn || btn.disabled) return;
@@ -9680,19 +9779,7 @@ bonusPointChoices.addEventListener("click", e => {
     pointBtn.classList.toggle("selected", pointBtn === btn);
   });
 
-  const unused = bonusQuestionBank.filter(q =>
-    Number(q.points) === selectedBonusPointLevel &&
-    !usedBonusQuestionIds.includes(String(q.id))
-  );
-
-  bonusCategoryChoices.querySelectorAll("button").forEach(categoryBtn => {
-    const category = categoryBtn.dataset.bonusCategory;
-    const available = unused.some(q => q.category === category);
-    categoryBtn.disabled = !available;
-    categoryBtn.title = available
-      ? ""
-      : `No unused ${selectedBonusPointLevel}-point questions remain in this category.`;
-  });
+  refreshBonusPointCategories();
 });
 
 bonusCategoryChoices.addEventListener("click", e => {
@@ -9707,7 +9794,16 @@ bonusCloseBtn.addEventListener("click", () => closeBonusRound());
 bonusCancelBtn.addEventListener("click", () => closeBonusRound());
 bonusSubmitBtn.addEventListener("click", submitBonusAnswer);
 bonusAnswer.addEventListener("keydown", e => { if (e.key === "Enter") submitBonusAnswer(); });
-bonusOverlay.addEventListener("click", e => { if (e.target === bonusOverlay) closeBonusRound(); });
+// V58: clicks outside the dialog never forfeit a drawn question.
+// Keep fixed dialog elements out of transformed/stacked board containers.
+if (bonusOverlay.parentElement !== document.body) document.body.appendChild(bonusOverlay);
+const spectatorDialogV58 = document.getElementById('bonusLiveSpectator');
+if (spectatorDialogV58 && spectatorDialogV58.parentElement !== document.body) document.body.appendChild(spectatorDialogV58);
+bonusOverlay.addEventListener("click", e => {
+  if (e.target === bonusOverlay && activeBonus) {
+    bonusResult.textContent = 'Use Close Bonus Round to forfeit this question (confirmation required).';
+  }
+});
 cheatOverlay.addEventListener("click", e => { if (e.target === cheatOverlay) closeCheatDialog(); });
 
 
@@ -11305,6 +11401,9 @@ function applyRemoteState(state){
       state.bonusGameId
     );
     showBonusHistoryCount();
+    // Keep category availability in sync even if a Firebase update arrives
+    // just after the joining player selects a point value.
+    refreshBonusPointCategories();
     renderDockRecent(Array.isArray(state.recentActions) ? state.recentActions : []);
     restoreDockConnectionFromBoard();
     renderRemoteBonusLive(state.bonusLive || null);
