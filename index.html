@@ -8946,8 +8946,13 @@ async function closeBonusRound() {
         const seat = remotePlayerIndex;
         const outcome = await remoteRoomRef.child('state').transaction(current => {
           if (!current || current.currentPlayerIndex !== seat || !Array.isArray(current.scores)) return;
-          // The question must still be the reserved, unanswered current round.
-          if (current.bonusLive?.phase === 'answered' || current.bonusLive?.phase === 'closed') return;
+          // The question is reserved when drawn (bonusUsedThisTurn).
+          // A delayed spectator update may leave bonusLive showing the PREVIOUS
+          // round as answered/closed, so its phase is not a reliable guard.
+          // The authoritative turn and reservation protect against double scores.
+          if (!current.bonusUsedThisTurn) return;
+          if (!Array.isArray(current.usedBonusQuestionIds) ||
+              !current.usedBonusQuestionIds.map(String).includes(String(item.id))) return;
           const scores = current.scores.slice();
           scores[seat] = Number(scores[seat] || 0) - points;
           return {...current,
@@ -8963,7 +8968,7 @@ async function closeBonusRound() {
         },undefined,false);
         if (!outcome.committed) {
           if (outcome.snapshot?.val()) applyRemoteState(outcome.snapshot.val());
-          throw new Error('The turn or Bonus Round changed before the forfeit could be saved.');
+          throw new Error('Firebase did not accept the forfeit. The turn and score have not changed. Please keep this window open and report this message.');
         }
         applyRemoteState(outcome.snapshot.val());
       } else {
