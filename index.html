@@ -2739,6 +2739,7 @@ body[data-board-view="list"] #boardListMode {
  body.cc-phone-fullboard[data-board-view="board"] #phoneBoardControls button { min-height:44px !important; }
  #phoneExpandBoard{min-width:82px !important;white-space:nowrap;}
 }
+
 /* Production hotfix: keep Connect above the movie board and other game panels. */
 #connectionOverlay:not(.hidden) {
   position: fixed !important;
@@ -2758,7 +2759,6 @@ body[data-board-view="list"] #boardListMode {
   overflow-y: auto !important;
   box-sizing: border-box !important;
 }
-    
 </style>
 
 <style id="bonusLiveSpectatorStyle">
@@ -10411,9 +10411,115 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
       return visited;
     }
 
+    // V68: independent, reversible milestones. Board data is read-only here.
+    const cageMilestoneNames = [
+      'All Matched!',
+      'All Movies in a Row!',
+      'Every Movie Connected Twice!',
+      'Actor/Movie Not Replicated!'
+    ];
+    const cageMilestoneGoals = [
+      'Match every movie with at least one other movie',
+      'Connect all movies in a single unbranched row',
+      'Give every movie at least two connections',
+      'Use no actor or bridge movie more than once'
+    ];
+    let cageMilestoneLastScope = '';
+    let cageMilestoneStates = [false, false, false, false];
+    let cageMilestoneQueue = [];
+    let cageMilestoneShowing = false;
+    let cageMilestoneInitialized = false;
+    function cageMilestoneScope() {
+      const room = (typeof remoteRoomCode !== 'undefined' && remoteRoomCode) || 'local';
+      return `cage-milestone-v68:${room}`;
+    }
+    function cageShowNextMilestone() {
+      if (cageMilestoneShowing || !cageMilestoneQueue.length) return;
+      cageMilestoneShowing = true;
+      const data = cageMilestoneQueue.shift();
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:64000;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:16px;';
+      const panel = document.createElement('div');
+      panel.style.cssText = 'max-width:520px;width:100%;box-sizing:border-box;background:#17120e;border:2px solid #d4aa52;padding:28px;text-align:center;color:#f5e6c7;box-shadow:0 18px 50px #000;';
+      const title = document.createElement('h2');
+      title.textContent = data.earned ? data.title : `Milestone Lost: ${data.title}`;
+      title.style.cssText = `color:${data.earned ? '#f2d58a' : '#ff9b9b'};margin:0 0 14px;font-size:27px;`;
+      const explanation = document.createElement('p');
+      explanation.textContent = data.earned ? data.next : `The board no longer meets this objective: ${data.goal}. You can earn it again.`;
+      explanation.style.cssText = 'font-size:17px;line-height:1.5;margin:0 0 22px;';
+      const ok = document.createElement('button');
+      ok.textContent = 'Continue';
+      ok.onclick = () => { overlay.remove(); cageMilestoneShowing = false; cageShowNextMilestone(); };
+      panel.append(title, explanation, ok);
+      overlay.append(panel);
+      document.body.append(overlay);
+    }
+    function cageEvaluateBoardMilestones() {
+      const scope = cageMilestoneScope();
+      if (scope !== cageMilestoneLastScope) {
+        cageMilestoneLastScope = scope;
+        try {
+          const saved = JSON.parse(localStorage.getItem(scope) || 'null');
+          cageMilestoneStates = Array.isArray(saved) && saved.length === 4 ? saved.map(Boolean) : [false,false,false,false];
+        } catch { cageMilestoneStates = [false,false,false,false]; }
+        cageMilestoneQueue = [];
+        cageMilestoneInitialized = false;
+      }
+      // Board resets may reuse a game scope. An empty board clears earlier achievements.
+      if (!nodes.length) {
+        cageMilestoneStates = [false,false,false,false];
+        cageMilestoneQueue = [];
+        cageMilestoneInitialized = true;
+        try { localStorage.removeItem(scope); } catch {}
+        return;
+      }
+      const degrees = nodes.map(n => getDegree(n.id));
+      const allMatched = nodes.length >= 2 && degrees.every(d => d >= 1);
+      const singleGroup = nodes.length >= 2 && getConnectedNodeIds(nodes[0].id).size === nodes.length;
+      const inRow = nodes.length >= 3 && singleGroup && connections.length === nodes.length - 1 &&
+        degrees.filter(d => d === 1).length === 2 && degrees.every(d => d === 1 || d === 2);
+      const doubleConnected = singleGroup && degrees.every(d => d >= 2);
+      const usedActors = [];
+      const usedBridges = [];
+      for (const c of connections) {
+        if (c.sharedActor) usedActors.push(String(c.sharedActor).trim().toLowerCase());
+        if (c.leftActor) usedActors.push(String(c.leftActor).trim().toLowerCase());
+        if (c.rightActor) usedActors.push(String(c.rightActor).trim().toLowerCase());
+        if (c.bridgeTitle) usedBridges.push(String(c.bridgeTitle).trim().toLowerCase());
+      }
+      const distinct = arr => new Set(arr).size === arr.length;
+      // Require all movies to participate before granting the no-replication award.
+      const noRepeats = allMatched && distinct(usedActors) && distinct(usedBridges);
+      const achieved = [allMatched, inRow, doubleConnected, noRepeats];
+      if (!cageMilestoneInitialized) {
+        // Existing rooms can have a full board at first render. Do not announce historical events.
+        cageMilestoneStates = achieved;
+        cageMilestoneInitialized = true;
+        try { localStorage.setItem(scope, JSON.stringify(achieved)); } catch {}
+        return;
+      }
+      if (achieved.some((yes,i) => yes !== cageMilestoneStates[i])) {
+        const previous = cageMilestoneStates;
+        cageMilestoneStates = achieved;
+        try { localStorage.setItem(scope, JSON.stringify(achieved)); } catch {}
+        for (let i=0; i<achieved.length; i++) {
+          if (achieved[i] === previous[i]) continue;
+          const remaining = cageMilestoneGoals.filter((_,j) => j!==i && !achieved[j]);
+          cageMilestoneQueue.push({
+            title: cageMilestoneNames[i],
+            earned: achieved[i],
+            goal: cageMilestoneGoals[i],
+            next: remaining.length ? `Next: ${remaining.join('; ')}` : 'All four objectives currently complete!'
+          });
+        }
+        cageShowNextMilestone();
+      }
+    }
+
     function updateWinStatus() {
       renderBoardListMode();
       redrawNodes();
+      cageEvaluateBoardMilestones();
 
       if (!nodes.length) {
         if (!connectModeActive) setStatus("Ready.");
