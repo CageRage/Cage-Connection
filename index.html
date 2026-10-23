@@ -2739,6 +2739,26 @@ body[data-board-view="list"] #boardListMode {
  body.cc-phone-fullboard[data-board-view="board"] #phoneBoardControls button { min-height:44px !important; }
  #phoneExpandBoard{min-width:82px !important;white-space:nowrap;}
 }
+/* Production hotfix: keep Connect above the movie board and other game panels. */
+#connectionOverlay:not(.hidden) {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 65000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  padding: 12px !important;
+}
+#connectionOverlay.hidden { display: none !important; }
+#connectionDialog {
+  position: relative !important;
+  z-index: 1 !important;
+  max-height: calc(100dvh - 24px) !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+}
+    
 </style>
 
 <style id="bonusLiveSpectatorStyle">
