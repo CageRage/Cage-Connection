@@ -2759,6 +2759,10 @@ body[data-board-view="list"] #boardListMode {
   overflow-y: auto !important;
   box-sizing: border-box !important;
 }
+/* Bonus assist: keep the active question and answer visible when a photo hint opens. */
+#bonusDialog { overflow-y: auto; overscroll-behavior: contain; }
+#bonusHintPanel:not(.hidden) { max-height: 235px; overflow-y: auto; overscroll-behavior: contain; }
+#bonusHintImage { width: min(260px, 70vw); max-height: 170px; object-fit: contain; }
 </style>
 
 <style id="bonusLiveSpectatorStyle">
@@ -9619,7 +9623,8 @@ async function startBonusCategory(category) {
   }
 }
 
-function useBonusHint() {
+function useBonusHint(event) {
+  if (event) event.preventDefault();
   if (!activeBonus || bonusHintUsed) return;
 
   const hint = activeBonus._resolvedAssist || getBonusAssist(activeBonus);
@@ -9629,13 +9634,14 @@ function useBonusHint() {
   const hasImage = !!String(hint.image || "").trim();
   if (!hasText && !hasImage) return;
 
+  // The hint is supplementary: do not rerender the question or touch the
+  // typed/checked response. Preserve the visible question while the image loads.
+  const dialog = document.getElementById('bonusDialog');
+  const scrollPosition = dialog ? dialog.scrollTop : 0;
   bonusHintUsed = true;
-  publishBonusLive({phase:'question',hintUsed:true,hintText:String(hint.text||''),hintImage:bonusAssetUrl(hint.image)});
   bonusHintBtn.disabled = true;
   bonusHintBtn.textContent = "Assist used";
-  bonusHintPanel.classList.remove("hidden");
-  bonusHintPanel.classList.remove("answered-hidden");
-
+  bonusHintPanel.classList.remove("hidden", "answered-hidden");
   bonusHintText.textContent = hasText ? String(hint.text).trim() : "";
 
   if (hasImage) {
@@ -9645,6 +9651,9 @@ function useBonusHint() {
     bonusHintImage.classList.add("hidden");
     bonusHintImage.removeAttribute("src");
   }
+  if (dialog) dialog.scrollTop = scrollPosition;
+  // Only send the hint state to spectators after local controls are updated.
+  publishBonusLive({phase:'question',hintUsed:true,hintText:String(hint.text||''),hintImage:bonusAssetUrl(hint.image)});
 }
 
 function selectedBonusAnswer(item) {
