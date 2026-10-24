@@ -4479,6 +4479,7 @@ body[data-card-size="compact"] #surface .node::before {
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-functions-compat.js"></script>
 <script>
 // Initialize the authentication promise before any startup code can reference it.
 let remoteAuthReady = null;
@@ -4487,6 +4488,7 @@ const LEGACY_SESSION_KEY="cage-connection-secure-staging-v1";
 const V5_ALPHA_SESSION_KEY="cage-connection-2to4-v5-dev";
 const LEGACY_ROOM_ROOT="secureGames";
 let remoteDb=null,remoteRoomCode=null,remotePlayerIndex=null,remoteRoomRef=null,remoteOwnPhone="";
+let remoteSmsFunctions=null;
 let remoteRoomRoot="secureGamesV5";
 let remoteOccupiedSeats=[true,true];
 let remoteMaxPlayers=2;
@@ -11549,6 +11551,7 @@ function ensureRemoteAuth(){
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     remoteAuthReady=firebase.auth().signInAnonymously().then(result=>{
       remoteDb=firebase.database();
+      remoteSmsFunctions=firebase.app().functions("us-central1");
       return result.user;
     }).catch(error=>{remoteAuthReady=null;throw error});
   }
@@ -11845,6 +11848,8 @@ async function createRemoteGame(soloMode=false){
   setOnlineMessage("Signing in and creating a private room…");
   try {
     const user=await ensureRemoteAuth();
+    // SMS consent will be registered separately after the room is created.
+    // Never include phone numbers or SMS consent in shared game records.
     remoteOwnPhone=""; // Never upload phone numbers in staging.
     const freshState={version:3,board:{nodes:[],connections:[]},scores:Array(selectedMax).fill(0),currentPlayerIndex:0,turnStartedAt:firebase.database.ServerValue.TIMESTAMP,bonusUsedThisTurn:false,usedBonusQuestionIds:[],bonusGameId:`new-${Date.now()}-${Math.random().toString(36).slice(2)}`,recentActions:[],updatedAt:Date.now()};
     let code,roomRef,created=false;
@@ -11860,6 +11865,8 @@ async function createRemoteGame(soloMode=false){
     remoteMaxPlayers=selectedMax;players=Array.from({length:selectedMax},(_,i)=>({name:i===0?name:`Player ${i+1}`,score:0}));
     remoteRoomCode=code;remotePlayerIndex=0;remoteRoomRoot=SECURE_ROOM_ROOT;remoteRoomRef=roomRef;remoteOccupiedSeats=Array.from({length:selectedMax},(_,i)=>i===0);
     clearLocalBoardAfterRoomCreated();attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
+    // SMS consent registration will run here after the private backend is deployed.
+    // Do not send phone numbers to the shared game database.
     setOnlineMessage(soloMode ? `Solo game ${code} ready. You can invite Player 2 later.` : `Private room ${code} created. Share this code with Player 2.`);
     setStatus(soloMode ? `Solo game ready — ${players[0].name} goes first.` : `Room ${code} created. Invite Player 2 when ready.`);
   }catch(error){console.error(error);setOnlineMessage(`Create failed: ${error.message||error}`)}
@@ -11884,6 +11891,8 @@ async function joinRemoteGame(){
     remoteRoomCode=code;remotePlayerIndex=role;remoteRoomRoot=SECURE_ROOM_ROOT;remoteRoomRef=roomRef;remoteOwnPhone="";
     remoteOccupiedSeats=Array(remoteMaxPlayers).fill(false);
     applyRemoteState(room.state);applyRemoteMembers(room.members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
+    // SMS consent registration will run here after the player successfully joins.
+    // Phone numbers must only be sent to the private Firebase function.
     setOnlineMessage(`Joined room ${code} as Player ${role+1}.`);
     setStatus(`Joined room ${code} as Player ${role+1}.`);
   }catch(error){console.error(error);setOnlineMessage(`Could not join: ${error.message||error}`);}
