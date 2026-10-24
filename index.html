@@ -3905,6 +3905,68 @@ body[data-card-size="compact"] #surface .node::before {
   }
 }
 </style>
+
+<style id="cageV69Responsive">
+/* Non-blocking achievement notices near Turn/Code; never cover the movie board. */
+#cageMilestoneNotice{display:inline-flex;max-width:360px;align-items:center;align-self:center;
+  padding:7px 11px;border-radius:5px;border:1px solid #ba984b;background:#2e2617;
+  color:#f4d68a;font:700 12px/1.3 Arial,sans-serif;white-space:normal;overflow-wrap:anywhere;}
+#cageMilestoneNotice.lost{color:#ffb4a9;background:#311916;border-color:#b75952;}
+#cageMilestoneNotice[hidden]{display:none !important;}
+#cageSmallQuoteToggle{display:none;}
+/* The top controls stay compact and the board is the first major content on small screens. */
+@media(max-width:1359px){
+  #toolbar{display:flex !important;flex-direction:column !important;gap:6px !important;
+    padding:7px 9px !important;align-items:stretch !important;}
+  #toolbar .toolbar-title-row{height:auto !important;min-height:35px !important;padding:2px 4px !important;}
+  #toolbar .brand-wordmark{font-size:clamp(19px,3vw,28px) !important;}
+  #toolbar .toolbar-actions-row{width:100% !important;max-width:none !important;}
+  #toolbar .top-action-grid{display:grid !important;grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    grid-template-rows:repeat(2,minmax(55px,auto)) !important;gap:4px !important;}
+  #toolbar .top-action-grid>button,#toolbar .top-action-grid>.toolbar-menu>summary{
+    min-width:0 !important;width:100% !important;height:62px !important;min-height:62px !important;
+    padding:3px !important;font-size:11px !important;box-sizing:border-box !important;}
+  #toolbar .top-action-grid .top-symbol.top-image-symbol,
+  #toolbar .top-action-grid .top-symbol.top-image-symbol img{width:31px !important;height:31px !important;max-width:31px !important;max-height:31px !important;}
+  #toolbar .top-utility-row{width:100% !important;margin:0 !important;min-height:0 !important;padding:3px 5px !important;}
+  #toolbar .top-utility-row .game-dock-label{display:none !important;}
+  #toolbar .utility-text-row{display:flex !important;flex-wrap:wrap !important;gap:5px !important;align-items:center !important;}
+  #topBoardScroll{height:18px !important;}
+  #leftBoardScroll{width:14px !important;flex-basis:14px !important;}
+  #topBoardScroll{margin-left:14px !important;width:calc(100vw - 14px) !important;}
+  #boardShell,body.dock-collapsed #boardShell{height:clamp(330px,67dvh,800px) !important;min-height:330px !important;}
+  #activityTop.cc-below-board{display:flex !important;flex-direction:column !important;gap:6px !important;
+    width:100% !important;max-width:none !important;margin:7px 0 !important;padding:0 9px !important;
+    box-sizing:border-box !important;}
+  #activityTop.cc-below-board>.game-dock-panel,
+  #activityTop.cc-below-board .score-card{width:100% !important;height:auto !important;
+    max-height:none !important;min-height:0 !important;box-sizing:border-box !important;}
+  #activityTop.cc-below-board>.game-dock-panel:not(.cc-mobile-open) #dockChatMessages,
+  #activityTop.cc-below-board>.game-dock-panel:not(.cc-mobile-open) #dockChatForm,
+  #activityTop.cc-below-board>.game-dock-panel:not(.cc-mobile-open) #dockRecent,
+  #activityTop.cc-below-board .score-card:not(.cc-mobile-open) #scoreDisplay{display:none !important;}
+  #activityTop.cc-below-board .game-dock-label{cursor:pointer !important;min-height:25px !important;}
+  #activityTop.cc-below-board .compact-game-status{display:block !important;width:100% !important;}
+  #activityTop.cc-below-board #dockChatMessages{height:125px !important;max-height:125px !important;overflow-y:auto !important;}
+  #activityTop.cc-below-board #dockRecent{height:110px !important;max-height:110px !important;overflow-y:auto !important;}
+  #activityTop.cc-below-board #dockChatForm{display:flex !important;}
+  #cageSmallQuoteToggle{display:block;width:calc(100% - 18px);margin:5px 9px !important;
+    padding:10px 12px !important;text-align:left !important;border:1px solid #88632e !important;}
+  .cage-quote-panel.cc-below-board{display:none !important;}
+  .cage-quote-panel.cc-below-board.cc-quote-open{display:flex !important;position:relative !important;
+    width:calc(100% - 18px) !important;max-width:none !important;height:auto !important;
+    margin:5px 9px 12px !important;box-sizing:border-box !important;}
+  .cage-quote-panel.cc-below-board.cc-quote-open .cage-photo-wrap{flex:0 0 80px !important;width:80px !important;height:100px !important;}
+  .cage-quote-panel.cc-below-board.cc-quote-open blockquote{font-size:15px !important;}
+}
+@media(max-width:450px){
+  #toolbar .top-action-grid>button,#toolbar .top-action-grid>.toolbar-menu>summary{font-size:10px !important;height:58px !important;min-height:58px !important;}
+  #toolbar .top-action-grid .top-symbol.top-image-symbol,
+  #toolbar .top-action-grid .top-symbol.top-image-symbol img{width:27px !important;height:27px !important;max-width:27px !important;max-height:27px !important;}
+  #toolbar .utility-text-row{font-size:11px !important;}
+  #cageMilestoneNotice{max-width:100% !important;}
+}
+</style>
 </head>
 <body>
 
@@ -3935,12 +3997,17 @@ body[data-card-size="compact"] #surface .node::before {
 <summary>Cheats ▸</summary>
 <div class="tools-submenu-panel">
 <button onclick="this.closest('details').removeAttribute('open'); startCastLookup()">Cast Lookup (-2)</button>
+<button onclick="this.closest('details').removeAttribute('open'); openPathFinder()">Find Path</button>
+<button onclick="this.closest('details').removeAttribute('open'); showIndex()">Show Index</button>
+</div>
+</details>
+<details class="tools-submenu">
+<summary>Edit Cast ▸</summary>
+<div class="tools-submenu-panel">
 <button onclick="this.closest('details').removeAttribute('open'); addCastMemberTool()">Add Cast Member</button>
 <button onclick="this.closest('details').removeAttribute('open'); removeCastMemberTool()">Remove Cast Member</button>
 <button onclick="this.closest('details').removeAttribute('open'); submitSharedCastAddition()">Submit Shared Cast Addition</button>
 <button onclick="this.closest('details').removeAttribute('open'); reviewSharedCastAdditions()">Review Cast Submissions</button>
-<button onclick="this.closest('details').removeAttribute('open'); openPathFinder()">Find Path</button>
-<button onclick="this.closest('details').removeAttribute('open'); showIndex()">Show Index</button>
 </div>
 </details>
 <details class="tools-submenu">
@@ -4361,10 +4428,10 @@ body[data-card-size="compact"] #surface .node::before {
       <p><strong>Player score:</strong> points earned for your moves, Bonus Round results, and relevant penalties. When a connection joins separate groups into the main continuous chain, an additional merge bonus may apply.</p>
       <p><strong>Board score:</strong> totals the connection values on the shared board (1 for a shared actor, 2 for a bridge, plus applicable merge bonuses), less any recorded board penalties. It is not another player's score.</p>
       <p><strong>Challenge:</strong> select a connection you believe is invalid. A successful challenge removes the connection and costs the challenged player <strong>twice its point value</strong>; an unsuccessful challenge costs the challenger <strong>3 points</strong>. Follow the on-screen confirmation and verification steps.</p>
-      <h3>Tools &amp; cheats</h3>
+      <h3>Tools, cheats &amp; cast editing</h3>
       <dl>
       <dt>Cast Lookup (cheat)</dt><dd>Click a movie to see its stored cast. Costs <strong>2 points</strong>; opening its Wikipedia cast page costs <strong>3 additional points</strong> (5 total).</dd>
-      <dt>Add / Remove Cast Member</dt><dd>Add / Remove Cast Member changes only this device. Submit Shared Cast Addition and Review Cast Submissions allow players to collaboratively approve additions for everyone.</dd>
+      <dt>Edit Cast — Add / Remove Cast Member</dt><dd>Add / Remove Cast Member changes only this device. Submit Shared Cast Addition and Review Cast Submissions allow players to collaboratively approve additions for everyone.</dd>
       <dt>Find Path</dt><dd>Shows the shortest route between two movies using <em>connections already on the board</em>.</dd>
       <dt>Show Index</dt><dd>Lists movies and actors represented in the current game's connections.</dd>
       <dt>View</dt><dd>Switch between Board and List views or change the size of the movie cards.</dd>
@@ -6742,15 +6809,22 @@ async function startSharedCastListener() {
     }, err => console.warn('Shared cast rejections could not load', err));
   } catch (err) { console.warn('Shared cast offline', err); }
 }
-async function submitSharedCastAddition() {
+async function submitSharedCastAddition(presetMovie = null, presetActor = null) {
   const suggestedMovie = (focusedNodeId && nodes.find(n => n.id === focusedNodeId)?.name) || '';
-  const movie = prompt('Movie title for shared cast addition:', suggestedMovie)?.trim();
+  const movie = (typeof presetMovie === 'string' ? presetMovie : prompt('Movie title for shared cast addition:', suggestedMovie))?.trim();
   if (!movie) return;
-  const actor = prompt(`Actor to add to "${movie}":`)?.trim();
+  const actor = (typeof presetActor === 'string' ? presetActor : prompt(`Actor to add to "${movie}":`))?.trim();
   if (!actor) return;
   if (movie.length > 120 || actor.length > 100) return alert('Please shorten the movie or actor name.');
   if (normalizeActorName(actor) === 'nicolas cage') return alert('Nicolas Cage is already covered.');
-  if ((getCombinedCast(movie) || []).some(a => normalizeActorName(a) === normalizeActorName(actor))) return alert('This actor is already listed for that movie.');
+  // Local additions must not block a user from proposing that same actor for everyone.
+  const inBuiltInCast = Object.entries(CAST_DATA).some(([title, cast]) =>
+    normalizeMovieTitleForCast(title) === normalizeMovieTitleForCast(movie) &&
+    Array.isArray(cast) && cast.some(a => normalizeActorName(a) === normalizeActorName(actor)));
+  const inApprovedCast = Object.entries(approvedSharedCast).some(([title, cast]) =>
+    normalizeMovieTitleForCast(title) === normalizeMovieTitleForCast(movie) &&
+    Array.isArray(cast) && cast.some(a => normalizeActorName(a) === normalizeActorName(actor)));
+  if (inBuiltInCast || inApprovedCast) return alert('This actor is already in the shared cast for that movie.');
   if (Object.entries(sharedCastProposals).some(([id,p]) => !sharedCastRejected(id) && normalizeMovieTitleForCast(p.movie) === normalizeMovieTitleForCast(movie) && normalizeActorName(p.actor) === normalizeActorName(actor))) return alert('This addition has already been submitted.');
   try {
     const user = await ensureRemoteAuth();
@@ -6934,6 +7008,10 @@ function addCastMemberTool() {
     `${actor} has been added to "${canonicalMovie}".\n\n` +
     "Cage Check will use this cast addition immediately and remember it on this device."
   );
+  // Shared submissions are separate from local edits and require another player's approval.
+  if (confirm(`Also submit ${actor} in "${canonicalMovie}" for shared approval?\n\nAnother player must approve before everyone can use this cast entry.`)) {
+    void submitSharedCastAddition(canonicalMovie, actor);
+  }
 }
 
 function removeCastMemberTool() {
@@ -10433,26 +10511,32 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
       const room = (typeof remoteRoomCode !== 'undefined' && remoteRoomCode) || 'local';
       return `cage-milestone-v68:${room}`;
     }
+    // V69: non-modal notices. Every connected client evaluates the same shared board,
+    // so each sees the achievement/loss beside the turn information.
+    let cageMilestoneTimer = null;
     function cageShowNextMilestone() {
       if (cageMilestoneShowing || !cageMilestoneQueue.length) return;
       cageMilestoneShowing = true;
       const data = cageMilestoneQueue.shift();
-      const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:64000;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:16px;';
-      const panel = document.createElement('div');
-      panel.style.cssText = 'max-width:520px;width:100%;box-sizing:border-box;background:#17120e;border:2px solid #d4aa52;padding:28px;text-align:center;color:#f5e6c7;box-shadow:0 18px 50px #000;';
-      const title = document.createElement('h2');
-      title.textContent = data.earned ? data.title : `Milestone Lost: ${data.title}`;
-      title.style.cssText = `color:${data.earned ? '#f2d58a' : '#ff9b9b'};margin:0 0 14px;font-size:27px;`;
-      const explanation = document.createElement('p');
-      explanation.textContent = data.earned ? data.next : `The board no longer meets this objective: ${data.goal}. You can earn it again.`;
-      explanation.style.cssText = 'font-size:17px;line-height:1.5;margin:0 0 22px;';
-      const ok = document.createElement('button');
-      ok.textContent = 'Continue';
-      ok.onclick = () => { overlay.remove(); cageMilestoneShowing = false; cageShowNextMilestone(); };
-      panel.append(title, explanation, ok);
-      overlay.append(panel);
-      document.body.append(overlay);
+      let notice = document.getElementById('cageMilestoneNotice');
+      if (!notice) {
+        notice = document.createElement('div');
+        notice.id = 'cageMilestoneNotice';
+        notice.setAttribute('role','status');
+        notice.setAttribute('aria-live','polite');
+        const target = document.querySelector('#toolbar .utility-text-row') || document.querySelector('#toolbar');
+        target.appendChild(notice);
+      }
+      notice.className = data.earned ? 'earned' : 'lost';
+      notice.textContent = (data.earned ? 'Milestone Earned: ' : 'Milestone Lost: ') + data.title;
+      notice.title = data.earned ? data.next : data.goal;
+      notice.hidden = false;
+      if (cageMilestoneTimer) clearTimeout(cageMilestoneTimer);
+      cageMilestoneTimer = setTimeout(() => {
+        notice.hidden = true;
+        cageMilestoneShowing = false;
+        cageShowNextMilestone();
+      }, 5000);
     }
     function cageEvaluateBoardMilestones() {
       const scope = cageMilestoneScope();
@@ -12785,6 +12869,57 @@ body > .cc-expanded-history #dockRecent .dock-recent-line:nth-last-child(n+3){di
 <script>
 document.getElementById("cageNotYourTurnOverlay")?.addEventListener("click", function(e){ if(e.target === this) dismissCageNotYourTurnWarning(); });
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismissCageNotYourTurnWarning(); });
+</script>
+
+<script id="cageV69LayoutBehavior">
+(function(){
+  function install(){
+    const toolbar=document.getElementById('toolbar');
+    const board=document.getElementById('boardShell');
+    const activity=document.getElementById('activityTop');
+    const quote=document.querySelector('.cage-quote-panel');
+    if(!toolbar||!board||!activity||!quote)return;
+    const activityParent=activity.parentElement;
+    const activityNext=activity.nextSibling;
+    const quoteParent=quote.parentElement;
+    const quoteNext=quote.nextSibling;
+    const toggle=document.createElement('button');
+    toggle.id='cageSmallQuoteToggle';toggle.type='button';toggle.textContent='Cage Quotes & Pictures ▾';
+    toggle.setAttribute('aria-expanded','false');
+    toggle.onclick=()=>{
+      const opened=quote.classList.toggle('cc-quote-open');
+      toggle.textContent=opened?'Cage Quotes & Pictures ▴':'Cage Quotes & Pictures ▾';
+      toggle.setAttribute('aria-expanded',String(opened));
+    };
+    function move(){
+      const small=window.innerWidth<=1359;
+      if(small){
+        board.after(activity);
+        activity.after(toggle);
+        toggle.after(quote);
+        activity.classList.add('cc-below-board');quote.classList.add('cc-below-board');
+      }else{
+        if(activityNext&&activityNext.parentNode===activityParent) activityParent.insertBefore(activity,activityNext);
+        else activityParent.appendChild(activity);
+        if(quoteNext&&quoteNext.parentNode===quoteParent)quoteParent.insertBefore(quote,quoteNext);
+        else quoteParent.appendChild(quote);
+        toggle.remove();activity.classList.remove('cc-below-board');
+        quote.classList.remove('cc-below-board');quote.classList.remove('cc-quote-open');
+      }
+    }
+    activity.querySelectorAll('.game-dock-panel').forEach(panel=>{
+      const heading=panel.querySelector('.game-dock-label');
+      if(!heading)return;
+      heading.addEventListener('click',event=>{
+        if(window.innerWidth>1359 || event.target.closest('button,input'))return;
+        panel.classList.toggle('cc-mobile-open');
+      });
+    });
+    move();window.addEventListener('resize',move);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
+  else install();
+})();
 </script>
 </body>
 </html> 
