@@ -2763,6 +2763,8 @@ body[data-board-view="list"] #boardListMode {
 #bonusDialog { overflow-y: auto; overscroll-behavior: contain; }
 #bonusHintPanel:not(.hidden) { max-height: 235px; overflow-y: auto; overscroll-behavior: contain; }
 #bonusHintImage { width: min(260px, 70vw); max-height: 170px; object-fit: contain; }
+
+
 </style>
 
 <style id="bonusLiveSpectatorStyle">
@@ -3971,6 +3973,7 @@ body[data-card-size="compact"] #surface .node::before {
   #cageMilestoneNotice{max-width:100% !important;}
 }
 </style>
+
 </head>
 <body>
 
@@ -4925,7 +4928,7 @@ function updateScoreDisplay() {
   if (scoreDisplay) {
     // Separate display items fit four players without shrinking their names.
     const entries = players.map(p => [p.name, Number(p.score || 0)]);
-    entries.push(["Board", calculateScore()]);
+    // V76 TEST: Board total is still calculated for game logic, but not displayed.
     scoreDisplay.replaceChildren();
     entries.forEach(([name, score]) => {
       const item = document.createElement("span");
@@ -10349,13 +10352,14 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
       const doomed = connections.find(c => c.id === connectionId);
       connections = connections.filter(c => c.id !== connectionId);
 
-      if (doomed) {
-        arrangeAfterBrokenConnection();
-      } else {
-        redrawNodes();
-        draw();
-        applyFocusStyles();
-      }
+      // V76 TEST: Do not reflow the entire graph after breaking one edge.
+      // A break changes only the targeted edge; preserve every movie position,
+      // all other edges, and the user's ability to select individual cards.
+      // The existing Arrange Board command remains available when desired.
+      redrawNodes();
+      draw();
+      applyFocusStyles();
+      renderBoardListMode();
       saveBoard();
       syncBoardMaintenanceNow("Removed-connection board");
       renderMovieList();
@@ -12930,5 +12934,24 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
   else install();
 })();
 </script>
+<style id="ccV76OverlayLayering">
+/* V76 TEST — All information and editing windows above the movie canvas.
+   A dedicated stacking level keeps every overlay above card z-index changes,
+   including immersive phone board mode and the dock. */
+#modalOverlay, #pickerOverlay, #pathOverlay, #movieListOverlay,
+#connectionOverlay, #bonusOverlay, #cheatOverlay, #onlineOverlay,
+#challengeEventOverlay, #challengeResultOverlay, #cageCheckOverlay,
+#cageRulesOverlay, #cageBeeOverlay, #cageBeeAnnouncement,
+#cageNotYourTurnOverlay, #ccHistoryOverlay {
+  z-index: 1000000 !important;
+}
+#bonusLiveSpectator { z-index: 999999 !important; }
+#modal, #pickerModal, #movieListDialog, #connectionDialog,
+#bonusDialog, #cheatDialog, #onlineModal, #cageBeeDialog {
+  position: relative;
+  isolation: isolate;
+}
+
+</style>
 </body>
 </html> 
