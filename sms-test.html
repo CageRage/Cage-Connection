@@ -11690,11 +11690,11 @@ async function resumePendingGameSms() {
   }
 
   const phoneInput = document.getElementById("onlineExistingPhone");
-  const raw = String(phoneInput?.value || "").replace(/\\D/g, "");
+  const raw = String(phoneInput?.value || "").replace(/\D/g, "");
   const digits = raw.length === 11 && raw.startsWith("1")
     ? raw.slice(1) : raw;
 
-  if (!/^[2-9]\\d{2}[2-9]\\d{6}$/.test(digits)) {
+  if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) {
     reportSmsProgress("Enter your US mobile number first.");
     return;
   }
