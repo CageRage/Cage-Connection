@@ -4255,6 +4255,9 @@ body[data-card-size="compact"] #surface .node::before {
         <button type="button" onclick="startExistingGameSms()">
           Send Verification Code
         </button>
+        <button type="button" onclick="resumePendingGameSms()">
+          Enter an Existing Verification Code
+        </button>
         <div id="onlineExistingSmsVerifyPanel" hidden>
           <label for="onlineExistingSmsCode">Verification code</label>
           <input id="onlineExistingSmsCode" type="text"
@@ -11678,6 +11681,72 @@ function reportSmsProgress(message) {
   setStatus(message);
   const panel = document.getElementById("onlineOverlay");
   if (panel) panel.classList.remove("hidden");
+}
+
+async function resumePendingGameSms() {
+  if (!remoteRoomCode || !remoteRoomRef) {
+    reportSmsProgress("Resume a game first.");
+    return;
+  }
+
+  const phoneInput = document.getElementById("onlineExistingPhone");
+  const raw = String(phoneInput?.value || "").replace(/\\D/g, "");
+  const digits = raw.length === 11 && raw.startsWith("1")
+    ? raw.slice(1) : raw;
+
+  if (!/^[2-9]\\d{2}[2-9]\\d{6}$/.test(digits)) {
+    reportSmsProgress("Enter your US mobile number first.");
+    return;
+  }
+
+  if (!document.getElementById("onlineExistingSmsConsent")?.checked) {
+    reportSmsProgress("SMS consent must be checked.");
+    return;
+  }
+
+  const phone = "+1" + digits;
+
+  reportSmsProgress("Checking for an existing verification...");
+
+  try {
+    await ensureRemoteAuth();
+
+    const callable = firebase.app().functions("us-central1")
+      .httpsCallable("checkPendingSmsVerification");
+
+    const response = await callable({
+      roomCode: remoteRoomCode,
+      phone
+    });
+
+    if (response.data?.status !== "pending") {
+      reportSmsProgress(
+        "No active verification found. Request a new code when allowed."
+      );
+      return;
+    }
+
+    pendingGameSms.onlineExisting = {
+      roomCode: remoteRoomCode,
+      phone
+    };
+
+    const panel = document.getElementById(
+      "onlineExistingSmsVerifyPanel"
+    );
+
+    if (panel) panel.hidden = false;
+
+    reportSmsProgress(
+      "Existing verification found. Enter the code already sent."
+    );
+  } catch (error) {
+    console.error("SMS recovery failed:", error.code || "unknown");
+    reportSmsProgress(
+      "Could not check the existing verification: " +
+      (error.code || "unknown error")
+    );
+  }
 }
 
 async function startExistingGameSms() {
