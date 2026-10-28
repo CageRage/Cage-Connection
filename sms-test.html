@@ -4137,7 +4137,18 @@ body[data-card-size="compact"] #surface .node::before {
 
 
   <div id="onlineOverlay" class="hidden" onclick="closeOnlinePanel(event)">
-    <div id="onlineModal" onclick="event.stopPropagation()">
+    
+<style>
+/* Keep the Remote Game header and Close button visible */
+#onlineModal .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #171b29;
+}
+</style>
+
+<div id="onlineModal" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h2>Remote Game</h2>
         <button type="button" onclick="closeOnlinePanel()">Close</button>
@@ -4209,6 +4220,34 @@ body[data-card-size="compact"] #surface .node::before {
           <button id="resumeLastGameButton" type="button" onclick="resumeLastRemoteGame()">Resume Last Game</button>
         </section>
       </div>
+
+      <section id="onlineExistingSmsPanel" class="online-card" hidden>
+        <h3>Text Notifications for This Game</h3>
+        <p>Verify your phone without creating another game.</p>
+        <label for="onlineExistingPhone">Mobile number</label>
+        <input id="onlineExistingPhone" type="tel"
+          inputmode="tel" autocomplete="tel"
+          placeholder="US mobile number" />
+        <label style="display:block;font-size:12px;line-height:1.5;margin:8px 0">
+          <input id="onlineExistingSmsConsent" type="checkbox" />
+          I agree to receive automated Cage Connection texts when it is my
+          turn or my connection is challenged. Message and data rates may
+          apply. Frequency varies. Reply STOP to opt out or HELP for help.
+        </label>
+        <button type="button" onclick="startExistingGameSms()">
+          Send Verification Code
+        </button>
+        <div id="onlineExistingSmsVerifyPanel" hidden>
+          <label for="onlineExistingSmsCode">Verification code</label>
+          <input id="onlineExistingSmsCode" type="text"
+            inputmode="numeric" autocomplete="one-time-code"
+            maxlength="10" placeholder="Enter SMS code" />
+          <button type="button"
+            onclick="confirmGameSms('onlineExisting')">
+            Verify and Enable Texts
+          </button>
+        </div>
+      </section>
       <section id="onlineConnectedPanel" class="online-connected hidden">
         <div><span class="online-kicker">ROOM CODE</span><strong id="onlineRoomCode">------</strong></div>
         <div id="onlineRoleText">Not connected</div>
@@ -11624,6 +11663,32 @@ function reportSmsProgress(message) {
   if (panel) panel.classList.remove("hidden");
 }
 
+async function startExistingGameSms() {
+  if (!remoteRoomCode || !remoteRoomRef) {
+    reportSmsProgress("Resume or join a game first.");
+    return;
+  }
+
+  const button = document.querySelector(
+    '#onlineExistingSmsPanel button'
+  );
+  if (button?.disabled) return;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Requesting code...";
+  }
+
+  try {
+    await registerGameSms(remoteRoomCode, "onlineExisting");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Send Verification Code";
+    }
+  }
+}
+
 async function confirmGameSms(prefix) {
   if (!CAGE_SMS_REGISTRATION_ENABLED) return;
 
@@ -11757,7 +11822,14 @@ function ensureRemoteAuth(){
   return remoteAuthReady;
 }
 ensureRemoteAuth().then(()=>{ startSharedCastListener(); setOnlineMessage("Anonymous player identity ready."); }).catch(error=>setOnlineMessage("Anonymous sign-in failed: "+error.message));
-function openOnlinePanel(){const e=document.getElementById("onlineOverlay");if(e)e.classList.remove("hidden");prefillRemoteResume();refreshOnlinePanel()}
+function openOnlinePanel(){
+  const e=document.getElementById("onlineOverlay");
+  if(e)e.classList.remove("hidden");
+  const sms=document.getElementById("onlineExistingSmsPanel");
+  if(sms)sms.hidden=!(remoteRoomCode && remoteRoomRef);
+  prefillRemoteResume();
+  refreshOnlinePanel();
+}
 function closeOnlinePanel(event){const e=document.getElementById("onlineOverlay");if(event&&event.target!==e)return;if(e)e.classList.add("hidden")}
 function setOnlineMessage(t){const e=document.getElementById("onlineMessage");if(e)e.textContent=t}
 function cleanPlayerName(v,f){const n=String(v||"").trim().replace(/\s+/g," ").slice(0,24);return n||f}
