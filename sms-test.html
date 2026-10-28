@@ -12147,7 +12147,7 @@ async function resumeRemoteGame(sessionOverride=null){
     applyRemoteState(room.state);applyRemoteMembers(room.members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
     setOnlineMessage(`Resumed ${root===LEGACY_ROOM_ROOT?"original two-player":"V5"} room ${code}. Live sync is on.`);
     setStatus(`Resumed room ${code}.`);
-    if (!sessionOverride) closeOnlinePanel();
+    closeOnlinePanel();
   }catch(error){console.error(error);setOnlineMessage(`Could not resume: ${error.message||error}`)}
 }
 function resumeLastRemoteGame(){const x=getRemoteSession();if(!x){setOnlineMessage("No previously saved room was found on this browser.");return}resumeRemoteGame(x)}
