@@ -4148,6 +4148,23 @@ body[data-card-size="compact"] #surface .node::before {
 }
 </style>
 
+
+<style>
+#onlineModal > .modal-header {
+  position: sticky !important;
+  top: -18px !important;
+  z-index: 1000 !important;
+  background: #111319 !important;
+  padding: 12px 0 !important;
+}
+#onlineExistingSmsPanel {
+  flex: 1 1 100%;
+  width: 100%;
+  box-sizing: border-box;
+  display: none;
+}
+</style>
+
 <div id="onlineModal" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h2>Remote Game</h2>
@@ -4221,7 +4238,8 @@ body[data-card-size="compact"] #surface .node::before {
         </section>
       </div>
 
-      <section id="onlineExistingSmsPanel" class="online-card" hidden>
+      <section id="onlineConnectedPanel" class="online-connected hidden">
+<section id="onlineExistingSmsPanel" class="online-card">
         <h3>Text Notifications for This Game</h3>
         <p>Verify your phone without creating another game.</p>
         <label for="onlineExistingPhone">Mobile number</label>
@@ -4248,7 +4266,6 @@ body[data-card-size="compact"] #surface .node::before {
           </button>
         </div>
       </section>
-      <section id="onlineConnectedPanel" class="online-connected hidden">
         <div><span class="online-kicker">ROOM CODE</span><strong id="onlineRoomCode">------</strong></div>
         <div id="onlineRoleText">Not connected</div>
         <div style="flex:1 1 100%;min-width:0">
@@ -11826,7 +11843,7 @@ function openOnlinePanel(){
   const e=document.getElementById("onlineOverlay");
   if(e)e.classList.remove("hidden");
   const sms=document.getElementById("onlineExistingSmsPanel");
-  if(sms)sms.hidden=!(remoteRoomCode && remoteRoomRef);
+  if(sms)sms.style.display=(remoteRoomCode && remoteRoomRef) ? "block" : "none";
   prefillRemoteResume();
   refreshOnlinePanel();
 }
