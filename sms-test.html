@@ -11610,6 +11610,20 @@ async function registerGameSms(roomCode, prefix) {
   }
 }
 
+function finishRemoteConnection(prefix) {
+  const needsSms = CAGE_SMS_REGISTRATION_ENABLED &&
+    document.getElementById(prefix + "SmsConsent")?.checked;
+
+  if (!needsSms) closeOnlinePanel();
+}
+
+function reportSmsProgress(message) {
+  setOnlineMessage(message);
+  setStatus(message);
+  const panel = document.getElementById("onlineOverlay");
+  if (panel) panel.classList.remove("hidden");
+}
+
 async function confirmGameSms(prefix) {
   if (!CAGE_SMS_REGISTRATION_ENABLED) return;
 
@@ -11628,6 +11642,16 @@ async function confirmGameSms(prefix) {
     return;
   }
 
+  const panel = document.getElementById(prefix + "SmsVerifyPanel");
+  const button = panel?.querySelector("button");
+  if (button?.disabled) return;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Verifying...";
+  }
+  reportSmsProgress("Checking your verification code...");
+
   try {
     await ensureRemoteAuth();
 
@@ -11641,7 +11665,7 @@ async function confirmGameSms(prefix) {
     });
 
     if (verified.data?.status !== "verified") {
-      setOnlineMessage(
+      reportSmsProgress(
         "Phone verification failed: " +
         (verified.data?.reason || "invalid code")
       );
@@ -11662,7 +11686,7 @@ async function confirmGameSms(prefix) {
 
     if (result.data?.status !== "ok" ||
         result.data?.enabled !== true) {
-      setOnlineMessage(
+      reportSmsProgress(
         "Phone verified, but notifications were not enabled: " +
         (result.data?.reason || "registration failed")
       );
@@ -11674,12 +11698,20 @@ async function confirmGameSms(prefix) {
     const panel = document.getElementById(prefix + "SmsVerifyPanel");
     if (panel) panel.hidden = true;
 
-    setOnlineMessage("Phone verified. Text notifications enabled.");
+    setStatus("Phone verified. Text notifications enabled.");
+    closeOnlinePanel();
   } catch (error) {
     console.error("SMS activation failed:", error.code || "unknown");
-    setOnlineMessage(
-      "SMS activation failed. Your game is still connected."
+    reportSmsProgress(
+      "SMS activation failed: " +
+      (error.message || error.code || "unknown error") +
+      ". Your game is still connected."
     );
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Verify and Enable Texts";
+    }
   }
 }
 
@@ -12033,6 +12065,7 @@ async function createRemoteGame(soloMode=false){
     setOnlineMessage(soloMode ? `Solo game ${code} ready. You can invite Player 2 later.` : `Private room ${code} created. Share this code with Player 2.`);
     setStatus(soloMode ? `Solo game ready — ${players[0].name} goes first.` : `Room ${code} created. Invite Player 2 when ready.`);
     await registerGameSms(code, "onlineCreate");
+    finishRemoteConnection("onlineCreate");
   }catch(error){console.error(error);setOnlineMessage(`Create failed: ${error.message||error}`)}
 }
 async function joinRemoteGame(){
@@ -12058,6 +12091,7 @@ async function joinRemoteGame(){
     setOnlineMessage(`Joined room ${code} as Player ${role+1}.`);
     setStatus(`Joined room ${code} as Player ${role+1}.`);
     await registerGameSms(code, "onlineJoin");
+    finishRemoteConnection("onlineJoin");
   }catch(error){console.error(error);setOnlineMessage(`Could not join: ${error.message||error}`);}
 }
 async function saveRemoteGameNow(){
@@ -12113,6 +12147,7 @@ async function resumeRemoteGame(sessionOverride=null){
     applyRemoteState(room.state);applyRemoteMembers(room.members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
     setOnlineMessage(`Resumed ${root===LEGACY_ROOM_ROOT?"original two-player":"V5"} room ${code}. Live sync is on.`);
     setStatus(`Resumed room ${code}.`);
+    if (!sessionOverride) closeOnlinePanel();
   }catch(error){console.error(error);setOnlineMessage(`Could not resume: ${error.message||error}`)}
 }
 function resumeLastRemoteGame(){const x=getRemoteSession();if(!x){setOnlineMessage("No previously saved room was found on this browser.");return}resumeRemoteGame(x)}
