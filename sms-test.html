@@ -4269,7 +4269,22 @@ body[data-card-size="compact"] #surface .node::before {
           </button>
         </div>
       </section>
-        <div><span class="online-kicker">ROOM CODE</span><strong id="onlineRoomCode">------</strong></div>
+        
+<section id="onlineSmsSmartPanel"
+  class="online-card" style="display:none">
+  <h3>Text Alert Settings</h3>
+  <p id="onlineSmsSmartStatus">Loading...</p>
+  <button type="button"
+    id="onlineSmsSmartToggle"
+    onclick="toggleSmartSmsAlerts()">
+    Pause Text Alerts
+  </button>
+  <p style="font-size:12px">
+    Alerts are sent when you're away.
+    Pausing does not cancel your SMS consent.
+  </p>
+</section>
+<div><span class="online-kicker">ROOM CODE</span><strong id="onlineRoomCode">------</strong></div>
         <div id="onlineRoleText">Not connected</div>
         <div style="flex:1 1 100%;min-width:0">
           <span class="online-kicker">INVITE LINK</span>
@@ -13334,5 +13349,169 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
 }
 
 </style>
+
+<script>
+(function () {
+  "use strict";
+
+  let enabled = true;
+  let loaded = false;
+  let lastInteraction = 0;
+  let lastHeartbeat = 0;
+  let busy = false;
+  let loadedRoom = "";
+
+  function connected() {
+    return typeof remoteRoomCode === "string" &&
+      /^[A-Z2-9]{6}$/.test(remoteRoomCode) &&
+      !!remoteRoomRef;
+  }
+
+  function call(name, data) {
+    return firebase.app().functions("us-central1")
+      .httpsCallable(name)(data);
+  }
+
+  function render() {
+    const panel = document.getElementById(
+      "onlineSmsSmartPanel"
+    );
+    const status = document.getElementById(
+      "onlineSmsSmartStatus"
+    );
+    const button = document.getElementById(
+      "onlineSmsSmartToggle"
+    );
+
+    if (!panel || !status || !button) return;
+
+    panel.style.display =
+      connected() && loaded ? "block" : "none";
+
+    status.textContent = enabled
+      ? "Alerts ON — texts arrive when away."
+      : "Alerts PAUSED — no texts will be sent.";
+
+    button.textContent = enabled
+      ? "Pause Text Alerts"
+      : "Resume Text Alerts";
+  }
+
+  async function load() {
+    if (!connected()) return;
+    const room = remoteRoomCode;
+
+    try {
+      const response = await call(
+        "getSmsAlertSettings", { roomCode: room }
+      );
+
+      if (!connected() || remoteRoomCode !== room)
+        return;
+
+      loaded = response.data?.status === "ok";
+
+      if (loaded)
+        enabled = response.data.alertsEnabled === true;
+
+      loadedRoom = room;
+      render();
+    } catch (_) {
+      console.warn("Smart SMS settings unavailable.");
+    }
+  }
+
+  window.toggleSmartSmsAlerts = async function () {
+    if (!connected() || !loaded) return;
+
+    const button = document.getElementById(
+      "onlineSmsSmartToggle"
+    );
+    if (button) button.disabled = true;
+
+    try {
+      const response = await call(
+        "setSmsAlertSettings", {
+          roomCode: remoteRoomCode,
+          alertsEnabled: !enabled
+        }
+      );
+
+      if (response.data?.status !== "ok")
+        throw new Error("Update failed");
+
+      enabled = response.data.alertsEnabled;
+      render();
+    } catch (_) {
+      const status = document.getElementById(
+        "onlineSmsSmartStatus"
+      );
+      if (status)
+        status.textContent = "Could not update alerts.";
+    } finally {
+      if (button) button.disabled = false;
+    }
+  };
+
+  async function heartbeat() {
+    if (
+      !connected() || !loaded || !enabled ||
+      document.visibilityState !== "visible" ||
+      Date.now() - lastInteraction > 120000 ||
+      Date.now() - lastHeartbeat < 30000 ||
+      busy
+    ) return;
+
+    busy = true;
+    try {
+      const response = await call(
+        "recordSmsActivity",
+        { roomCode: remoteRoomCode }
+      );
+      if (response.data?.status === "ok")
+        lastHeartbeat = Date.now();
+    } catch (_) {
+    } finally {
+      busy = false;
+    }
+  }
+
+  function interact() {
+    lastInteraction = Date.now();
+    void heartbeat();
+  }
+
+  document.addEventListener(
+    "pointerdown", interact, { passive: true }
+  );
+  document.addEventListener("keydown", interact);
+
+  document.addEventListener(
+    "visibilitychange", () => {
+      if (document.visibilityState === "visible")
+        interact();
+    }
+  );
+
+  setInterval(() => {
+    void heartbeat();
+    if (connected() && remoteRoomCode !== loadedRoom)
+      void load();
+  }, 30000);
+
+  document.getElementById("onlineButton")
+    ?.addEventListener("click", () => void load());
+
+  const originalResume = window.resumeRemoteGame;
+  if (typeof originalResume === "function") {
+    window.resumeRemoteGame = async function (...args) {
+      const result = await originalResume.apply(this, args);
+      await load();
+      return result;
+    };
+  }
+})();
+</script>
+
 </body>
 </html> 
