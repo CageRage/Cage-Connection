@@ -7593,8 +7593,16 @@ function challengeConnection(connectionId) {
   if (!c) return;
   challengeMode = false;
   const challengerIndex = currentPlayerIndex;
-  const ownerIndex = Number(c.owner);
-  const challengedPlayerIndex = Number.isInteger(ownerIndex) && ownerIndex>=0 && ownerIndex<players.length ? ownerIndex : nextPlayablePlayerIndex(challengerIndex);
+  const ownerIndex =
+    typeof c.owner === "number" ? c.owner : null;
+
+  const challengedPlayerIndex =
+    Number.isInteger(ownerIndex) &&
+    ownerIndex >= 0 &&
+    ownerIndex < players.length &&
+    ownerIndex !== challengerIndex
+      ? ownerIndex
+      : nextPlayablePlayerIndex(challengerIndex);
   const isShared = c.type === "shared";
   const route = isShared
     ? `${c.a.name} ↔ ${c.b.name} (shared actor: ${c.sharedActor || "unknown"})`
