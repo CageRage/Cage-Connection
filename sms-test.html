@@ -7658,7 +7658,8 @@ function commitChallengeEvent(challenge){
   if(remoteRoomRef){
     remoteRoomRef.child("challenge").set(challenge).catch(err=>{
       console.error("Challenge sync failed",err);
-      showChallengeEventModal(challenge);
+      hideChallengeEventModal();
+      setStatus("Challenge could not be saved. An earlier challenge may still be pending.");
     });
   }else{
     showChallengeEventModal(challenge);
