@@ -7522,7 +7522,9 @@ async function closeResolvedChallenge(challenge){
 function showChallengeEventModal(challenge){
   if(!challengeEventOverlay||!challengeEventText||!challengeEventActions||!challengeWaiting)return;
   if(!challenge){dismissedChallengeId=null;hideChallengeEventModal();return;}
-  if (resolvedChallengeIdsSeen[String(challenge.id || "")]) {
+  if (resolvedChallengeIdsSeen[String(challenge.id || "")] &&
+      (!remoteRoomRef ||
+       remotePlayerIndex !== Number(challenge.challengerIndex))) {
     dismissedChallengeId=String(challenge.id);
     hideChallengeEventModal();
     return;
@@ -7543,6 +7545,24 @@ function showChallengeEventModal(challenge){
     return;
   }
   if(isChallenger){
+    const recordedResult =
+      resolvedChallengeIdsSeen[String(challenge.id || "")];
+
+    if (recordedResult === "won" || recordedResult === "lost") {
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.textContent = "Retry Result Delivery";
+      retry.addEventListener("click", () =>
+        resolveChallengeEvent(recordedResult, challenge)
+      );
+
+      challengeEventActions.append(retry);
+      challengeWaiting.textContent =
+        "The challenge has already been scored. Retry sending the result without changing the score.";
+      challengeEventOverlay.classList.remove("hidden");
+      return;
+    }
+
     let prompt="";
     if(challenge.type==="shared"){
       const left=challenge.leftMovie||"the first movie";
@@ -7706,44 +7726,66 @@ async function resolveChallengeEvent(result, challenge){
           scores[challengedPlayerIndex] = Number(scores[challengedPlayerIndex] || 0) - penalty;
           return { ...current, scores,
             board: {...board, connections:links.filter(c => c && c.id !== challenge.connectionId)},
-            resolvedChallengeIds:{...handled,[challengeId]:true},
+            resolvedChallengeIds:{...handled,[challengeId]:result},
             updatedAt:firebase.database.ServerValue.TIMESTAMP };
         }
         scores[challengerIndex] = Number(scores[challengerIndex] || 0) - 3;
         return { ...current, scores,
-          resolvedChallengeIds:{...handled,[challengeId]:true},
+          resolvedChallengeIds:{...handled,[challengeId]:result},
           updatedAt:firebase.database.ServerValue.TIMESTAMP };
       }, undefined, false);
       if (!outcome.committed) {
         const finalState=outcome.snapshot.val();
         if (finalState) applyRemoteState(finalState);
         if (finalState?.resolvedChallengeIds?.[challengeId]) {
-          dismissedChallengeId=challengeId;
-          hideChallengeEventModal();
-          setStatus("Challenge was already resolved. The old window has been closed.");
+          // Already scored: retry publication without another penalty.
+          const recordedResult =
+            finalState.resolvedChallengeIds[challengeId];
+
+          if (recordedResult !== "won" &&
+              recordedResult !== "lost") {
+            setStatus("This older challenge is resolved; its result cannot be republished automatically.");
+            return;
+          }
+
+          if (recordedResult !== result) {
+            setStatus("Challenge was already resolved with a different outcome.");
+            return;
+          }
         } else {
-          setStatus("Challenge could not be resolved. No additional penalty was applied; you may close the window without changing the result.");
+          setStatus("Challenge could not be resolved. No additional penalty was applied.");
+          return;
         }
-        return;
       }
       committed = true;
       resolvedChallengeIdsSeen[challengeId] = true;
-      dismissedChallengeId = challengeId;
-      hideChallengeEventModal();
-      applyRemoteState(outcome.snapshot.val());
+      // Keep the challenge available until publication succeeds.
+      if (outcome.snapshot.val()) {
+        applyRemoteState(outcome.snapshot.val());
+      }
       // Publish independent result notices before removing the shared prompt.
       // Keep each visible until that player presses OK. This is deliberately
       // separate from the active challenge, which should still close promptly.
       const resultNotice={id:challengeId,result,route:challenge.route || "Connection",
         challenger,challengedPlayer,penalty,createdAt:firebase.database.ServerValue.TIMESTAMP};
       try {
-        await room.child("challengeResults").update({
-          [String(challengerIndex)]:resultNotice,
-          [String(challengedPlayerIndex)]:resultNotice
+        const publish = firebase.functions()
+          .httpsCallable("publishChallengeResult");
+
+        const response = await publish({
+          roomCode: remoteRoomCode,
+          challengeId
         });
+
+        if (response.data?.status !== "published") {
+          throw new Error(
+            response.data?.reason || "Result publication failed"
+          );
+        }
       } catch(noticeErr){
-        console.error("Challenge resolved but result notification was not delivered",noticeErr);
-        setStatus("Challenge was resolved, but the result message could not be delivered.");
+        console.error("Challenge result publication failed",noticeErr);
+        setStatus("Challenge resolved, but result delivery failed. Please retry before closing.");
+        return;
       }
       // The player's choice is final once the score/board transaction succeeds.
       // Remove the shared challenge prompt so both devices close it automatically.
@@ -12140,9 +12182,23 @@ function applyRemoteState(state){
     skipTurnStartMs = Number.isFinite(Number(state.turnStartedAt)) ? Number(state.turnStartedAt) : null;
 
     resolvedChallengeIdsSeen=state.resolvedChallengeIds || {};
+    if (displayedChallengeId &&
+        resolvedChallengeIdsSeen[displayedChallengeId] &&
+        remoteRoomRef) {
+      const expectedId = displayedChallengeId;
+      remoteRoomRef.child("challenge").once("value").then(snap => {
+        const active = snap.val();
+        if (active && String(active.id) === expectedId &&
+            displayedChallengeId === expectedId) {
+          showChallengeEventModal(active);
+        }
+      }).catch(err => console.error("Challenge refresh failed", err));
+    }
     if (displayedChallengeId && resolvedChallengeIdsSeen[displayedChallengeId]) {
-      dismissedChallengeId=displayedChallengeId;
-      hideChallengeEventModal();
+      // Keep the resolving player's prompt available for publication retry.
+      // Other players should not be able to resolve it again.
+      // Do not dismiss here: the challenge listener handles other players,
+      // and successful publication removes the shared challenge.
     }
     bonusUsedThisTurn=!!state.bonusUsedThisTurn;
     usedBonusQuestionIds=rememberBonusHistory(
