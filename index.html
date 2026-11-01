@@ -4137,7 +4137,35 @@ body[data-card-size="compact"] #surface .node::before {
 
 
   <div id="onlineOverlay" class="hidden" onclick="closeOnlinePanel(event)">
-    <div id="onlineModal" onclick="event.stopPropagation()">
+    
+<style>
+/* Keep the Remote Game header and Close button visible */
+#onlineModal .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #171b29;
+}
+</style>
+
+
+<style>
+#onlineModal > .modal-header {
+  position: sticky !important;
+  top: -18px !important;
+  z-index: 1000 !important;
+  background: #111319 !important;
+  padding: 12px 0 !important;
+}
+#onlineExistingSmsPanel {
+  flex: 1 1 100%;
+  width: 100%;
+  box-sizing: border-box;
+  display: none;
+}
+</style>
+
+<div id="onlineModal" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h2>Remote Game</h2>
         <button type="button" onclick="closeOnlinePanel()">Close</button>
@@ -4152,7 +4180,18 @@ body[data-card-size="compact"] #surface .node::before {
           <select id="onlineCreateMaxPlayers"><option value="2">2 players</option><option value="3">3 players</option><option value="4">4 players</option></select>
           <p>Create Game for multiplayer, or Play Solo now. Another player can join your solo room later.</p>
           <label for="onlineCreatePhone">Mobile number (optional)</label>
-          <input id="onlineCreatePhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For future turn notifications" />
+          <input id="onlineCreatePhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For turn notifications" />
+<label style="display:block;font-size:12px;line-height:1.5;margin:8px 0"><input id="onlineCreateSmsConsent" type="checkbox" /> I agree to receive automated Cage Connection text notifications when it is my turn or my connection is challenged. Message and data rates may apply. Frequency varies. Reply STOP to opt out or HELP for help.</label>
+<div id="onlineCreateSmsVerifyPanel" hidden>
+  <label for="onlineCreateSmsCode">Text verification code</label>
+  <input id="onlineCreateSmsCode" type="text" inputmode="numeric"
+    autocomplete="one-time-code" maxlength="10"
+    placeholder="Enter SMS code" />
+  <button type="button"
+    onclick="confirmGameSms('onlineCreate')">Verify and Enable Texts</button>
+</div>
+
+<p style="font-size:11px;color:#e8c874">SMS verification enabled for authorized testing only.</p>
           <button type="button" class="online-primary" onclick="createRemoteGame()">Create Game</button>
           <button type="button" onclick="createRemoteGame(true)">Play Solo</button>
         </section>
@@ -4168,8 +4207,18 @@ body[data-card-size="compact"] #surface .node::before {
           <label for="onlineJoinName">Your name</label>
           <input id="onlineJoinName" type="text" maxlength="24" value="Player 2" />
           <label for="onlineJoinPhone">Mobile number (optional)</label>
-          <input id="onlineJoinPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For future turn notifications" />
-          <button type="button" class="online-primary" onclick="joinRemoteGame()">Join Game</button>
+          <input id="onlineJoinPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For turn notifications" />
+<label style="display:block;font-size:12px;line-height:1.5;margin:8px 0"><input id="onlineJoinSmsConsent" type="checkbox" /> I agree to receive automated Cage Connection text notifications when it is my turn or my connection is challenged. Message and data rates may apply. Frequency varies. Reply STOP to opt out or HELP for help.</label>
+<p style="font-size:11px;color:#e8c874">SMS verification enabled for authorized testing only.</p>
+          <div id="onlineJoinSmsVerifyPanel" hidden>
+  <label for="onlineJoinSmsCode">Text verification code</label>
+  <input id="onlineJoinSmsCode" type="text" inputmode="numeric"
+    autocomplete="one-time-code" maxlength="10"
+    placeholder="Enter SMS code" />
+  <button type="button"
+    onclick="confirmGameSms('onlineJoin')">Verify and Enable Texts</button>
+</div>
+<button type="button" class="online-primary" onclick="joinRemoteGame()">Join Game</button>
         </section>
         <section class="online-card">
           <h3>Resume a saved game</h3>
@@ -4188,8 +4237,54 @@ body[data-card-size="compact"] #surface .node::before {
           <button id="resumeLastGameButton" type="button" onclick="resumeLastRemoteGame()">Resume Last Game</button>
         </section>
       </div>
+
       <section id="onlineConnectedPanel" class="online-connected hidden">
-        <div><span class="online-kicker">ROOM CODE</span><strong id="onlineRoomCode">------</strong></div>
+<section id="onlineExistingSmsPanel" class="online-card">
+        <h3>Text Notifications for This Game</h3>
+        <p>Verify your phone without creating another game.</p>
+        <label for="onlineExistingPhone">Mobile number</label>
+        <input id="onlineExistingPhone" type="tel"
+          inputmode="tel" autocomplete="tel"
+          placeholder="US mobile number" />
+        <label style="display:block;font-size:12px;line-height:1.5;margin:8px 0">
+          <input id="onlineExistingSmsConsent" type="checkbox" />
+          I agree to receive automated Cage Connection texts when it is my
+          turn or my connection is challenged. Message and data rates may
+          apply. Frequency varies. Reply STOP to opt out or HELP for help.
+        </label>
+        <button type="button" onclick="startExistingGameSms()">
+          Send Verification Code
+        </button>
+        <button type="button" onclick="resumePendingGameSms()">
+          Enter an Existing Verification Code
+        </button>
+        <div id="onlineExistingSmsVerifyPanel" hidden>
+          <label for="onlineExistingSmsCode">Verification code</label>
+          <input id="onlineExistingSmsCode" type="text"
+            inputmode="numeric" autocomplete="one-time-code"
+            maxlength="10" placeholder="Enter SMS code" />
+          <button type="button"
+            onclick="confirmGameSms('onlineExisting')">
+            Verify and Enable Texts
+          </button>
+        </div>
+      </section>
+        
+<section id="onlineSmsSmartPanel"
+  class="online-card" style="display:none">
+  <h3>Text Alert Settings</h3>
+  <p id="onlineSmsSmartStatus">Loading...</p>
+  <button type="button"
+    id="onlineSmsSmartToggle"
+    onclick="toggleSmartSmsAlerts()">
+    Pause Text Alerts
+  </button>
+  <p style="font-size:12px">
+    Alerts are sent when you're away.
+    Pausing does not cancel your SMS consent.
+  </p>
+</section>
+<div><span class="online-kicker">ROOM CODE</span><strong id="onlineRoomCode">------</strong></div>
         <div id="onlineRoleText">Not connected</div>
         <div style="flex:1 1 100%;min-width:0">
           <span class="online-kicker">INVITE LINK</span>
@@ -4200,6 +4295,9 @@ body[data-card-size="compact"] #surface .node::before {
           <button type="button" class="online-primary" onclick="saveRemoteGameNow()">Save Game</button>
           <button id="skipCurrentPlayerButton" type="button" onclick="skipCurrentPlayerForThem()">Skip Current Player's Turn</button>
           <button id="removePlayerButton" type="button" onclick="removeRemotePlayer()" style="display:none">Remove Player 2</button>
+          <button type="button" onclick="disableGameSms()">
+            Turn Off Text Notifications
+          </button>
           <button type="button" onclick="leaveRemoteGame()">Leave Game</button>
           <button id="endGameForEveryoneButton" type="button" onclick="endGameForEveryone()" style="display:none">End Game for Everyone</button>
         </div>
@@ -4462,6 +4560,7 @@ body[data-card-size="compact"] #surface .node::before {
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-functions-compat.js"></script>
 <script>
 // Initialize the authentication promise before any startup code can reference it.
 let remoteAuthReady = null;
@@ -7423,7 +7522,9 @@ async function closeResolvedChallenge(challenge){
 function showChallengeEventModal(challenge){
   if(!challengeEventOverlay||!challengeEventText||!challengeEventActions||!challengeWaiting)return;
   if(!challenge){dismissedChallengeId=null;hideChallengeEventModal();return;}
-  if (resolvedChallengeIdsSeen[String(challenge.id || "")]) {
+  if (resolvedChallengeIdsSeen[String(challenge.id || "")] &&
+      (!remoteRoomRef ||
+       remotePlayerIndex !== Number(challenge.challengerIndex))) {
     dismissedChallengeId=String(challenge.id);
     hideChallengeEventModal();
     return;
@@ -7444,6 +7545,24 @@ function showChallengeEventModal(challenge){
     return;
   }
   if(isChallenger){
+    const recordedResult =
+      resolvedChallengeIdsSeen[String(challenge.id || "")];
+
+    if (recordedResult === "won" || recordedResult === "lost") {
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.textContent = "Retry Result Delivery";
+      retry.addEventListener("click", () =>
+        resolveChallengeEvent(recordedResult, challenge)
+      );
+
+      challengeEventActions.append(retry);
+      challengeWaiting.textContent =
+        "The challenge has already been scored. Retry sending the result without changing the score.";
+      challengeEventOverlay.classList.remove("hidden");
+      return;
+    }
+
     let prompt="";
     if(challenge.type==="shared"){
       const left=challenge.leftMovie||"the first movie";
@@ -7494,8 +7613,16 @@ function challengeConnection(connectionId) {
   if (!c) return;
   challengeMode = false;
   const challengerIndex = currentPlayerIndex;
-  const ownerIndex = Number(c.owner);
-  const challengedPlayerIndex = Number.isInteger(ownerIndex) && ownerIndex>=0 && ownerIndex<players.length ? ownerIndex : nextPlayablePlayerIndex(challengerIndex);
+  const ownerIndex =
+    typeof c.owner === "number" ? c.owner : null;
+
+  const challengedPlayerIndex =
+    Number.isInteger(ownerIndex) &&
+    ownerIndex >= 0 &&
+    ownerIndex < players.length &&
+    ownerIndex !== challengerIndex
+      ? ownerIndex
+      : nextPlayablePlayerIndex(challengerIndex);
   const isShared = c.type === "shared";
   const route = isShared
     ? `${c.a.name} ↔ ${c.b.name} (shared actor: ${c.sharedActor || "unknown"})`
@@ -7551,7 +7678,8 @@ function commitChallengeEvent(challenge){
   if(remoteRoomRef){
     remoteRoomRef.child("challenge").set(challenge).catch(err=>{
       console.error("Challenge sync failed",err);
-      showChallengeEventModal(challenge);
+      hideChallengeEventModal();
+      setStatus("Challenge could not be saved. An earlier challenge may still be pending.");
     });
   }else{
     showChallengeEventModal(challenge);
@@ -7598,44 +7726,66 @@ async function resolveChallengeEvent(result, challenge){
           scores[challengedPlayerIndex] = Number(scores[challengedPlayerIndex] || 0) - penalty;
           return { ...current, scores,
             board: {...board, connections:links.filter(c => c && c.id !== challenge.connectionId)},
-            resolvedChallengeIds:{...handled,[challengeId]:true},
+            resolvedChallengeIds:{...handled,[challengeId]:result},
             updatedAt:firebase.database.ServerValue.TIMESTAMP };
         }
         scores[challengerIndex] = Number(scores[challengerIndex] || 0) - 3;
         return { ...current, scores,
-          resolvedChallengeIds:{...handled,[challengeId]:true},
+          resolvedChallengeIds:{...handled,[challengeId]:result},
           updatedAt:firebase.database.ServerValue.TIMESTAMP };
       }, undefined, false);
       if (!outcome.committed) {
         const finalState=outcome.snapshot.val();
         if (finalState) applyRemoteState(finalState);
         if (finalState?.resolvedChallengeIds?.[challengeId]) {
-          dismissedChallengeId=challengeId;
-          hideChallengeEventModal();
-          setStatus("Challenge was already resolved. The old window has been closed.");
+          // Already scored: retry publication without another penalty.
+          const recordedResult =
+            finalState.resolvedChallengeIds[challengeId];
+
+          if (recordedResult !== "won" &&
+              recordedResult !== "lost") {
+            setStatus("This older challenge is resolved; its result cannot be republished automatically.");
+            return;
+          }
+
+          if (recordedResult !== result) {
+            setStatus("Challenge was already resolved with a different outcome.");
+            return;
+          }
         } else {
-          setStatus("Challenge could not be resolved. No additional penalty was applied; you may close the window without changing the result.");
+          setStatus("Challenge could not be resolved. No additional penalty was applied.");
+          return;
         }
-        return;
       }
       committed = true;
       resolvedChallengeIdsSeen[challengeId] = true;
-      dismissedChallengeId = challengeId;
-      hideChallengeEventModal();
-      applyRemoteState(outcome.snapshot.val());
+      // Keep the challenge available until publication succeeds.
+      if (outcome.snapshot.val()) {
+        applyRemoteState(outcome.snapshot.val());
+      }
       // Publish independent result notices before removing the shared prompt.
       // Keep each visible until that player presses OK. This is deliberately
       // separate from the active challenge, which should still close promptly.
       const resultNotice={id:challengeId,result,route:challenge.route || "Connection",
         challenger,challengedPlayer,penalty,createdAt:firebase.database.ServerValue.TIMESTAMP};
       try {
-        await room.child("challengeResults").update({
-          [String(challengerIndex)]:resultNotice,
-          [String(challengedPlayerIndex)]:resultNotice
+        const publish = firebase.functions()
+          .httpsCallable("publishChallengeResult");
+
+        const response = await publish({
+          roomCode: remoteRoomCode,
+          challengeId
         });
+
+        if (response.data?.status !== "published") {
+          throw new Error(
+            response.data?.reason || "Result publication failed"
+          );
+        }
       } catch(noticeErr){
-        console.error("Challenge resolved but result notification was not delivered",noticeErr);
-        setStatus("Challenge was resolved, but the result message could not be delivered.");
+        console.error("Challenge result publication failed",noticeErr);
+        setStatus("Challenge resolved, but result delivery failed. Please retry before closing.");
+        return;
       }
       // The player's choice is final once the score/board transaction succeeds.
       // Remove the shared challenge prompt so both devices close it automatically.
@@ -11528,6 +11678,291 @@ submitBonusAnswer = async function() {
 // ---- Remote two-player support (Firebase Realtime Database) ----
 // Remote startup state is declared before the game initialization can access it.
 
+// SMS registration remains off until backend deployment and approval.
+const CAGE_SMS_REGISTRATION_ENABLED = true;
+const CAGE_SMS_CONSENT_VERSION = "CAGE_SMS_V73";
+
+let pendingGameSms = {};
+
+async function registerGameSms(roomCode, prefix) {
+  if (!CAGE_SMS_REGISTRATION_ENABLED) return;
+
+  const phoneInput = document.getElementById(prefix + "Phone");
+  const consentInput = document.getElementById(prefix + "SmsConsent");
+
+  if (!consentInput?.checked) return;
+
+  const raw = String(phoneInput?.value || "").replace(/\D/g, "");
+  const digits = raw.length === 11 && raw.startsWith("1")
+    ? raw.slice(1) : raw;
+
+  if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) {
+    setOnlineMessage("Game connected. Enter a valid US mobile number for texts.");
+    return;
+  }
+
+  const phone = "+1" + digits;
+
+  try {
+    await ensureRemoteAuth();
+
+    const callable = firebase.app().functions("us-central1")
+      .httpsCallable("requestSmsVerification");
+
+    const response = await callable({ roomCode, phone });
+
+    if (response.data?.status !== "pending") {
+      setOnlineMessage(
+        "Game connected. Phone verification was not started: " +
+        (response.data?.reason || "unavailable")
+      );
+      return;
+    }
+
+    pendingGameSms[prefix] = { roomCode, phone };
+
+    const panel = document.getElementById(prefix + "SmsVerifyPanel");
+    if (panel) panel.hidden = false;
+
+    setOnlineMessage(
+      "Game connected. Enter the verification code sent to your phone."
+    );
+  } catch (error) {
+    console.error("SMS verification request failed:", error.code || "unknown");
+    setOnlineMessage(
+      "Game connected, but SMS verification could not start."
+    );
+  }
+}
+
+function finishRemoteConnection(prefix) {
+  const needsSms = CAGE_SMS_REGISTRATION_ENABLED &&
+    document.getElementById(prefix + "SmsConsent")?.checked;
+
+  if (!needsSms) closeOnlinePanel();
+}
+
+function reportSmsProgress(message) {
+  setOnlineMessage(message);
+  setStatus(message);
+  const panel = document.getElementById("onlineOverlay");
+  if (panel) panel.classList.remove("hidden");
+}
+
+async function resumePendingGameSms() {
+  if (!remoteRoomCode || !remoteRoomRef) {
+    reportSmsProgress("Resume a game first.");
+    return;
+  }
+
+  const phoneInput = document.getElementById("onlineExistingPhone");
+  const raw = String(phoneInput?.value || "").replace(/\D/g, "");
+  const digits = raw.length === 11 && raw.startsWith("1")
+    ? raw.slice(1) : raw;
+
+  if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) {
+    reportSmsProgress("Enter your US mobile number first.");
+    return;
+  }
+
+  if (!document.getElementById("onlineExistingSmsConsent")?.checked) {
+    reportSmsProgress("SMS consent must be checked.");
+    return;
+  }
+
+  const phone = "+1" + digits;
+
+  reportSmsProgress("Checking for an existing verification...");
+
+  try {
+    await ensureRemoteAuth();
+
+    const callable = firebase.app().functions("us-central1")
+      .httpsCallable("checkPendingSmsVerification");
+
+    const response = await callable({
+      roomCode: remoteRoomCode,
+      phone
+    });
+
+    if (response.data?.status !== "pending") {
+      reportSmsProgress(
+        "No active verification found. Request a new code when allowed."
+      );
+      return;
+    }
+
+    pendingGameSms.onlineExisting = {
+      roomCode: remoteRoomCode,
+      phone
+    };
+
+    const panel = document.getElementById(
+      "onlineExistingSmsVerifyPanel"
+    );
+
+    if (panel) panel.hidden = false;
+
+    reportSmsProgress(
+      "Existing verification found. Enter the code already sent."
+    );
+  } catch (error) {
+    console.error("SMS recovery failed:", error.code || "unknown");
+    reportSmsProgress(
+      "Could not check the existing verification: " +
+      (error.code || "unknown error")
+    );
+  }
+}
+
+async function startExistingGameSms() {
+  if (!remoteRoomCode || !remoteRoomRef) {
+    reportSmsProgress("Resume or join a game first.");
+    return;
+  }
+
+  const button = document.querySelector(
+    '#onlineExistingSmsPanel button'
+  );
+  if (button?.disabled) return;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Requesting code...";
+  }
+
+  try {
+    await registerGameSms(remoteRoomCode, "onlineExisting");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Send Verification Code";
+    }
+  }
+}
+
+async function confirmGameSms(prefix) {
+  if (!CAGE_SMS_REGISTRATION_ENABLED) return;
+
+  const pending = pendingGameSms[prefix];
+  const code = String(
+    document.getElementById(prefix + "SmsCode")?.value || ""
+  ).trim();
+
+  if (!pending || !/^\d{4,10}$/.test(code)) {
+    setOnlineMessage("Enter the numeric code sent to your phone.");
+    return;
+  }
+
+  if (!document.getElementById(prefix + "SmsConsent")?.checked) {
+    setOnlineMessage("Consent is required to enable notifications.");
+    return;
+  }
+
+  const panel = document.getElementById(prefix + "SmsVerifyPanel");
+  const button = panel?.querySelector("button");
+  if (button?.disabled) return;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Verifying...";
+  }
+  reportSmsProgress("Checking your verification code...");
+
+  try {
+    await ensureRemoteAuth();
+
+    const functions = firebase.app().functions("us-central1");
+
+    const confirm = functions.httpsCallable("confirmSmsVerification");
+    const verified = await confirm({
+      roomCode: pending.roomCode,
+      phone: pending.phone,
+      code
+    });
+
+    if (verified.data?.status !== "verified") {
+      reportSmsProgress(
+        "Phone verification failed: " +
+        (verified.data?.reason || "invalid code")
+      );
+      return;
+    }
+
+    const register = functions.httpsCallable(
+      "registerVerifiedSmsConsent"
+    );
+
+    const result = await register({
+      roomCode: pending.roomCode,
+      enabled: true,
+      phone: pending.phone,
+      consentConfirmed: true,
+      consentTextVersion: CAGE_SMS_CONSENT_VERSION
+    });
+
+    if (result.data?.status !== "ok" ||
+        result.data?.enabled !== true) {
+      reportSmsProgress(
+        "Phone verified, but notifications were not enabled: " +
+        (result.data?.reason || "registration failed")
+      );
+      return;
+    }
+
+    delete pendingGameSms[prefix];
+
+    const panel = document.getElementById(prefix + "SmsVerifyPanel");
+    if (panel) panel.hidden = true;
+
+    setStatus("Phone verified. Text notifications enabled.");
+    closeOnlinePanel();
+  } catch (error) {
+    console.error("SMS activation failed:", error.code || "unknown");
+    reportSmsProgress(
+      "SMS activation failed: " +
+      (error.message || error.code || "unknown error") +
+      ". Your game is still connected."
+    );
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Verify and Enable Texts";
+    }
+  }
+}
+
+async function disableGameSms() {
+  if (!CAGE_SMS_REGISTRATION_ENABLED) {
+    setOnlineMessage("SMS notifications are not available yet.");
+    return;
+  }
+
+  if (!remoteRoomCode || !remoteRoomRef) {
+    setOnlineMessage("Open your saved game first.");
+    return;
+  }
+
+  try {
+    await ensureRemoteAuth();
+
+    const callable = firebase.app().functions("us-central1")
+      .httpsCallable("updateSmsConsent");
+
+    await callable({
+      roomCode: remoteRoomCode,
+      enabled: false
+    });
+
+    setOnlineMessage("Text notifications have been turned off.");
+  } catch (error) {
+    console.error("SMS opt-out failed:", error.code || "unknown");
+    setOnlineMessage(
+      "Could not turn off notifications. Reply STOP to an SMS if you have received one."
+    );
+  }
+}
+
 function ensureRemoteAuth(){
   if (!remoteAuthReady) {
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
@@ -11539,7 +11974,14 @@ function ensureRemoteAuth(){
   return remoteAuthReady;
 }
 ensureRemoteAuth().then(()=>{ startSharedCastListener(); setOnlineMessage("Anonymous player identity ready."); }).catch(error=>setOnlineMessage("Anonymous sign-in failed: "+error.message));
-function openOnlinePanel(){const e=document.getElementById("onlineOverlay");if(e)e.classList.remove("hidden");prefillRemoteResume();refreshOnlinePanel()}
+function openOnlinePanel(){
+  const e=document.getElementById("onlineOverlay");
+  if(e)e.classList.remove("hidden");
+  const sms=document.getElementById("onlineExistingSmsPanel");
+  if(sms)sms.style.display=(remoteRoomCode && remoteRoomRef) ? "block" : "none";
+  prefillRemoteResume();
+  refreshOnlinePanel();
+}
 function closeOnlinePanel(event){const e=document.getElementById("onlineOverlay");if(event&&event.target!==e)return;if(e)e.classList.add("hidden")}
 function setOnlineMessage(t){const e=document.getElementById("onlineMessage");if(e)e.textContent=t}
 function cleanPlayerName(v,f){const n=String(v||"").trim().replace(/\s+/g," ").slice(0,24);return n||f}
@@ -11740,9 +12182,23 @@ function applyRemoteState(state){
     skipTurnStartMs = Number.isFinite(Number(state.turnStartedAt)) ? Number(state.turnStartedAt) : null;
 
     resolvedChallengeIdsSeen=state.resolvedChallengeIds || {};
+    if (displayedChallengeId &&
+        resolvedChallengeIdsSeen[displayedChallengeId] &&
+        remoteRoomRef) {
+      const expectedId = displayedChallengeId;
+      remoteRoomRef.child("challenge").once("value").then(snap => {
+        const active = snap.val();
+        if (active && String(active.id) === expectedId &&
+            displayedChallengeId === expectedId) {
+          showChallengeEventModal(active);
+        }
+      }).catch(err => console.error("Challenge refresh failed", err));
+    }
     if (displayedChallengeId && resolvedChallengeIdsSeen[displayedChallengeId]) {
-      dismissedChallengeId=displayedChallengeId;
-      hideChallengeEventModal();
+      // Keep the resolving player's prompt available for publication retry.
+      // Other players should not be able to resolve it again.
+      // Do not dismiss here: the challenge listener handles other players,
+      // and successful publication removes the shared challenge.
     }
     bonusUsedThisTurn=!!state.bonusUsedThisTurn;
     usedBonusQuestionIds=rememberBonusHistory(
@@ -11846,6 +12302,8 @@ async function createRemoteGame(soloMode=false){
     clearLocalBoardAfterRoomCreated();attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
     setOnlineMessage(soloMode ? `Solo game ${code} ready. You can invite Player 2 later.` : `Private room ${code} created. Share this code with Player 2.`);
     setStatus(soloMode ? `Solo game ready — ${players[0].name} goes first.` : `Room ${code} created. Invite Player 2 when ready.`);
+    await registerGameSms(code, "onlineCreate");
+    finishRemoteConnection("onlineCreate");
   }catch(error){console.error(error);setOnlineMessage(`Create failed: ${error.message||error}`)}
 }
 async function joinRemoteGame(){
@@ -11870,6 +12328,8 @@ async function joinRemoteGame(){
     applyRemoteState(room.state);applyRemoteMembers(room.members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
     setOnlineMessage(`Joined room ${code} as Player ${role+1}.`);
     setStatus(`Joined room ${code} as Player ${role+1}.`);
+    await registerGameSms(code, "onlineJoin");
+    finishRemoteConnection("onlineJoin");
   }catch(error){console.error(error);setOnlineMessage(`Could not join: ${error.message||error}`);}
 }
 async function saveRemoteGameNow(){
@@ -11925,6 +12385,7 @@ async function resumeRemoteGame(sessionOverride=null){
     applyRemoteState(room.state);applyRemoteMembers(room.members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
     setOnlineMessage(`Resumed ${root===LEGACY_ROOM_ROOT?"original two-player":"V5"} room ${code}. Live sync is on.`);
     setStatus(`Resumed room ${code}.`);
+    closeOnlinePanel();
   }catch(error){console.error(error);setOnlineMessage(`Could not resume: ${error.message||error}`)}
 }
 function resumeLastRemoteGame(){const x=getRemoteSession();if(!x){setOnlineMessage("No previously saved room was found on this browser.");return}resumeRemoteGame(x)}
@@ -12953,5 +13414,169 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
 }
 
 </style>
+
+<script>
+(function () {
+  "use strict";
+
+  let enabled = true;
+  let loaded = false;
+  let lastInteraction = 0;
+  let lastHeartbeat = 0;
+  let busy = false;
+  let loadedRoom = "";
+
+  function connected() {
+    return typeof remoteRoomCode === "string" &&
+      /^[A-Z2-9]{6}$/.test(remoteRoomCode) &&
+      !!remoteRoomRef;
+  }
+
+  function call(name, data) {
+    return firebase.app().functions("us-central1")
+      .httpsCallable(name)(data);
+  }
+
+  function render() {
+    const panel = document.getElementById(
+      "onlineSmsSmartPanel"
+    );
+    const status = document.getElementById(
+      "onlineSmsSmartStatus"
+    );
+    const button = document.getElementById(
+      "onlineSmsSmartToggle"
+    );
+
+    if (!panel || !status || !button) return;
+
+    panel.style.display =
+      connected() && loaded ? "block" : "none";
+
+    status.textContent = enabled
+      ? "Alerts ON — texts arrive when away."
+      : "Alerts PAUSED — no texts will be sent.";
+
+    button.textContent = enabled
+      ? "Pause Text Alerts"
+      : "Resume Text Alerts";
+  }
+
+  async function load() {
+    if (!connected()) return;
+    const room = remoteRoomCode;
+
+    try {
+      const response = await call(
+        "getSmsAlertSettings", { roomCode: room }
+      );
+
+      if (!connected() || remoteRoomCode !== room)
+        return;
+
+      loaded = response.data?.status === "ok";
+
+      if (loaded)
+        enabled = response.data.alertsEnabled === true;
+
+      loadedRoom = room;
+      render();
+    } catch (_) {
+      console.warn("Smart SMS settings unavailable.");
+    }
+  }
+
+  window.toggleSmartSmsAlerts = async function () {
+    if (!connected() || !loaded) return;
+
+    const button = document.getElementById(
+      "onlineSmsSmartToggle"
+    );
+    if (button) button.disabled = true;
+
+    try {
+      const response = await call(
+        "setSmsAlertSettings", {
+          roomCode: remoteRoomCode,
+          alertsEnabled: !enabled
+        }
+      );
+
+      if (response.data?.status !== "ok")
+        throw new Error("Update failed");
+
+      enabled = response.data.alertsEnabled;
+      render();
+    } catch (_) {
+      const status = document.getElementById(
+        "onlineSmsSmartStatus"
+      );
+      if (status)
+        status.textContent = "Could not update alerts.";
+    } finally {
+      if (button) button.disabled = false;
+    }
+  };
+
+  async function heartbeat() {
+    if (
+      !connected() || !loaded || !enabled ||
+      document.visibilityState !== "visible" ||
+      Date.now() - lastInteraction > 120000 ||
+      Date.now() - lastHeartbeat < 30000 ||
+      busy
+    ) return;
+
+    busy = true;
+    try {
+      const response = await call(
+        "recordSmsActivity",
+        { roomCode: remoteRoomCode }
+      );
+      if (response.data?.status === "ok")
+        lastHeartbeat = Date.now();
+    } catch (_) {
+    } finally {
+      busy = false;
+    }
+  }
+
+  function interact() {
+    lastInteraction = Date.now();
+    void heartbeat();
+  }
+
+  document.addEventListener(
+    "pointerdown", interact, { passive: true }
+  );
+  document.addEventListener("keydown", interact);
+
+  document.addEventListener(
+    "visibilitychange", () => {
+      if (document.visibilityState === "visible")
+        interact();
+    }
+  );
+
+  setInterval(() => {
+    void heartbeat();
+    if (connected() && remoteRoomCode !== loadedRoom)
+      void load();
+  }, 30000);
+
+  document.getElementById("onlineButton")
+    ?.addEventListener("click", () => void load());
+
+  const originalResume = window.resumeRemoteGame;
+  if (typeof originalResume === "function") {
+    window.resumeRemoteGame = async function (...args) {
+      const result = await originalResume.apply(this, args);
+      await load();
+      return result;
+    };
+  }
+})();
+</script>
+
 </body>
 </html> 
