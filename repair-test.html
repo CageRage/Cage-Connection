@@ -7972,12 +7972,23 @@ function applyChallengeWinPenalty(playerIndex, penalty) {
   setStatus("Cast lookup mode ON. Click a movie to view its cast for -2 points. Wikipedia costs 3 more unless you have the Whole Cage pass.");
 }
 
-   function handleCastLookup(nodeObj) {
+   async function handleCastLookup(nodeObj) {
   castLookupMode = false;
 
-  // Charge the player, not a hidden board-only penalty.
-  players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) - 2;
-  saveTwoPlayerState();
+  // Cast Lookup is a per-player cheat, not a turn action. Charge the
+  // actual browser seat and persist the score before displaying the cast.
+  const seat=wholeCageSeat();
+  if(remoteRoomRef){
+    if(!Number.isInteger(remotePlayerIndex))return;
+    try{
+      const result=await remoteRoomRef.child("state/scores/"+seat).transaction(score=>Number(score||0)-2,undefined,false);
+      if(!result.committed){setStatus("Cast Lookup charge could not be saved.");return;}
+      players[seat].score=Number(result.snapshot.val()||0);
+    }catch(err){console.error("Cast Lookup charge failed",err);setStatus("Cast Lookup unavailable: score could not be saved.");return;}
+  }else{
+    players[seat].score=Number(players[seat].score||0)-2;
+    saveTwoPlayerState();
+  }
   updateScoreDisplay();
 
   // Use the same merged cast source as Cage Check: built-in, local and approved shared additions.
@@ -7999,8 +8010,8 @@ function applyChallengeWinPenalty(playerIndex, penalty) {
     );
   }
 
-  addDockRecent(`${players[currentPlayerIndex].name} used Cast Lookup on ${nodeObj.name} (-2).`);
-  setStatus(`Cast lookup used for ${nodeObj.name}. ${players[currentPlayerIndex].name} -2.`);
+  addDockRecent(`${players[seat].name} used Cast Lookup on ${nodeObj.name} (-2).`);
+  setStatus(`Cast lookup used for ${nodeObj.name}. ${players[seat].name} -2.`);
 }
 
 function findMovie() {
@@ -12976,7 +12987,7 @@ switchTurnAfterConnection = function(chainMergeBonus = 0) {
 };
 
 function guardTurnFunction(name){const original=window[name];if(typeof original!=="function")return;window[name]=function(...args){if(!remoteTurnAllowed())return;return original.apply(this,args)}}
-["connectMode","openBonusRound","startCastLookup","startRemoveMovie"].forEach(guardTurnFunction);
+["connectMode","openBonusRound","startRemoveMovie"].forEach(guardTurnFunction);
 refreshOnlinePanel();
 updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
 // Resume only rooms explicitly opened in this test build. Wait for Firebase Auth and
