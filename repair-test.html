@@ -7483,7 +7483,7 @@ function openCheatDialog(title, bodyHtml, actionsHtml = "") {
   document.querySelectorAll('#toolbar details[open]').forEach(menu => menu.removeAttribute('open'));
   cheatTitle.textContent = title;
   cheatBody.innerHTML = bodyHtml;
-  cheatActions.innerHTML = actionsHtml + '<button type="button" id="cheatCloseBtn">Close</button>';
+  cheatActions.innerHTML = actionsHtml + (actionsHtml.includes('id="wholeCageNo"') ? "" : '<button type="button" id="cheatCloseBtn">Close</button>');
   cheatOverlay.classList.remove("hidden");
   const closeBtn = document.getElementById("cheatCloseBtn");
   if (closeBtn) closeBtn.addEventListener("click", closeCheatDialog);
@@ -7496,13 +7496,26 @@ if (cheatActions) {
     if (!link || link.dataset.costApplied === "1") return;
     if(wholeCageHasPass()){link.dataset.costApplied="1";setStatus("Wikipedia opened with the Whole Cage pass. No additional Wikipedia charge.");return;}
     link.dataset.costApplied = "1";
-    const who = players[currentPlayerIndex]?.name || `Player ${currentPlayerIndex + 1}`;
-    const title = link.getAttribute("data-wiki-title") || "movie";
-    players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) - 3;
-    saveTwoPlayerState();
-    updateScoreDisplay();
-    addDockRecent(`${who} opened Wikipedia for ${title} (-3 more; lookup total -5).`);
-    setStatus(`${who} opened Wikipedia for ${title}. Lookup total: -5.`);
+    const seat=wholeCageSeat();
+    const who=players[seat]?.name || `Player ${seat+1}`;
+    const title=link.getAttribute("data-wiki-title") || "movie";
+    if(remoteRoomRef){
+      if(!Number.isInteger(remotePlayerIndex)){setStatus("Cannot charge Wikipedia: player seat unknown.");event.preventDefault();return;}
+      remoteRoomRef.child("state/scores/"+seat).transaction(score=>Number(score||0)-3,undefined,false)
+        .then(result=>{
+          if(!result.committed){setStatus("Wikipedia charge could not be saved.");return;}
+          players[seat].score=Number(result.snapshot.val()||0);
+          updateScoreDisplay();
+          addDockRecent(`${who} opened Wikipedia for ${title} (-3 more; lookup total -5).`);
+          setStatus(`${who} opened Wikipedia for ${title}. Lookup total: -5.`);
+        }).catch(err=>{console.error("Wikipedia charge failed",err);setStatus("Wikipedia charge could not be saved.");});
+    }else{
+      players[seat].score=Number(players[seat].score||0)-3;
+      saveTwoPlayerState();
+      updateScoreDisplay();
+      addDockRecent(`${who} opened Wikipedia for ${title} (-3 more; lookup total -5).`);
+      setStatus(`${who} opened Wikipedia for ${title}. Lookup total: -5.`);
+    }
   });
 }
 
@@ -8123,6 +8136,7 @@ function findMovie() {
         version: 2,
         board: { nodes: [], connections: [] },
         scores: [0, 0],
+        wholeCageUnlocked: [],
         currentPlayerIndex: 0,
         bonusUsedThisTurn: false,
         usedBonusQuestionIds: [],
@@ -8157,6 +8171,7 @@ function findMovie() {
       svg.innerHTML = "";
 
       players.forEach(p => { p.score = 0; });
+      wholeCageUnlocked = [];
       currentPlayerIndex = 0;
       bonusUsedThisTurn = false;
       usedBonusQuestionIds = [];
