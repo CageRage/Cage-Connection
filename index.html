@@ -5150,7 +5150,7 @@ function posterSrcForMovie(title) {
           !pickerOverlay.classList.contains('hidden')) renderMovieList();
     }
 
-    async function loadPosterCatalog() {
+    async function queueMicrotask(() => loadPosterCatalog()); {
       let cached = null;
       try { cached = JSON.parse(localStorage.getItem(POSTER_CATALOG_CACHE_KEY) || 'null'); } catch (e) {}
       if (cached && Array.isArray(cached.files)) incorporatePosterFiles(cached.files);
@@ -5263,7 +5263,7 @@ function posterSrcForMovie(title) {
       updateScoreDisplay();
     }
 
-    function loadBoard() {
+    function queueMicrotask(() => loadBoard()); {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
         setStatus("No saved board found. Add movies to start a new board.");
