@@ -5151,8 +5151,8 @@ function posterSrcForMovie(title) {
           !pickerOverlay.classList.contains('hidden')) renderMovieList();
     }
 
-    async function queueMicrotask(() => loadPosterCatalog()); {
-      let cached = null;
+async function loadPosterCatalog() {
+  let cached = null;
       try { cached = JSON.parse(localStorage.getItem(POSTER_CATALOG_CACHE_KEY) || 'null'); } catch (e) {}
       if (cached && Array.isArray(cached.files)) incorporatePosterFiles(cached.files);
       if (cached && Date.now() - Number(cached.savedAt || 0) < POSTER_CATALOG_MAX_AGE) return;
