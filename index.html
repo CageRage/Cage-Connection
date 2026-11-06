@@ -5264,7 +5264,7 @@ function posterSrcForMovie(title) {
       updateScoreDisplay();
     }
 
-    function queueMicrotask(() => loadBoard()); {
+   function loadBoard() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
         setStatus("No saved board found. Add movies to start a new board.");
