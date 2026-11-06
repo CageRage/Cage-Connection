@@ -7678,8 +7678,63 @@ function showChallengeConfirmModal(challenge){
   challengeEventOverlay.classList.remove("hidden");
 }
 
-function commitChallengeEvent(challenge){
+function showSoloChallengeVerification(challenge){
+  if(!challengeEventOverlay||!challengeEventText||!challengeEventActions||!challengeWaiting)return;
+  const route=challenge.route||"This connection";
+  let prompt="";
+  if(challenge.type==="shared"){
+    const left=challenge.leftMovie||"the first movie";
+    const right=challenge.rightMovie||"the second movie";
+    const actor=challenge.sharedActor||"the listed actor";
+    prompt=`Check this movie connection. ${left} connects directly to ${right} because ${actor} is claimed to appear in both movies. Is the connection valid?`;
+  }else{
+    const left=challenge.leftMovie||"the first movie";
+    const bridge=challenge.bridgeTitle||"the bridge movie";
+    const right=challenge.rightMovie||"the final movie";
+    const leftActor=challenge.leftActor||"the first listed actor";
+    const rightActor=challenge.rightActor||"the second listed actor";
+    prompt=`Check this movie connection. ${left} connects to ${right} through ${bridge}. ${leftActor} must appear in both ${left} and ${bridge}; ${rightActor} must appear in both ${bridge} and ${right}. Is the connection valid?`;
+  }
+  challengeEventText.innerHTML=`<strong>${escapeHtml(route)}</strong><br>Single-player connection verification`;
+  challengeEventActions.innerHTML="";
+  const test=document.createElement("a");
+  test.href=`https://chatgpt.com/?q=${encodeURIComponent(prompt)}`;
+  test.target="_blank";
+  test.rel="noopener";
+  test.textContent="Run Verification in ChatGPT";
+  test.className="challenge-chatgpt-link";
+  const close=document.createElement("button");
+  close.type="button";
+  close.textContent="Close";
+  close.addEventListener("click",hideChallengeEventModal);
+  challengeEventActions.append(test,close);
+  challengeWaiting.textContent="Verification only: no points, board changes, or Firebase challenge.";
+  challengeEventOverlay.classList.remove("hidden");
+}
+
+async function commitChallengeEvent(challenge){
   if(!challenge)return;
+  // A single occupied room seat is verification-only; do not write a self-challenge.
+  // Check Firebase membership at confirmation time so multiplayer remains unchanged.
+  if(remoteRoomRef){
+    let occupiedCount;
+    try{
+      const snap=await remoteRoomRef.child("members").once("value");
+      const members=snap.val()||{};
+      occupiedCount=Object.values(members).filter(m=>m&&m.occupied===true&&typeof m.uid==="string"&&m.uid.length>0).length;
+    }catch(err){
+      console.error("Challenge membership check failed",err);
+      setStatus("Unable to verify room players. Challenge not submitted.");
+      return;
+    }
+    if(occupiedCount===1){
+      showSoloChallengeVerification(challenge);
+      return;
+    }
+  }else if(players.filter(p=>p&&p.name).length===1){
+    showSoloChallengeVerification(challenge);
+    return;
+  }
   const challengerIndex=Number(challenge.challengerIndex);
   const challenger=players[challengerIndex]?.name||`Player ${challengerIndex+1}`;
   addDockRecent(`${challenger} challenged ${challenge.route}.`);
