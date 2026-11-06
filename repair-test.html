@@ -4009,6 +4009,7 @@ body[data-card-size="compact"] #surface .node::before {
 <details class="tools-submenu">
 <summary>Cheats ▸</summary>
 <div class="tools-submenu-panel">
+<button onclick="this.closest('details').removeAttribute('open'); openWholeCageOffer()">One Movie or the Whole Cage? (Wikipedia)</button>
 <button onclick="this.closest('details').removeAttribute('open'); startCastLookup()">Cast Lookup (-2)</button>
 <button onclick="this.closest('details').removeAttribute('open'); openPathFinder()">Find Path</button>
 <button onclick="this.closest('details').removeAttribute('open'); showIndex()">Show Index</button>
@@ -7427,6 +7428,49 @@ challengeMode = true;
   openCheatDialog("Challenge Mode", "<p>Select the <strong>actual connection line or its label</strong> between the two movie cards you want to challenge—not either movie card.</p><p>Close this message, then tap or click that connection.</p>");
 }
 
+
+let wholeCageUnlocked=[];
+function wholeCageSeat(){return remoteRoomRef && Number.isInteger(remotePlayerIndex)?remotePlayerIndex:currentPlayerIndex;}
+function wholeCageHasPass(){return wholeCageUnlocked[wholeCageSeat()]===true;}
+function openWholeCageOffer(){
+  const seat=wholeCageSeat();
+  if(wholeCageHasPass()){
+    openCheatDialog("ONE MOVIE OR THE WHOLE CAGE?","<p>Wikipedia is already unlocked for this player for the rest of this game. No additional charge.</p>",'<a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Open Wikipedia</a>');
+    return;
+  }
+  openCheatDialog("ONE MOVIE OR THE WHOLE CAGE?",
+    "<p>Just making a quick connection so you can be <em>Gone in 60 Seconds</em>? Or are you <em>Wild at Heart</em>, ready to conquer the entire board?</p><p>If you're ready to <em>Face/Off</em> against the whole Cage, sacrifice <strong>20 points</strong> to unlock Wikipedia for the rest of the game.</p><p>It may sound like a <em>Con Air</em> operation, but even the most dedicated Cage fans need backup!</p><p><strong>Are you in?</strong></p>",
+    '<button type="button" id="wholeCageNo">Gone in 60 Seconds</button><button type="button" id="wholeCageYes">Face/Off</button>');
+  document.getElementById("wholeCageNo")?.addEventListener("click",()=>{closeCheatDialog();setStatus("Wikipedia pass declined. No points deducted.");});
+  document.getElementById("wholeCageYes")?.addEventListener("click",()=>buyWholeCagePass(seat));
+}
+async function buyWholeCagePass(seat){
+  const yes=document.getElementById("wholeCageYes");if(yes)yes.disabled=true;
+  if(remoteRoomRef){
+    if(!Number.isInteger(remotePlayerIndex)||remotePlayerIndex!==seat){setStatus("Cannot identify your player seat. No points deducted.");if(yes)yes.disabled=false;return;}
+    try{
+      const result=await remoteRoomRef.child("state").transaction(state=>{
+        if(!state||!Array.isArray(state.scores))return;
+        const unlocked=Array.isArray(state.wholeCageUnlocked)?state.wholeCageUnlocked.slice():[];
+        if(unlocked[seat]===true)return;
+        const scores=state.scores.slice();scores[seat]=Number(scores[seat]||0)-20;unlocked[seat]=true;
+        return {...state,scores,wholeCageUnlocked:unlocked};
+      },undefined,false);
+      const updated=result.snapshot.val();
+      if(!result.committed&&!updated?.wholeCageUnlocked?.[seat]){setStatus("Wikipedia unlock could not be saved. No points deducted.");if(yes)yes.disabled=false;return;}
+      wholeCageUnlocked=Array.isArray(updated?.wholeCageUnlocked)?updated.wholeCageUnlocked.slice():[];
+      if(Array.isArray(updated?.scores))players[seat].score=Number(updated.scores[seat]||0);
+    }catch(err){console.error("Wikipedia unlock failed",err);setStatus("Wikipedia unlock failed. No points deducted.");if(yes)yes.disabled=false;return;}
+  }else if(wholeCageUnlocked[seat]!==true){
+    players[seat].score=Number(players[seat].score||0)-20;wholeCageUnlocked[seat]=true;saveTwoPlayerState();
+  }
+  updateScoreDisplay();
+  addDockRecent(`${players[seat]?.name||"Player"} unlocked Wikipedia for the rest of the game (-20 once).`);
+  closeCheatDialog();
+  openCheatDialog("Wikipedia Unlocked","<p>Wikipedia is unlocked for the rest of this game. Your 20-point pass is active.</p>",'<a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Open Wikipedia</a>');
+  setStatus("Wikipedia unlocked for this player. One-time cost: 20 points.");
+}
+
 function closeCheatDialog() {
   cheatOverlay.classList.add("hidden");
   cheatBody.innerHTML = "";
@@ -7450,6 +7494,7 @@ if (cheatActions) {
   cheatActions.addEventListener("click", function(event) {
     const link = event.target.closest('a[data-cast-wiki-cost="3"]');
     if (!link || link.dataset.costApplied === "1") return;
+    if(wholeCageHasPass()){link.dataset.costApplied="1";setStatus("Wikipedia opened with the Whole Cage pass. No additional Wikipedia charge.");return;}
     link.dataset.costApplied = "1";
     const who = players[currentPlayerIndex]?.name || `Player ${currentPlayerIndex + 1}`;
     const title = link.getAttribute("data-wiki-title") || "movie";
@@ -7924,7 +7969,7 @@ function applyChallengeWinPenalty(playerIndex, penalty) {
   challengeMode = false;
 
   clearNodeStates();
-  setStatus("Cast lookup mode ON. Click a movie to view its cast for -2 points. Opening Wikipedia from there makes the total cost -5.");
+  setStatus("Cast lookup mode ON. Click a movie to view its cast for -2 points. Wikipedia costs 3 more unless you have the Whole Cage pass.");
 }
 
    function handleCastLookup(nodeObj) {
@@ -7944,13 +7989,13 @@ function applyChallengeWinPenalty(playerIndex, penalty) {
     openCheatDialog(
       `Cast Lookup — ${nodeObj.name}`,
       `<p><strong>-2 points.</strong> Here is the cast currently recognized by Cage Connection (including approved shared additions):</p><ul class="cheat-cast-list">${list}</ul>`,
-      `<a href="${escapeAttr(wiki)}" target="_blank" rel="noopener" data-cast-wiki-cost="3" data-wiki-title="${escapeAttr(nodeObj.name)}">Open Wikipedia cast page (-3 more)</a>`
+      `<a href="${escapeAttr(wiki)}" target="_blank" rel="noopener" data-cast-wiki-cost="3" data-wiki-title="${escapeAttr(nodeObj.name)}">Open Wikipedia cast page (${wholeCageHasPass() ? "pass active: free" : "-3 more"})</a>`
     );
   } else {
     openCheatDialog(
       `Cast Lookup — ${nodeObj.name}`,
-      `<p><strong>-2 points.</strong> Cage Connection does not have an internal cast list for this title yet.</p><p>Opening Wikipedia below makes the total cost for this lookup -5 points.</p>`,
-      `<a href="${escapeAttr(wiki)}" target="_blank" rel="noopener" data-cast-wiki-cost="3" data-wiki-title="${escapeAttr(nodeObj.name)}">Open Wikipedia cast page (-3 more)</a>`
+      `<p><strong>-2 points.</strong> Cage Connection does not have an internal cast list for this title yet.</p><p>Wikipedia is ${wholeCageHasPass() ? "included in your pass" : "3 more points (5 total)"}.</p>`,
+      `<a href="${escapeAttr(wiki)}" target="_blank" rel="noopener" data-cast-wiki-cost="3" data-wiki-title="${escapeAttr(nodeObj.name)}">Open Wikipedia cast page (${wholeCageHasPass() ? "pass active: free" : "-3 more"})</a>`
     );
   }
 
@@ -10415,7 +10460,8 @@ cageCheckOverlay.addEventListener("click", e => {
     players,
     currentPlayerIndex,
     bonusUsedThisTurn,
-    usedBonusQuestionIds
+    usedBonusQuestionIds,
+    wholeCageUnlocked
   }));
 }
 
@@ -10435,6 +10481,7 @@ function loadTwoPlayerState() {
         saved.currentPlayerIndex < players.length) {
       currentPlayerIndex = saved.currentPlayerIndex;
     }
+    wholeCageUnlocked=Array.isArray(saved.wholeCageUnlocked)?saved.wholeCageUnlocked.map(v=>v===true):[];
     bonusUsedThisTurn = !!saved.bonusUsedThisTurn;
     usedBonusQuestionIds = Array.isArray(saved.usedBonusQuestionIds)
       ? [...new Set(saved.usedBonusQuestionIds.map(String))]
@@ -12283,6 +12330,7 @@ function applyRemoteState(state){
       if (connectFirstNode) connectFirstNode.el.classList.add("connecting");
     }
 
+    wholeCageUnlocked=Array.isArray(state.wholeCageUnlocked)?state.wholeCageUnlocked.map(v=>v===true):[];
     if(Array.isArray(state.scores)){
       for(let i=0;i<remoteMaxPlayers;i++){
         if(state.scores[i] !== undefined){
