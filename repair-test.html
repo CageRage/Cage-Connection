@@ -8192,9 +8192,33 @@ function findMovie() {
           if (!result.committed) throw new Error("Reset transaction was not committed.");
         } catch (err) {
           console.error("Shared reset failed", err);
+          let resetDiagnostic="";
+          try {
+            const snapshot=await remoteRoomRef.once("value");
+            const room=snapshot.val()||{};
+            const state=room.state||{};
+            const uid=firebase.auth().currentUser?.uid;
+            const members=room.members||{};
+            const isMember=Object.values(members).some(m=>m&&m.uid===uid);
+            const max=Number(room.maxPlayers);
+            const checks={
+              authenticated:!!uid,
+              member:isMember,
+              roomRoot:remoteRoomRoot,
+              version:Number(state.version),
+              maxPlayers:max,
+              scoreCount:Array.isArray(state.scores)?state.scores.length:Object.keys(state.scores||{}).length,
+              scoreTypes:Array.from({length:max},(_,i)=>typeof state.scores?.[i]),
+              currentTurn:state.currentPlayerIndex,
+              stateReadable:snapshot.exists()
+            };
+            resetDiagnostic=" Diagnostics: "+JSON.stringify(checks);
+            console.info("Reset diagnostics",checks);
+          }catch(diagError){resetDiagnostic=" Diagnostics unavailable: "+(diagError.message||String(diagError));}
+
           if (typeof setOnlineMessage === "function") setOnlineMessage(`Could not reset shared game: ${err.message || err}`);
           setStatus("Reset failed. The current game was not cleared.");
-          if(error){error.textContent="Firebase did not accept the reset: "+(err.message||String(err))+". The game was not cleared.";error.hidden=false;}
+          if(error){error.textContent="Firebase did not accept the reset: "+(err.message||String(err))+". The game was not cleared."+resetDiagnostic;error.hidden=false;}
           confirm.disabled=false;cancel.disabled=false;
           return;
         }
