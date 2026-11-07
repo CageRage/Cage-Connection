@@ -8170,14 +8170,31 @@ function findMovie() {
       // Clear the shared Firebase room first when online so both players receive the reset.
       if (typeof remoteRoomRef !== "undefined" && remoteRoomRef) {
         try {
-          const write = remoteRoomRef.child("state").set(blankState);
-          if (typeof withFirebaseTimeout === "function") await withFirebaseTimeout(write);
-          else await write;
+          // Preserve room-state fields required by Firebase security rules.
+          // Replacing the whole state with a minimal object can be rejected.
+          const write = remoteRoomRef.child("state").transaction(current => {
+            if (!current || typeof current !== "object") return;
+            return {
+              ...current,
+              ...blankState,
+              board: {nodes:[],connections:[]},
+              scores: [0,0],
+              wholeCageUnlocked: [],
+              recentActions: [],
+              skipNotice: null,
+              challenge: null,
+              challengeEvent: null,
+              resolvedChallengeIds: null,
+              turnStartedAt: firebase.database.ServerValue.TIMESTAMP
+            };
+          }, undefined, false);
+          const result = typeof withFirebaseTimeout === "function" ? await withFirebaseTimeout(write) : await write;
+          if (!result.committed) throw new Error("Reset transaction was not committed.");
         } catch (err) {
           console.error("Shared reset failed", err);
           if (typeof setOnlineMessage === "function") setOnlineMessage(`Could not reset shared game: ${err.message || err}`);
           setStatus("Reset failed. The current game was not cleared.");
-          if(error){error.textContent="Firebase did not accept the reset. The game was not cleared. Please report this message.";error.hidden=false;}
+          if(error){error.textContent="Firebase did not accept the reset: "+(err.message||String(err))+". The game was not cleared.";error.hidden=false;}
           confirm.disabled=false;cancel.disabled=false;
           return;
         }
