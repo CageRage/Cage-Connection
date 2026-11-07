@@ -2771,6 +2771,14 @@ svg:has(.connection-line) {
   overflow: visible !important;
 }
 
+    #resetConfirmOverlay {position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;}
+    #resetConfirmOverlay.hidden {display:none;}
+    #resetConfirmDialog {width:min(460px,100%);background:#111827;border:1px solid #ad8749;border-radius:9px;padding:24px;color:#f3f4f6;box-shadow:0 14px 44px #000;}
+    #resetConfirmTitle {margin:0 0 14px;color:#ffd54a;font-size:23px;}
+    #resetConfirmDialog p {line-height:1.5;}
+    #resetConfirmError {color:#ffb5b5;}
+    .reset-confirm-actions {display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap;}
+    #resetConfirmBtn {border-color:#e0ad54;color:#ffd54a;}
 </style>
 
 <style id="bonusLiveSpectatorStyle">
@@ -4555,6 +4563,17 @@ body[data-card-size="compact"] #surface .node::before {
       <p class="rules-footnote">The game itself is the authority on scores and turn eligibility if a situation differs from this quick guide. Challenge verification and manual overrides may be necessary when cast records are incomplete.</p>
     </div>
   </section>
+</div>
+<div id="resetConfirmOverlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="resetConfirmTitle">
+  <div id="resetConfirmDialog">
+    <h2 id="resetConfirmTitle">Reset this test game?</h2>
+    <p>This will remove all movies and connections, reset both scores to zero, and clear Wikipedia passes for both players.</p>
+    <p id="resetConfirmError" role="alert" hidden></p>
+    <div class="reset-confirm-actions">
+      <button type="button" id="resetCancelBtn" onclick="closeResetConfirmation()">Cancel</button>
+      <button type="button" id="resetConfirmBtn" onclick="confirmResetBoard()">Reset Game</button>
+    </div>
+  </div>
 </div>
 <div id="cheatOverlay" class="hidden">
   <div id="cheatDialog" role="dialog" aria-modal="true" aria-labelledby="cheatTitle">
@@ -8118,20 +8137,23 @@ function findMovie() {
       reader.readAsText(file);
     }
 
-    let resetBoardArmedUntil = 0;
-
-    async function resetBoard() {
-      const now = Date.now();
-      if (now > resetBoardArmedUntil) {
-        resetBoardArmedUntil = now + 5000;
-        setStatus("Reset armed. Click Reset Board again within 5 seconds to clear the active game.");
-        if (typeof setOnlineMessage === "function" && typeof remoteRoomCode !== "undefined" && remoteRoomCode) {
-          setOnlineMessage("Reset armed. Click Reset Board again within 5 seconds. This will clear the shared room for both players.");
-        }
-        return;
-      }
-      resetBoardArmedUntil = 0;
-
+    function resetBoard() {
+      document.querySelectorAll('#toolbar details[open]').forEach(menu=>menu.removeAttribute('open'));
+      const error=document.getElementById('resetConfirmError');
+      if(error){error.hidden=true;error.textContent='';}
+      document.getElementById('resetConfirmBtn').disabled=false;
+      document.getElementById('resetCancelBtn').disabled=false;
+      document.getElementById('resetConfirmOverlay').classList.remove('hidden');
+    }
+    function closeResetConfirmation() {
+      document.getElementById('resetConfirmOverlay').classList.add('hidden');
+    }
+    async function confirmResetBoard() {
+      const confirm=document.getElementById('resetConfirmBtn');
+      const cancel=document.getElementById('resetCancelBtn');
+      const error=document.getElementById('resetConfirmError');
+      if(confirm.disabled)return;
+      confirm.disabled=true;cancel.disabled=true;
       const blankState = {
         version: 2,
         board: { nodes: [], connections: [] },
@@ -8155,6 +8177,8 @@ function findMovie() {
           console.error("Shared reset failed", err);
           if (typeof setOnlineMessage === "function") setOnlineMessage(`Could not reset shared game: ${err.message || err}`);
           setStatus("Reset failed. The current game was not cleared.");
+          if(error){error.textContent="Firebase did not accept the reset. The game was not cleared. Please report this message.";error.hidden=false;}
+          confirm.disabled=false;cancel.disabled=false;
           return;
         }
       }
@@ -8196,6 +8220,8 @@ function findMovie() {
       if (typeof renderDockRecent === "function") renderDockRecent(["Game ready."]);
       if (typeof draw === "function") draw();
       updateScoreDisplay();
+      closeResetConfirmation();
+      document.getElementById("cageBeeAnnouncement")?.classList.remove("open");
       setStatus("Game reset. Player 1 starts at 0–0.");
       if (typeof setOnlineMessage === "function" && typeof remoteRoomCode !== "undefined" && remoteRoomCode) {
         setOnlineMessage(`Room ${remoteRoomCode} was reset for both players.`);
