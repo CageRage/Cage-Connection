@@ -12481,7 +12481,14 @@ function applyRemoteState(state){
     // Ignore a skip that predates joining/reloading; show new skips once per client.
     const notice=state.skipNotice || null;
     const incomingId=notice?.id || null;
-    if(cageLastRemoteSkipNotice !== undefined && incomingId && incomingId !== cageLastRemoteSkipNotice) showCageBeeAnnouncement(notice);
+    // Display only fresh Skip events, not historical notices replayed after a reset,
+    // reconnect, or unrelated Firebase state update.
+    const freshSkip=notice && Number.isFinite(Number(notice.createdAt))
+      && Date.now()-Number(notice.createdAt)>=0
+      && Date.now()-Number(notice.createdAt)<30000;
+    if(cageLastRemoteSkipNotice !== undefined && incomingId && incomingId !== cageLastRemoteSkipNotice && freshSkip && Number(notice.nextPlayerIndex)===currentPlayerIndex){
+      showCageBeeAnnouncement(notice);
+    }
     cageLastRemoteSkipNotice=incomingId;
   }finally{
     applyingRemoteState=false;
@@ -13121,7 +13128,7 @@ async function confirmCageSkip(){
       if(!state || state.currentPlayerIndex!==prior)return;
       const recent=Array.isArray(state.recentActions)?state.recentActions:[];
       return {...state,currentPlayerIndex:next,bonusUsedThisTurn:false,
-        skipNotice:{id:noticeId,skipped:skippedName,next:nextName,by:skippingName},
+        skipNotice:{id:noticeId,skipped:skippedName,next:nextName,by:skippingName,nextPlayerIndex:next,createdAt:Date.now()},
         recentActions:[`${skippingName} released the bees! ${skippedName}'s turn was skipped.`,...recent].slice(0,40),
         turnStartedAt:firebase.database.ServerValue.TIMESTAMP,updatedAt:firebase.database.ServerValue.TIMESTAMP};
     },undefined,false);
