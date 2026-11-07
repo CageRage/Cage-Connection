@@ -7727,17 +7727,23 @@ function escapeAttr(text) {
   return String(text || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-// V49: A per-seat result notice survives clearing the active challenge. Only
-// the recipient's OK button removes their own notice; no other player's click
-// can dismiss it remotely.
+// Challenge result notices: support queued per-seat results while retaining
+// compatibility with older single-slot notices during backend migration.
 let remoteChallengeResultHandler = null;
+let remoteChallengeQueueHandler = null;
+let legacyChallengeResultNotice = null;
+let queuedChallengeResultNotices = {};
 let activeChallengeResultId = null;
+let activeChallengeResultSource = null;
+let challengeResultAckPending = false;
+
 function displayChallengeResultNotice(notice){
   const overlay=document.getElementById("challengeResultOverlay");
   if(!overlay)return;
   if(!notice || !notice.id){
     overlay.classList.add("hidden");
     activeChallengeResultId=null;
+    activeChallengeResultSource=null;
     return;
   }
   activeChallengeResultId=String(notice.id);
@@ -7748,22 +7754,54 @@ function displayChallengeResultNotice(notice){
     : `${notice.route || "Connection"}: connection stands. ${notice.challenger || "The challenger"} loses 3 points.`;
   overlay.classList.remove("hidden");
 }
+
+function refreshChallengeResultNotice(){
+  if(challengeResultAckPending)return;
+  const options=[];
+  if(legacyChallengeResultNotice?.id){
+    options.push({source:"legacy",notice:legacyChallengeResultNotice});
+  }
+  for(const [key,notice] of Object.entries(queuedChallengeResultNotices || {})){
+    if(notice && notice.id && String(notice.id)===key){
+      options.push({source:"queue",notice});
+    }
+  }
+  // Preserve the visible notice if it still exists, so a newly delivered
+  // notification cannot replace a result that the player is reading.
+  const existing=options.find(item=>
+    item.source===activeChallengeResultSource &&
+    String(item.notice.id)===activeChallengeResultId);
+  options.sort((a,b)=>
+    (Number(a.notice.createdAt)||0)-(Number(b.notice.createdAt)||0) ||
+    String(a.notice.id).localeCompare(String(b.notice.id)));
+  const next=existing || options[0];
+  activeChallengeResultSource=next?.source || null;
+  displayChallengeResultNotice(next?.notice || null);
+}
+
 document.getElementById("challengeResultOK")?.addEventListener("click", async () => {
   const id=activeChallengeResultId;
-  const overlay=document.getElementById("challengeResultOverlay");
-  if(!id)return;
-  // Hide immediately for this client, but don't touch another seat's notice.
-  overlay?.classList.add("hidden");
-  activeChallengeResultId=null;
-  if(remoteRoomRef && Number.isInteger(remotePlayerIndex)){
-    try {
-      await remoteRoomRef.child(`challengeResults/${remotePlayerIndex}`).transaction(
-        current => current && String(current.id)===id ? null : undefined
-      );
-    }catch(err){
-      console.error("Challenge result acknowledgement failed",err);
-      setStatus("Could not acknowledge the challenge result; it may reappear.");
+  const source=activeChallengeResultSource;
+  if(!id || !source || challengeResultAckPending)return;
+  if(!remoteRoomRef || !Number.isInteger(remotePlayerIndex))return;
+  challengeResultAckPending=true;
+  try {
+    const path=source==="legacy"
+      ? `challengeResults/${remotePlayerIndex}`
+      : `challengeResultQueue/${remotePlayerIndex}/${id}`;
+    const outcome=await remoteRoomRef.child(path).transaction(
+      current=>current && String(current.id)===id ? null : undefined,
+      undefined,false
+    );
+    if(!outcome.committed && outcome.snapshot?.exists()){
+      setStatus("Result acknowledgement was not saved. Please try again.");
     }
+  }catch(err){
+    console.error("Challenge result acknowledgement failed",err);
+    setStatus("Could not acknowledge the challenge result; please try again.");
+  }finally{
+    challengeResultAckPending=false;
+    refreshChallengeResultNotice();
   }
 });
 function hideChallengeEventModal(){
@@ -12628,17 +12666,35 @@ function clearDockChat(){const box=document.getElementById("dockChatMessages");i
 function appendDockChat(msg){const box=document.getElementById("dockChatMessages");if(!box||!msg)return;if(box.children.length===1&&box.textContent.includes("Join an online room"))box.innerHTML="";const line=document.createElement("div");line.className="dock-chat-line";const name=document.createElement("span");name.className="dock-chat-name";name.textContent=`${String(msg.name||"Player")}: `;const text=document.createElement("span");text.textContent=String(msg.text||"");line.append(name,text);box.appendChild(line);while(box.children.length>12)box.removeChild(box.firstChild);box.scrollTop=box.scrollHeight;}
 function sendDockChat(event){if(event)event.preventDefault();if(!remoteRoomRef||!Number.isInteger(remotePlayerIndex)||remotePlayerIndex<0||remotePlayerIndex>=remoteMaxPlayers){setStatus("Join an online room to use Game Notes chat.");return;}const input=document.getElementById("dockChatInput");const text=String(input?.value||"").trim().slice(0,180);if(!text)return;const name=players[remotePlayerIndex]?.name||`Player ${remotePlayerIndex+1}`;remoteRoomRef.child("chat").push({name,playerIndex:remotePlayerIndex,text,createdAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{if(input){input.value="";input.focus();}}).catch(err=>{console.error("Chat send failed",err);setStatus("Chat message could not be sent.");});}
 function detachRemoteListeners(){
-  if(remoteRoomRef && remoteChallengeResultHandler && Number.isInteger(remotePlayerIndex)){
-    remoteRoomRef.child(`challengeResults/${remotePlayerIndex}`).off("value",remoteChallengeResultHandler);
+  if(remoteRoomRef && Number.isInteger(remotePlayerIndex)){
+    if(remoteChallengeResultHandler){
+      remoteRoomRef.child(`challengeResults/${remotePlayerIndex}`).off("value",remoteChallengeResultHandler);
+    }
+    if(remoteChallengeQueueHandler){
+      remoteRoomRef.child(`challengeResultQueue/${remotePlayerIndex}`).off("value",remoteChallengeQueueHandler);
+    }
   }
   remoteChallengeResultHandler=null;
+  remoteChallengeQueueHandler=null;
+  legacyChallengeResultNotice=null;
+  queuedChallengeResultNotices={};
+  challengeResultAckPending=false;
   displayChallengeResultNotice(null);
   renderRemoteBonusLive(null);if(remoteRoomRef&&remoteStateHandler)remoteRoomRef.child("state").off("value",remoteStateHandler);if(remoteRoomRef&&remoteMembersHandler)remoteRoomRef.child("members").off("value",remoteMembersHandler);if(remoteRoomRef&&remoteChallengeHandler)remoteRoomRef.child("challenge").off("value",remoteChallengeHandler);if(remoteChatQuery&&remoteChatHandler)remoteChatQuery.off("child_added",remoteChatHandler);remoteStateHandler=null;remoteMembersHandler=null;remoteChallengeHandler=null;remoteChatQuery=null;remoteChatHandler=null;setDockChatEnabled(false)}
 function attachRemoteListeners(){if(!remoteRoomRef)return;detachRemoteListeners();
   if(Number.isInteger(remotePlayerIndex)){
-    remoteChallengeResultHandler=snap=>displayChallengeResultNotice(snap.val());
+    remoteChallengeResultHandler=snap=>{
+      legacyChallengeResultNotice=snap.val();
+      refreshChallengeResultNotice();
+    };
+    remoteChallengeQueueHandler=snap=>{
+      queuedChallengeResultNotices=snap.val() || {};
+      refreshChallengeResultNotice();
+    };
     remoteRoomRef.child(`challengeResults/${remotePlayerIndex}`).on("value",remoteChallengeResultHandler,
       err=>{console.error("Challenge result listener failed",err);setStatus("Challenge result notifications were interrupted.");});
+    remoteRoomRef.child(`challengeResultQueue/${remotePlayerIndex}`).on("value",remoteChallengeQueueHandler,
+      err=>{console.error("Challenge queue listener failed",err);setStatus("Challenge result queue was interrupted.");});
   }
 remoteStateHandler=snap=>{const state=snap.val();if(state)applyRemoteState(state)};remoteMembersHandler=snap=>{const members=snap.val();if(members)applyRemoteMembers(members)};remoteChallengeHandler=snap=>{const challenge=snap.val();if(challenge)showChallengeEventModal(challenge);else hideChallengeEventModal()};remoteRoomRef.child("state").on("value",remoteStateHandler,err=>{console.error("Remote state listener failed",err);setOnlineMessage("Remote game connection was interrupted.")});remoteRoomRef.child("members").on("value",remoteMembersHandler,err=>{console.error("Remote member listener failed",err);setOnlineMessage("Player-name sync was interrupted.")});remoteRoomRef.child("challenge").on("value",remoteChallengeHandler,err=>{console.error("Challenge listener failed",err);setStatus("Challenge sync was interrupted.")});const box=document.getElementById("dockChatMessages");if(box)box.innerHTML="";remoteChatQuery=remoteRoomRef.child("chat").limitToLast(80);remoteChatHandler=snap=>{const msg=snap.val();if(msg)appendDockChat(msg)};remoteChatQuery.on("child_added",remoteChatHandler,err=>{console.error("Chat listener failed",err);setStatus("Game Notes chat was interrupted.")});setDockChatEnabled(true)}
 function clearLocalBoardAfterRoomCreated(){
