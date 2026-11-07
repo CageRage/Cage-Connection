@@ -2771,6 +2771,14 @@ svg:has(.connection-line) {
   overflow: visible !important;
 }
 
+    #resetConfirmOverlay {position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;}
+    #resetConfirmOverlay.hidden {display:none;}
+    #resetConfirmDialog {width:min(460px,100%);background:#111827;border:1px solid #ad8749;border-radius:9px;padding:24px;color:#f3f4f6;box-shadow:0 14px 44px #000;}
+    #resetConfirmTitle {margin:0 0 14px;color:#ffd54a;font-size:23px;}
+    #resetConfirmDialog p {line-height:1.5;}
+    #resetConfirmError {color:#ffb5b5;}
+    .reset-confirm-actions {display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap;}
+    #resetConfirmBtn {border-color:#e0ad54;color:#ffd54a;}
 </style>
 
 <style id="bonusLiveSpectatorStyle">
@@ -4009,6 +4017,7 @@ body[data-card-size="compact"] #surface .node::before {
 <details class="tools-submenu">
 <summary>Cheats ▸</summary>
 <div class="tools-submenu-panel">
+<button onclick="this.closest('details').removeAttribute('open'); openWholeCageOffer()">One Movie or the Whole Cage? (Wikipedia)</button>
 <button onclick="this.closest('details').removeAttribute('open'); startCastLookup()">Cast Lookup (-2)</button>
 <button onclick="this.closest('details').removeAttribute('open'); openPathFinder()">Find Path</button>
 <button onclick="this.closest('details').removeAttribute('open'); showIndex()">Show Index</button>
@@ -4554,6 +4563,17 @@ body[data-card-size="compact"] #surface .node::before {
       <p class="rules-footnote">The game itself is the authority on scores and turn eligibility if a situation differs from this quick guide. Challenge verification and manual overrides may be necessary when cast records are incomplete.</p>
     </div>
   </section>
+</div>
+<div id="resetConfirmOverlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="resetConfirmTitle">
+  <div id="resetConfirmDialog">
+    <h2 id="resetConfirmTitle">Reset this test game?</h2>
+    <p>This will remove all movies and connections, reset both scores to zero, and clear Wikipedia passes for both players.</p>
+    <p id="resetConfirmError" role="alert" hidden></p>
+    <div class="reset-confirm-actions">
+      <button type="button" id="resetCancelBtn" onclick="closeResetConfirmation()">Cancel</button>
+      <button type="button" id="resetConfirmBtn" onclick="confirmResetBoard()">Reset Game</button>
+    </div>
+  </div>
 </div>
 <div id="cheatOverlay" class="hidden">
   <div id="cheatDialog" role="dialog" aria-modal="true" aria-labelledby="cheatTitle">
@@ -7612,6 +7632,49 @@ challengeMode = true;
   openCheatDialog("Challenge Mode", "<p>Select the <strong>actual connection line or its label</strong> between the two movie cards you want to challenge—not either movie card.</p><p>Close this message, then tap or click that connection.</p>");
 }
 
+
+let wholeCageUnlocked=[];
+function wholeCageSeat(){return remoteRoomRef && Number.isInteger(remotePlayerIndex)?remotePlayerIndex:currentPlayerIndex;}
+function wholeCageHasPass(){return wholeCageUnlocked[wholeCageSeat()]===true;}
+function openWholeCageOffer(){
+  const seat=wholeCageSeat();
+  if(wholeCageHasPass()){
+    openCheatDialog("ONE MOVIE OR THE WHOLE CAGE?","<p>Wikipedia is already unlocked for this player for the rest of this game. No additional charge.</p>",'<a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Open Wikipedia</a>');
+    return;
+  }
+  openCheatDialog("ONE MOVIE OR THE WHOLE CAGE?",
+    "<p>Just making a quick connection so you can be <em>Gone in 60 Seconds</em>? Or are you <em>Wild at Heart</em>, ready to conquer the entire board?</p><p>If you're ready to <em>Face/Off</em> against the whole Cage, sacrifice <strong>20 points</strong> to unlock Wikipedia for the rest of the game.</p><p>It may sound like a <em>Con Air</em> operation, but even the most dedicated Cage fans need backup!</p><p><strong>Are you in?</strong></p>",
+    '<button type="button" id="wholeCageNo">Gone in 60 Seconds</button><button type="button" id="wholeCageYes">Face/Off</button>');
+  document.getElementById("wholeCageNo")?.addEventListener("click",()=>{closeCheatDialog();setStatus("Wikipedia pass declined. No points deducted.");});
+  document.getElementById("wholeCageYes")?.addEventListener("click",()=>buyWholeCagePass(seat));
+}
+async function buyWholeCagePass(seat){
+  const yes=document.getElementById("wholeCageYes");if(yes)yes.disabled=true;
+  if(remoteRoomRef){
+    if(!Number.isInteger(remotePlayerIndex)||remotePlayerIndex!==seat){setStatus("Cannot identify your player seat. No points deducted.");if(yes)yes.disabled=false;return;}
+    try{
+      const result=await remoteRoomRef.child("state").transaction(state=>{
+        if(!state||!Array.isArray(state.scores))return;
+        const unlocked=Array.isArray(state.wholeCageUnlocked)?state.wholeCageUnlocked.slice():[];
+        if(unlocked[seat]===true)return;
+        const scores=state.scores.slice();scores[seat]=Number(scores[seat]||0)-20;unlocked[seat]=true;
+        return {...state,scores,wholeCageUnlocked:unlocked};
+      },undefined,false);
+      const updated=result.snapshot.val();
+      if(!result.committed&&!updated?.wholeCageUnlocked?.[seat]){setStatus("Wikipedia unlock could not be saved. No points deducted.");if(yes)yes.disabled=false;return;}
+      wholeCageUnlocked=Array.isArray(updated?.wholeCageUnlocked)?updated.wholeCageUnlocked.slice():[];
+      if(Array.isArray(updated?.scores))players[seat].score=Number(updated.scores[seat]||0);
+    }catch(err){console.error("Wikipedia unlock failed",err);setStatus("Wikipedia unlock failed. No points deducted.");if(yes)yes.disabled=false;return;}
+  }else if(wholeCageUnlocked[seat]!==true){
+    players[seat].score=Number(players[seat].score||0)-20;wholeCageUnlocked[seat]=true;saveTwoPlayerState();
+  }
+  updateScoreDisplay();
+  addDockRecent(`${players[seat]?.name||"Player"} unlocked Wikipedia for the rest of the game (-20 once).`);
+  closeCheatDialog();
+  openCheatDialog("Wikipedia Unlocked","<p>Wikipedia is unlocked for the rest of this game. Your 20-point pass is active.</p>",'<a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Open Wikipedia</a>');
+  setStatus("Wikipedia unlocked for this player. One-time cost: 20 points.");
+}
+
 function closeCheatDialog() {
   cheatOverlay.classList.add("hidden");
   cheatBody.innerHTML = "";
@@ -7624,7 +7687,7 @@ function openCheatDialog(title, bodyHtml, actionsHtml = "") {
   document.querySelectorAll('#toolbar details[open]').forEach(menu => menu.removeAttribute('open'));
   cheatTitle.textContent = title;
   cheatBody.innerHTML = bodyHtml;
-  cheatActions.innerHTML = actionsHtml + '<button type="button" id="cheatCloseBtn">Close</button>';
+  cheatActions.innerHTML = actionsHtml + (actionsHtml.includes('id="wholeCageNo"') ? "" : '<button type="button" id="cheatCloseBtn">Close</button>');
   cheatOverlay.classList.remove("hidden");
   const closeBtn = document.getElementById("cheatCloseBtn");
   if (closeBtn) closeBtn.addEventListener("click", closeCheatDialog);
@@ -7635,14 +7698,28 @@ if (cheatActions) {
   cheatActions.addEventListener("click", function(event) {
     const link = event.target.closest('a[data-cast-wiki-cost="3"]');
     if (!link || link.dataset.costApplied === "1") return;
+    if(wholeCageHasPass()){link.dataset.costApplied="1";setStatus("Wikipedia opened with the Whole Cage pass. No additional Wikipedia charge.");return;}
     link.dataset.costApplied = "1";
-    const who = players[currentPlayerIndex]?.name || `Player ${currentPlayerIndex + 1}`;
-    const title = link.getAttribute("data-wiki-title") || "movie";
-    players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) - 3;
-    saveTwoPlayerState();
-    updateScoreDisplay();
-    addDockRecent(`${who} opened Wikipedia for ${title} (-3 more; lookup total -5).`);
-    setStatus(`${who} opened Wikipedia for ${title}. Lookup total: -5.`);
+    const seat=wholeCageSeat();
+    const who=players[seat]?.name || `Player ${seat+1}`;
+    const title=link.getAttribute("data-wiki-title") || "movie";
+    if(remoteRoomRef){
+      if(!Number.isInteger(remotePlayerIndex)){setStatus("Cannot charge Wikipedia: player seat unknown.");event.preventDefault();return;}
+      remoteRoomRef.child("state/scores/"+seat).transaction(score=>Number(score||0)-3,undefined,false)
+        .then(result=>{
+          if(!result.committed){setStatus("Wikipedia charge could not be saved.");return;}
+          players[seat].score=Number(result.snapshot.val()||0);
+          updateScoreDisplay();
+          addDockRecent(`${who} opened Wikipedia for ${title} (-3 more; lookup total -5).`);
+          setStatus(`${who} opened Wikipedia for ${title}. Lookup total: -5.`);
+        }).catch(err=>{console.error("Wikipedia charge failed",err);setStatus("Wikipedia charge could not be saved.");});
+    }else{
+      players[seat].score=Number(players[seat].score||0)-3;
+      saveTwoPlayerState();
+      updateScoreDisplay();
+      addDockRecent(`${who} opened Wikipedia for ${title} (-3 more; lookup total -5).`);
+      setStatus(`${who} opened Wikipedia for ${title}. Lookup total: -5.`);
+    }
   });
 }
 
@@ -8109,15 +8186,26 @@ function applyChallengeWinPenalty(playerIndex, penalty) {
   challengeMode = false;
 
   clearNodeStates();
-  setStatus("Cast lookup mode ON. Click a movie to view its cast for -2 points. Opening Wikipedia from there makes the total cost -5.");
+  setStatus("Cast lookup mode ON. Click a movie to view its cast for -2 points. Wikipedia costs 3 more unless you have the Whole Cage pass.");
 }
 
-   function handleCastLookup(nodeObj) {
+   async function handleCastLookup(nodeObj) {
   castLookupMode = false;
 
-  // Charge the player, not a hidden board-only penalty.
-  players[currentPlayerIndex].score = Number(players[currentPlayerIndex].score || 0) - 2;
-  saveTwoPlayerState();
+  // Cast Lookup is a per-player cheat, not a turn action. Charge the
+  // actual browser seat and persist the score before displaying the cast.
+  const seat=wholeCageSeat();
+  if(remoteRoomRef){
+    if(!Number.isInteger(remotePlayerIndex))return;
+    try{
+      const result=await remoteRoomRef.child("state/scores/"+seat).transaction(score=>Number(score||0)-2,undefined,false);
+      if(!result.committed){setStatus("Cast Lookup charge could not be saved.");return;}
+      players[seat].score=Number(result.snapshot.val()||0);
+    }catch(err){console.error("Cast Lookup charge failed",err);setStatus("Cast Lookup unavailable: score could not be saved.");return;}
+  }else{
+    players[seat].score=Number(players[seat].score||0)-2;
+    saveTwoPlayerState();
+  }
   updateScoreDisplay();
 
   // Use the same merged cast source as Cage Check: built-in, local and approved shared additions.
@@ -8129,18 +8217,18 @@ function applyChallengeWinPenalty(playerIndex, penalty) {
     openCheatDialog(
       `Cast Lookup — ${nodeObj.name}`,
       `<p><strong>-2 points.</strong> Here is the cast currently recognized by Cage Connection (including approved shared additions):</p><ul class="cheat-cast-list">${list}</ul>`,
-      `<a href="${escapeAttr(wiki)}" target="_blank" rel="noopener" data-cast-wiki-cost="3" data-wiki-title="${escapeAttr(nodeObj.name)}">Open Wikipedia cast page (-3 more)</a>`
+      `<a href="${escapeAttr(wiki)}" target="_blank" rel="noopener" data-cast-wiki-cost="3" data-wiki-title="${escapeAttr(nodeObj.name)}">Open Wikipedia cast page (${wholeCageHasPass() ? "pass active: free" : "-3 more"})</a>`
     );
   } else {
     openCheatDialog(
       `Cast Lookup — ${nodeObj.name}`,
-      `<p><strong>-2 points.</strong> Cage Connection does not have an internal cast list for this title yet.</p><p>Opening Wikipedia below makes the total cost for this lookup -5 points.</p>`,
-      `<a href="${escapeAttr(wiki)}" target="_blank" rel="noopener" data-cast-wiki-cost="3" data-wiki-title="${escapeAttr(nodeObj.name)}">Open Wikipedia cast page (-3 more)</a>`
+      `<p><strong>-2 points.</strong> Cage Connection does not have an internal cast list for this title yet.</p><p>Wikipedia is ${wholeCageHasPass() ? "included in your pass" : "3 more points (5 total)"}.</p>`,
+      `<a href="${escapeAttr(wiki)}" target="_blank" rel="noopener" data-cast-wiki-cost="3" data-wiki-title="${escapeAttr(nodeObj.name)}">Open Wikipedia cast page (${wholeCageHasPass() ? "pass active: free" : "-3 more"})</a>`
     );
   }
 
-  addDockRecent(`${players[currentPlayerIndex].name} used Cast Lookup on ${nodeObj.name} (-2).`);
-  setStatus(`Cast lookup used for ${nodeObj.name}. ${players[currentPlayerIndex].name} -2.`);
+  addDockRecent(`${players[seat].name} used Cast Lookup on ${nodeObj.name} (-2).`);
+  setStatus(`Cast lookup used for ${nodeObj.name}. ${players[seat].name} -2.`);
 }
 
 function findMovie() {
@@ -8234,24 +8322,28 @@ function findMovie() {
       reader.readAsText(file);
     }
 
-    let resetBoardArmedUntil = 0;
-
-    async function resetBoard() {
-      const now = Date.now();
-      if (now > resetBoardArmedUntil) {
-        resetBoardArmedUntil = now + 5000;
-        setStatus("Reset armed. Click Reset Board again within 5 seconds to clear the active game.");
-        if (typeof setOnlineMessage === "function" && typeof remoteRoomCode !== "undefined" && remoteRoomCode) {
-          setOnlineMessage("Reset armed. Click Reset Board again within 5 seconds. This will clear the shared room for both players.");
-        }
-        return;
-      }
-      resetBoardArmedUntil = 0;
-
+    function resetBoard() {
+      document.querySelectorAll('#toolbar details[open]').forEach(menu=>menu.removeAttribute('open'));
+      const error=document.getElementById('resetConfirmError');
+      if(error){error.hidden=true;error.textContent='';}
+      document.getElementById('resetConfirmBtn').disabled=false;
+      document.getElementById('resetCancelBtn').disabled=false;
+      document.getElementById('resetConfirmOverlay').classList.remove('hidden');
+    }
+    function closeResetConfirmation() {
+      document.getElementById('resetConfirmOverlay').classList.add('hidden');
+    }
+    async function confirmResetBoard() {
+      const confirm=document.getElementById('resetConfirmBtn');
+      const cancel=document.getElementById('resetCancelBtn');
+      const error=document.getElementById('resetConfirmError');
+      if(confirm.disabled)return;
+      confirm.disabled=true;cancel.disabled=true;
       const blankState = {
-        version: 2,
+        version: 3,
         board: { nodes: [], connections: [] },
         scores: [0, 0],
+        wholeCageUnlocked: [],
         currentPlayerIndex: 0,
         bonusUsedThisTurn: false,
         usedBonusQuestionIds: [],
@@ -8263,13 +8355,56 @@ function findMovie() {
       // Clear the shared Firebase room first when online so both players receive the reset.
       if (typeof remoteRoomRef !== "undefined" && remoteRoomRef) {
         try {
-          const write = remoteRoomRef.child("state").set(blankState);
-          if (typeof withFirebaseTimeout === "function") await withFirebaseTimeout(write);
-          else await write;
+          // Preserve room-state fields required by Firebase security rules.
+          // Replacing the whole state with a minimal object can be rejected.
+          const write = remoteRoomRef.child("state").transaction(current => {
+            if (!current || typeof current !== "object") return;
+            return {
+              ...current,
+              ...blankState,
+              board: {nodes:[],connections:[]},
+              scores: [0,0],
+              wholeCageUnlocked: [],
+              recentActions: [],
+              skipNotice: null,
+              challenge: null,
+              challengeEvent: null,
+              resolvedChallengeIds: null,
+              turnStartedAt: firebase.database.ServerValue.TIMESTAMP
+            };
+          }, undefined, false);
+          const result = typeof withFirebaseTimeout === "function" ? await withFirebaseTimeout(write) : await write;
+          if (!result.committed) throw new Error("Reset transaction was not committed.");
         } catch (err) {
           console.error("Shared reset failed", err);
+          let resetDiagnostic="";
+          try {
+            const snapshot=await remoteRoomRef.once("value");
+            const room=snapshot.val()||{};
+            const state=room.state||{};
+            const uid=firebase.auth().currentUser?.uid;
+            const members=room.members||{};
+            const isMember=Object.values(members).some(m=>m&&m.uid===uid);
+            const max=Number(room.maxPlayers);
+            const checks={
+              authenticated:!!uid,
+              member:isMember,
+              roomRoot:remoteRoomRoot,
+              version:Number(state.version),
+              maxPlayers:max,
+              scoreCount:Array.isArray(state.scores)?state.scores.length:Object.keys(state.scores||{}).length,
+              scoreTypes:Array.from({length:max},(_,i)=>typeof state.scores?.[i]),
+              currentTurn:state.currentPlayerIndex,
+              stateReadable:snapshot.exists()
+            };
+            resetDiagnostic=" Diagnostics: "+JSON.stringify(checks);
+            console.info("Reset diagnostics",checks);
+          }catch(diagError){resetDiagnostic=" Diagnostics unavailable: "+(diagError.message||String(diagError));}
+
           if (typeof setOnlineMessage === "function") setOnlineMessage(`Could not reset shared game: ${err.message || err}`);
           setStatus("Reset failed. The current game was not cleared.");
+          if(error){error.textContent="Firebase did not accept the reset: "+(err.message||String(err))+". The game was not cleared."+resetDiagnostic;error.hidden=false;}
+          confirm.disabled=false;cancel.disabled=false;
           return;
         }
       }
@@ -8286,6 +8421,7 @@ function findMovie() {
       svg.innerHTML = "";
 
       players.forEach(p => { p.score = 0; });
+      wholeCageUnlocked = [];
       currentPlayerIndex = 0;
       bonusUsedThisTurn = false;
       usedBonusQuestionIds = [];
@@ -8310,6 +8446,8 @@ function findMovie() {
       if (typeof renderDockRecent === "function") renderDockRecent(["Game ready."]);
       if (typeof draw === "function") draw();
       updateScoreDisplay();
+      closeResetConfirmation();
+      document.getElementById("cageBeeAnnouncement")?.classList.remove("open");
       setStatus("Game reset. Player 1 starts at 0–0.");
       if (typeof setOnlineMessage === "function" && typeof remoteRoomCode !== "undefined" && remoteRoomCode) {
         setOnlineMessage(`Room ${remoteRoomCode} was reset for both players.`);
@@ -10547,7 +10685,8 @@ cageCheckOverlay.addEventListener("click", e => {
     players,
     currentPlayerIndex,
     bonusUsedThisTurn,
-    usedBonusQuestionIds
+    usedBonusQuestionIds,
+    wholeCageUnlocked
   }));
 }
 
@@ -10567,6 +10706,7 @@ function loadTwoPlayerState() {
         saved.currentPlayerIndex < players.length) {
       currentPlayerIndex = saved.currentPlayerIndex;
     }
+    wholeCageUnlocked=Array.isArray(saved.wholeCageUnlocked)?saved.wholeCageUnlocked.map(v=>v===true):[];
     bonusUsedThisTurn = !!saved.bonusUsedThisTurn;
     usedBonusQuestionIds = Array.isArray(saved.usedBonusQuestionIds)
       ? [...new Set(saved.usedBonusQuestionIds.map(String))]
@@ -12415,6 +12555,7 @@ function applyRemoteState(state){
       if (connectFirstNode) connectFirstNode.el.classList.add("connecting");
     }
 
+    wholeCageUnlocked=Array.isArray(state.wholeCageUnlocked)?state.wholeCageUnlocked.map(v=>v===true):[];
     if(Array.isArray(state.scores)){
       for(let i=0;i<remoteMaxPlayers;i++){
         if(state.scores[i] !== undefined){
@@ -13060,7 +13201,7 @@ switchTurnAfterConnection = function(chainMergeBonus = 0) {
 };
 
 function guardTurnFunction(name){const original=window[name];if(typeof original!=="function")return;window[name]=function(...args){if(!remoteTurnAllowed())return;return original.apply(this,args)}}
-["connectMode","openBonusRound","startCastLookup","startRemoveMovie"].forEach(guardTurnFunction);
+["connectMode","openBonusRound","startRemoveMovie"].forEach(guardTurnFunction);
 refreshOnlinePanel();
 updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
 // Resume only rooms explicitly opened in this test build. Wait for Firebase Auth and
