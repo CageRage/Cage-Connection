@@ -4977,7 +4977,7 @@ function loadBonusQuestionBank(force = false) {
 
   loadTwoPlayerState();
 loadCardSize();
-loadBoard();
+queueMicrotask(() => loadBoard());
 loadBoardViewMode();
 setStatus("Ready.");
 updateScoreDisplay();
@@ -5208,8 +5208,7 @@ async function loadPosterCatalog() {
       return deduped.sort((a, b) => a.localeCompare(b));
     }
 
-    loadPosterCatalog();
-
+queueMicrotask(() => loadPosterCatalog());
     function saveBoard() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(getBoardData()));
     }
