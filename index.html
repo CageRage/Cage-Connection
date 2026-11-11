@@ -706,9 +706,9 @@
 #challengeWaiting{opacity:.8;font-size:14px;margin-top:12px;}
 
 #cheatOverlay.hidden { display:none; }
-#cheatDialog { width:min(680px,92vw); max-height:84vh; overflow:auto; background:#111826; border:1px solid #334766; border-radius:12px; padding:18px; box-shadow:0 12px 36px rgba(0,0,0,.55); }
-#cheatDialog h2 { margin:0 0 8px; color:#ffd54a; }
-#cheatBody { color:#e7edf7; line-height:1.45; }
+#cheatDialog, #ccConnectionDetails { width:min(680px,92vw); max-height:84vh; overflow:auto; background:#111826; border:1px solid #334766; border-radius:12px; padding:18px; box-shadow:0 12px 36px rgba(0,0,0,.55); }
+#cheatDialog h2, #ccConnectionDetails h2 { margin:0 0 8px; color:#ffd54a; }
+#cheatBody, #ccConnectionDetailsBody { color:#e7edf7; line-height:1.45; }
 .cheat-cast-list { columns:2; column-gap:28px; margin:12px 0; padding-left:18px; }
 .cheat-cast-list li { break-inside:avoid; margin:3px 0; }
 .cheat-claim { background:#182234; border:1px solid #314763; border-radius:10px; padding:12px; margin:12px 0; }
@@ -3988,6 +3988,17 @@ body[data-card-size="compact"] #surface .node::before {
 }
 </style>
 
+<style id="ccConnectionDetailsStyles">
+#ccConnectionDetails { position:fixed; z-index:999998; width:420px; box-sizing:border-box; overflow-wrap:anywhere; overscroll-behavior:contain; }
+#ccConnectionDetails[hidden] { display:none !important; }
+#ccConnectionDetails h2 { font-size:18px; }
+#ccConnectionDetails label { display:block; margin-bottom:12px; }
+#ccConnectionDetails label[hidden] { display:none; }
+#ccConnectionDetails select { width:100%; box-sizing:border-box; font-size:16px; background:#182234; color:#e7edf7; padding:8px; }
+#surface > svg .connection-hitbox { stroke-width:28; pointer-events:stroke; vector-effect:non-scaling-stroke; }
+#surface > svg .connection-hitbox:focus-visible { stroke:rgba(255,213,74,.3); outline:none; }
+@media(pointer:coarse) { #surface > svg .connection-hitbox { stroke-width:40; } }
+</style>
 </head>
 <body>
 
@@ -11311,7 +11322,120 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
       });
     }
 
+
+    // Read-only connection inspection. Saved links remain the sole source of details.
+    var ccConnectionDetailsState;
+    function ccConnectionDetailsClose() {
+      const s = ccConnectionDetailsState;
+      if (!s) return;
+      clearTimeout(s.timer); s.popup.hidden = true; s.pinned = false;
+    }
+    function ccConnectionDetailsController() {
+      if (ccConnectionDetailsState) return ccConnectionDetailsState;
+      const popup = document.createElement('section');
+      popup.id = 'ccConnectionDetails'; popup.hidden = true;
+      popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-modal', 'false');
+      popup.setAttribute('aria-label', 'Saved connection details');
+      popup.innerHTML = '<h2></h2><label hidden>Connections at this point <select aria-label="Connections at this point"></select></label><div id="ccConnectionDetailsBody"></div><div class="cheat-actions"><button type="button">Edit connection</button><button type="button">Close</button></div>';
+      document.body.appendChild(popup);
+      const s = ccConnectionDetailsState = {popup, pinned:false, timer:null, id:null, point:null, gesture:null};
+      const buttons = popup.querySelectorAll('button');
+      buttons[1].onclick = ccConnectionDetailsClose;
+      buttons[0].onclick = () => {
+        const id = s.id; ccConnectionDetailsClose();
+        if (connections.some(c => c.id === id) && !breakConnectionMode && !challengeMode) editConnection(id);
+      };
+      popup.querySelector('select').onchange = e => { s.id = e.target.value; ccConnectionDetailsRender(); };
+      popup.addEventListener('pointerenter', () => clearTimeout(s.timer));
+      popup.addEventListener('pointerleave', () => { if (!s.pinned) s.timer = setTimeout(ccConnectionDetailsClose, 180); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') ccConnectionDetailsClose(); });
+      document.addEventListener('pointerdown', e => {
+        if (!popup.contains(e.target)) ccConnectionDetailsClose();
+        s.gesture = {x:e.clientX, y:e.clientY, moved:false, type:e.pointerType};
+      }, {capture:true, passive:true});
+      document.addEventListener('pointermove', e => {
+        if (s.gesture && Math.hypot(e.clientX-s.gesture.x, e.clientY-s.gesture.y)>8) s.gesture.moved=true;
+      }, {capture:true, passive:true});
+      document.addEventListener('pointercancel', () => { if(s.gesture) s.gesture.moved=true; ccConnectionDetailsClose(); }, {passive:true});
+      document.addEventListener('scroll', e => { if(!popup.contains(e.target)) ccConnectionDetailsClose(); }, {capture:true, passive:true});
+      window.addEventListener('resize', ccConnectionDetailsClose);
+      if(window.visualViewport) {
+        window.visualViewport.addEventListener('resize', ccConnectionDetailsClose);
+        window.visualViewport.addEventListener('scroll', ccConnectionDetailsClose);
+      }
+      return s;
+    }
+    function ccConnectionDetailsRender() {
+      const s = ccConnectionDetailsState, c = connections.find(c => c.id === s.id);
+      if (!c) { ccConnectionDetailsClose(); return; }
+      const saved = value => String(value || '').trim() || 'Not recorded';
+      s.popup.querySelector('h2').textContent = `${saved(c.a.name)} ↔ ${saved(c.b.name)}`;
+      const body = s.popup.querySelector('#ccConnectionDetailsBody'); body.replaceChildren();
+      const row = (label, value) => { const p=document.createElement('p'); p.textContent=label+saved(value); body.appendChild(p); };
+      if(c.type === 'shared') row('Shared actor: ', c.sharedActor);
+      else if(c.type === 'bridge') { row('Bridge movie: ', c.bridgeTitle); row('First movie actor: ', c.leftActor); row('Second movie actor: ', c.rightActor); }
+      else { row('Saved actor: ', c.sharedActor); row('Saved bridge: ', c.bridgeTitle); }
+      const v=window.visualViewport, left=v?v.offsetLeft:0, top=v?v.offsetTop:0;
+      const width=v?v.width:innerWidth, height=v?v.height:innerHeight;
+      s.popup.style.maxWidth=Math.max(1,width-24)+'px'; s.popup.style.maxHeight=Math.max(1,height-24)+'px';
+      const r=s.popup.getBoundingClientRect(), point=s.point;
+      let x=point.x+14, y=point.y+14;
+      if(x+r.width>left+width-12) x=point.x-r.width-14;
+      if(y+r.height>top+height-12) y=point.y-r.height-14;
+      s.popup.style.left=Math.max(left+12,Math.min(x,left+width-r.width-12))+'px';
+      s.popup.style.top=Math.max(top+12,Math.min(y,top+height-r.height-12))+'px';
+    }
+    function ccConnectionDetailsShow(c, e, pinned) {
+      if(breakConnectionMode || challengeMode) return;
+      const s=ccConnectionDetailsController(); clearTimeout(s.timer);
+      s.id=c.id; s.point={x:e.clientX,y:e.clientY}; s.pinned=pinned;
+      // Include nearby saved links, so identical or crossing lines are individually reachable.
+      const ids=new Set([c.id]);
+      svg.querySelectorAll('.connection-hitbox').forEach(line => {
+        const m=line.getScreenCTM(); if(!m)return;
+        const point=(x,y)=>{const p=svg.createSVGPoint();p.x=x;p.y=y;return p.matrixTransform(m);};
+        const a=point(+line.getAttribute('x1'),+line.getAttribute('y1')), b=point(+line.getAttribute('x2'),+line.getAttribute('y2'));
+        const dx=b.x-a.x,dy=b.y-a.y,length=dx*dx+dy*dy;
+        const t=length?Math.max(0,Math.min(1,((e.clientX-a.x)*dx+(e.clientY-a.y)*dy)/length)):0;
+        if(Math.hypot(e.clientX-a.x-t*dx,e.clientY-a.y-t*dy)<=20) ids.add(line.dataset.ccConnectionId);
+      });
+      svg.querySelectorAll('.connection-label-bg').forEach(label => {
+        const r=label.getBoundingClientRect();
+        if(e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom) ids.add(label.dataset.ccConnectionId);
+      });
+      const select=s.popup.querySelector('select'); select.replaceChildren();
+      connections.filter(link=>ids.has(String(link.id))).forEach(link=>{
+        const option=document.createElement('option');option.value=link.id;
+        option.textContent=`${link.a.name} ↔ ${link.b.name}: ${link.sharedActor || link.bridgeTitle || 'Not recorded'}`;select.appendChild(option);
+      });
+      select.value=c.id;select.parentElement.hidden=select.options.length<2;
+      s.popup.hidden=false;ccConnectionDetailsRender();
+    }
+    function ccConnectionDetailsClick(e,c) {
+      const s=ccConnectionDetailsController();
+      if(breakConnectionMode || challengeMode) {ccConnectionDetailsClose();return false;}
+      const touch=e.pointerType==='touch'||e.pointerType==='pen'||(!e.pointerType && s.gesture && s.gesture.type!=='mouse');
+      if(!touch){ccConnectionDetailsClose();return false;}
+      e.preventDefault();
+      if(!s.gesture || !s.gesture.moved) ccConnectionDetailsShow(c,e,true);
+      return true;
+    }
+    function ccBindConnectionDetails(el,c) {
+      ccConnectionDetailsController();el.dataset.ccConnectionId=c.id;
+      el.addEventListener('pointerenter',e=>{
+        const s=ccConnectionDetailsState;
+        if(e.pointerType!=='mouse'||e.buttons||s.pinned)return;
+        clearTimeout(s.timer);s.timer=setTimeout(()=>ccConnectionDetailsShow(c,e,false),160);
+      });
+      el.addEventListener('pointerleave',()=>{const s=ccConnectionDetailsState;if(!s.pinned){clearTimeout(s.timer);s.timer=setTimeout(ccConnectionDetailsClose,180);}});
+      if(el.classList.contains('connection-hitbox')) {
+        el.setAttribute('tabindex','0');el.setAttribute('role','button');
+        el.setAttribute('aria-label',`Saved connection: ${c.a.name} to ${c.b.name}`);
+        el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();const r=el.getBoundingClientRect();ccConnectionDetailsShow(c,{clientX:r.x+r.width/2,clientY:r.y+r.height/2},true);}});
+      }
+    }
     function draw() {
+      ccConnectionDetailsClose();
       svg.innerHTML = "";
 
       for (const c of connections) {
@@ -11349,6 +11473,7 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
         hitbox.setAttribute("class", "connection-hitbox");
         hitbox.addEventListener("click", (e) => {
           e.stopPropagation();
+          if (ccConnectionDetailsClick(e, c)) return;
 if (breakConnectionMode) {
   breakConnectionFromBoard(c.id);
 } else if (challengeMode) {
@@ -11371,6 +11496,7 @@ if (breakConnectionMode) {
         bg.setAttribute("class", "connection-label-bg");
         bg.addEventListener("click", (e) => {
           e.stopPropagation();
+          if (ccConnectionDetailsClick(e, c)) return;
 if (breakConnectionMode) {
   breakConnectionFromBoard(c.id);
 } else if (challengeMode) {
@@ -11387,6 +11513,7 @@ if (breakConnectionMode) {
         title.textContent = c.type === "shared" ? c.sharedActor : c.bridgeTitle;
         title.addEventListener("click", (e) => {
           e.stopPropagation();
+          if (ccConnectionDetailsClick(e, c)) return;
 if (breakConnectionMode) {
   breakConnectionFromBoard(c.id);
 } else if (challengeMode) {
@@ -11405,6 +11532,7 @@ if (breakConnectionMode) {
           : `${c.leftActor} ↔ ${c.rightActor}`;
         actors.addEventListener("click", (e) => {
           e.stopPropagation();
+          if (ccConnectionDetailsClick(e, c)) return;
 if (breakConnectionMode) {
   breakConnectionFromBoard(c.id);
 } else if (challengeMode) {
@@ -11413,6 +11541,7 @@ if (breakConnectionMode) {
   editConnection(c.id);
 }        });
         svg.appendChild(actors);
+        [hitbox, bg, title, actors].forEach(el => ccBindConnectionDetails(el, c));
       }
 
       applyFocusStyles();
