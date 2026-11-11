@@ -4196,7 +4196,7 @@ body[data-card-size="compact"] #surface .node::before {
           <p>Create Game for multiplayer, or Play Solo now. Another player can join your solo room later.</p>
           <label for="onlineCreatePhone">Mobile number (optional)</label>
           <input id="onlineCreatePhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For turn notifications" />
-<label style="display:block;font-size:12px;line-height:1.5;margin:8px 0"><input id="onlineCreateSmsConsent" type="checkbox" /> I agree to receive automated Cage Connection text notifications when it is my turn or my connection is challenged. Message and data rates may apply. Frequency varies. Reply STOP to opt out or HELP for help.</label>
+<label style="display:block;font-size:12px;line-height:1.5;margin:8px 0"><input id="onlineCreateSmsConsent" type="checkbox" /> I agree to receive automated Cage Connection text notifications when it is my turn, when my connection is challenged, or when a turn is skipped in this game. Message and data rates may apply. Frequency varies. Reply STOP to opt out or HELP for help.</label>
 <div id="onlineCreateSmsVerifyPanel" hidden>
   <label for="onlineCreateSmsCode">Text verification code</label>
   <input id="onlineCreateSmsCode" type="text" inputmode="numeric"
@@ -4223,7 +4223,7 @@ body[data-card-size="compact"] #surface .node::before {
           <input id="onlineJoinName" type="text" maxlength="24" value="Player 2" />
           <label for="onlineJoinPhone">Mobile number (optional)</label>
           <input id="onlineJoinPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For turn notifications" />
-<label style="display:block;font-size:12px;line-height:1.5;margin:8px 0"><input id="onlineJoinSmsConsent" type="checkbox" /> I agree to receive automated Cage Connection text notifications when it is my turn or my connection is challenged. Message and data rates may apply. Frequency varies. Reply STOP to opt out or HELP for help.</label>
+<label style="display:block;font-size:12px;line-height:1.5;margin:8px 0"><input id="onlineJoinSmsConsent" type="checkbox" /> I agree to receive automated Cage Connection text notifications when it is my turn, when my connection is challenged, or when a turn is skipped in this game. Message and data rates may apply. Frequency varies. Reply STOP to opt out or HELP for help.</label>
 <p style="font-size:11px;color:#e8c874">SMS verification enabled for authorized testing only.</p>
           <div id="onlineJoinSmsVerifyPanel" hidden>
   <label for="onlineJoinSmsCode">Text verification code</label>
@@ -4264,7 +4264,7 @@ body[data-card-size="compact"] #surface .node::before {
         <label style="display:block;font-size:12px;line-height:1.5;margin:8px 0">
           <input id="onlineExistingSmsConsent" type="checkbox" />
           I agree to receive automated Cage Connection texts when it is my
-          turn or my connection is challenged. Message and data rates may
+          turn, when my connection is challenged, or when a turn is skipped in this game. Message and data rates may
           apply. Frequency varies. Reply STOP to opt out or HELP for help.
         </label>
         <button type="button" onclick="startExistingGameSms()">
@@ -4295,7 +4295,7 @@ body[data-card-size="compact"] #surface .node::before {
     Pause Text Alerts
   </button>
   <p style="font-size:12px">
-    Alerts are sent when you're away.
+    Turn and challenge alerts are sent when you're away. Skip announcements also arrive while you're active.
     Pausing does not cancel your SMS consent.
   </p>
 </section>
@@ -13212,6 +13212,32 @@ async function verifyRemoteTurnFromServer(){
   }
 }
 
+// BEGIN CONFIRMED SKIP
+function newCageSkipId(){
+  return crypto.randomUUID();
+}
+function buildConfirmedSkipState(state, expected, notice){
+  // An empty local SDK cache must reach the server and retry against its state.
+  // Returning null never invents a turn from the earlier read.
+  if(state == null) return null;
+  // Reject retries against a newer turn even if the seat has cycled back.
+  if(!state || !expected || state.currentPlayerIndex!==expected.currentPlayerIndex ||
+    (state.turnStartedAt ?? null)!==(expected.turnStartedAt ?? null) ||
+    (state.skipNotice?.id ?? null)!==(expected.skipNotice?.id ?? null) ||
+    !Number.isInteger(notice.next) || notice.next===state.currentPlayerIndex ||
+    !Number.isInteger(notice.actor)) return;
+  const recent=Array.isArray(state.recentActions)?state.recentActions:[];
+  return {...state,currentPlayerIndex:notice.next,bonusUsedThisTurn:false,
+    skipNotice:{id:notice.id,kind:'skip',skippedPlayerIndex:state.currentPlayerIndex,
+      nextPlayerIndex:notice.next,byPlayerIndex:notice.actor,
+      priorTurnStartedAt:state.turnStartedAt ?? null,createdAt:Date.now(),
+      skipped:notice.skipped,next:notice.nextName,by:notice.by},
+    recentActions:[`${notice.by} released the bees! ${notice.skipped}'s turn was skipped.`,...recent].slice(0,40),
+    turnStartedAt:firebase.database.ServerValue.TIMESTAMP,
+    updatedAt:firebase.database.ServerValue.TIMESTAMP};
+}
+// END CONFIRMED SKIP
+
 // Manual Skip Turn is server-first: never change the local turn optimistically.
 // In particular, Player 1 must not be able to skip Player 2's turn.
 let manualTurnPending = false;
@@ -13221,8 +13247,9 @@ endTurn = async function() {
   if (manualTurnPending) return;
   manualTurnPending = true;
   try {
-    const snap = await remoteRoomRef.child("state/currentPlayerIndex").once("value");
-    const serverTurn = snap.val();
+    const snap = await remoteRoomRef.child("state").once("value");
+    const expectedState = snap.val();
+    const serverTurn = expectedState?.currentPlayerIndex;
     if (!Number.isInteger(serverTurn) || serverTurn<0 || serverTurn>=remoteMaxPlayers) {
       setStatus("Firebase has no valid saved turn; no change made.");
       return;
@@ -13248,10 +13275,14 @@ endTurn = async function() {
       setStatus("No other occupied seat can take the turn.");
       return;
     }
+    const noticeId = newCageSkipId();
     const outcome = await remoteRoomRef.child("state").transaction(
-      value => value && value.currentPlayerIndex === serverTurn
-        ? {...value, currentPlayerIndex:next, turnStartedAt:firebase.database.ServerValue.TIMESTAMP} : undefined,
-      undefined, false
+      value => buildConfirmedSkipState(value, expectedState, {
+        id: noticeId, next, actor: remotePlayerIndex,
+        skipped: players[serverTurn]?.name || `Player ${serverTurn+1}`,
+        nextName: players[next]?.name || `Player ${next+1}`,
+        by: players[remotePlayerIndex]?.name || 'A player'
+      }), undefined, false
     );
     if (!outcome.committed || outcome.snapshot.val()?.currentPlayerIndex !== next) {
       setStatus("Turn was not changed: Firebase's turn changed before the save.");
@@ -13324,24 +13355,21 @@ async function confirmCageSkip(){
     }
     if(!v5CanPlay() || remotePlayerIndex===null){setStatus('Join an active game before skipping.');return;}
     const room=remoteRoomRef;
-    const snap=await room.child('state/currentPlayerIndex').once('value');
-    const prior=snap.val();
+    const snap=await room.child('state').once('value');
+    const expectedState=snap.val();
+    const prior=expectedState?.currentPlayerIndex;
     if(!Number.isInteger(prior) || prior<0 || prior>=remoteMaxPlayers){setStatus('Skip unavailable: invalid saved turn.');return;}
     const next=nextPlayablePlayerIndex(prior);
     if(prior===next){setStatus('Skip unavailable: no other occupied player.');return;}
     const skippedName=players[prior]?.name || `Player ${prior+1}`;
     const nextName=players[next]?.name || `Player ${next+1}`;
     const skippingName=players[remotePlayerIndex]?.name || 'A player';
-    const noticeId=`${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const outcome=await room.child('state').transaction(state=>{
-      if(!state || state.currentPlayerIndex!==prior)return;
-      const recent=Array.isArray(state.recentActions)?state.recentActions:[];
-      return {...state,currentPlayerIndex:next,bonusUsedThisTurn:false,
-        skipNotice:{id:noticeId,skipped:skippedName,next:nextName,by:skippingName,nextPlayerIndex:next,createdAt:Date.now()},
-        recentActions:[`${skippingName} released the bees! ${skippedName}'s turn was skipped.`,...recent].slice(0,40),
-        turnStartedAt:firebase.database.ServerValue.TIMESTAMP,updatedAt:firebase.database.ServerValue.TIMESTAMP};
-    },undefined,false);
-    if(!outcome.committed){setStatus('Skip not saved. The turn changed before confirmation.');await verifyRemoteTurnFromServer();return;}
+    const noticeId=newCageSkipId();
+    const outcome=await room.child('state').transaction(state=>buildConfirmedSkipState(
+      state, expectedState, {id:noticeId,next,actor:remotePlayerIndex,
+        skipped:skippedName,nextName,by:skippingName}
+    ),undefined,false);
+    if(!outcome.committed || outcome.snapshot.val()?.skipNotice?.id!==noticeId){setStatus('Skip not saved. The turn changed before confirmation.');await verifyRemoteTurnFromServer();return;}
     applyRemoteState(outcome.snapshot.val());
     setStatus(`Turn skipped. ${players[next]?.name || 'Next player'}'s turn.`);
     setOnlineMessage(`Turn skipped. ${players[next]?.name || 'Next player'}'s turn.`);
@@ -13928,7 +13956,7 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
       connected() && loaded ? "block" : "none";
 
     status.textContent = enabled
-      ? "Alerts ON — texts arrive when away."
+      ? "Alerts ON — turn/challenge texts when away; skip announcements anytime."
       : "Alerts PAUSED — no texts will be sent.";
 
     button.textContent = enabled
