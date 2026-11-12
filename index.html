@@ -3999,6 +3999,23 @@ body[data-card-size="compact"] #surface .node::before {
 #surface > svg .connection-hitbox:focus-visible { stroke:rgba(255,213,74,.3); outline:none; }
 @media(pointer:coarse) { #surface > svg .connection-hitbox { stroke-width:40; } }
 </style>
+<style id="ccMovieSearchHighlightStyle">
+/* Search emphasis changes paint only; card geometry and board data stay intact. */
+body[data-card-size] #surface .node.cc-search-match {
+  border-color: #ffd54a !important;
+  outline: 3px solid #ffe079;
+  outline-offset: 3px;
+  box-shadow: 0 0 10px 4px rgba(255, 207, 51, .85), 0 0 26px 7px rgba(255, 190, 25, .5) !important;
+  opacity: 1 !important;
+}
+body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation: ccMovieSearchPulse .65s ease-out 2; }
+@keyframes ccMovieSearchPulse {
+  50% { outline-color: #fff5c4; box-shadow: 0 0 16px 7px rgba(255, 220, 90, .95), 0 0 34px 10px rgba(255, 190, 25, .6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation: none; }
+}
+</style>
 </head>
 <body>
 
@@ -8327,7 +8344,17 @@ function applyChallengeWinPenalty(playerIndex, penalty) {
   setStatus(`Cast lookup used for ${nodeObj.name}. ${players[seat].name} -2.`);
 }
 
+function clearMovieSearchHighlight() {
+  document.querySelectorAll(".cc-search-match").forEach(el => {
+    el.classList.remove("cc-search-match", "cc-search-pulse");
+  });
+}
+// Search emphasis is transient UI state, never part of a saved board or room.
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") clearMovieSearchHighlight();
+});
 function findMovie() {
+  clearMovieSearchHighlight();
   const box = document.getElementById("movieSearchBox");
   if (!box) return;
 
@@ -8348,6 +8375,13 @@ function findMovie() {
   }
 
   const movie = matches[0];
+  matches.forEach(match => {
+    match.el.classList.add("cc-search-match");
+    // Restart the short pulse on repeated searches; the gold outline remains.
+    void match.el.offsetWidth;
+    match.el.classList.add("cc-search-pulse");
+    match.el.addEventListener("animationend", () => match.el.classList.remove("cc-search-pulse"), {once:true});
+  });
 
   focusedNodeId = movie.id;
   bringToFront(movie.el);
@@ -8355,7 +8389,7 @@ function findMovie() {
   applyFocusStyles();
   saveBoard();
 
-  setStatus(`Found: ${movie.name}`);
+  setStatus(`Found: ${movie.name}${matches.length > 1 ? ` — ${matches.length} matches highlighted.` : ""}`);
 }
     function exportBoard() {
       const exportData = {
@@ -11594,6 +11628,7 @@ function makeDraggable(obj) {
 
   el.addEventListener("pointerdown", function (e) {
     if (e.button !== undefined && e.button !== 0) return;
+    clearMovieSearchHighlight();
 
     // Connect mode is the core game action. While it is on, a card press means
     // “select this movie for the connection,” not “drag/focus this card.”
