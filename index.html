@@ -4595,7 +4595,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 <div id="resetConfirmOverlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="resetConfirmTitle">
   <div id="resetConfirmDialog">
     <h2 id="resetConfirmTitle">Reset this test game?</h2>
-    <p>This will remove all movies and connections, reset both scores to zero, and clear Wikipedia passes for both players.</p>
+    <p>This will remove all movies and connections, reset all player scores to zero, and clear Wikipedia passes for this game.</p>
     <p id="resetConfirmError" role="alert" hidden></p>
     <div class="reset-confirm-actions">
       <button type="button" id="resetCancelBtn" onclick="closeResetConfirmation()">Cancel</button>
@@ -5023,6 +5023,11 @@ function loadBonusQuestionBank(force = false) {
   return bonusQuestionBankPromise;
 }
 
+  // Initialize before loadTwoPlayerState: later let declarations lose saved passes.
+let wholeCagePassBindings={};
+let wholeCageUnlocked=[],wholeCageDecisions={},wholeCageLocalReceipts={},pendingCheatIntents={};
+let wholeCageGameId=`local-${crypto.randomUUID()}`;
+let wholeCageOfferContext=null,wholeCageLookupContext=null,wholeCageCastPending=false,wholeCageResetContext=null;
   loadTwoPlayerState();
 loadCardSize();
 queueMicrotask(() => loadBoard());
@@ -5297,6 +5302,7 @@ queueMicrotask(() => loadPosterCatalog());
               rightActor: c.rightActor || "",
               sharedActor: c.sharedActor || "",
               owner: typeof c.owner === "number" ? c.owner : null,
+              editVersion: Number.isSafeInteger(c.editVersion)?c.editVersion:0,
               rowMergeBonus: Number(c.rowMergeBonus || 0)
             });
           }
@@ -5349,7 +5355,8 @@ function getBoardData() {
       rightActor: c.rightActor || "",
       sharedActor: c.sharedActor || "",
       owner: typeof c.owner === "number" ? c.owner : null,
-      rowMergeBonus: Number(c.rowMergeBonus || 0)
+      editVersion: Number.isSafeInteger(c.editVersion)?c.editVersion:0,
+              rowMergeBonus: Number(c.rowMergeBonus || 0)
     }))
   };
 }
@@ -7586,6 +7593,9 @@ removeMovieMode = true;
 }
 
 function removeMovie(nodeObj) {
+  if(remoteRoomRef&&connections.some(c=>(c.a.id===nodeObj.id||c.b.id===nodeObj.id)&&c.owner!==wholeCageSeat())){
+    removeMovieMode=false;setStatus("Cannot remove a movie connected by another player. Ask that owner to remove their connection first.");return;
+  }
   const ok = confirm(`Remove "${nodeObj.name}" from the board?
 
 This will also remove any connections attached to it.`);
@@ -7661,49 +7671,209 @@ challengeMode = true;
 }
 
 
-let wholeCageUnlocked=[];
+// Wikipedia passes are per game and per seat; Firebase may return sparse objects.
+function wholeCageFlags(value,count=players.length){return Array.from({length:count},(_,i)=>value?.[i]===true);}
 function wholeCageSeat(){return remoteRoomRef && Number.isInteger(remotePlayerIndex)?remotePlayerIndex:currentPlayerIndex;}
-function wholeCageHasPass(){return wholeCageUnlocked[wholeCageSeat()]===true;}
+function wholeCageHasPass(){const seat=wholeCageSeat(),binding=wholeCagePassBindings[seat];return wholeCageFlags(wholeCageUnlocked)[seat]===true&&(!remoteRoomRef||!binding||(binding.uid===firebase.auth().currentUser?.uid&&binding.gameId===wholeCageGameId&&binding.seat===seat));}
+// Protocol is a compatibility claim, never authority: server ownership and CAS checks remain mandatory.
+const GAME_CLIENT_PROTOCOL = 2;
+let gameUpdateRequired = false;
+function showGameCompatibilityNotice(message, updateRequired=false) {
+  gameUpdateRequired = gameUpdateRequired || updateRequired;
+  let banner=document.getElementById('gameCompatibilityNotice');
+  if(!banner){banner=document.createElement('aside');banner.id='gameCompatibilityNotice';banner.setAttribute('role','alert');banner.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;z-index:99999;background:#211814;color:#fff3cf;border:2px solid #ffd54a;padding:14px;box-shadow:0 4px 20px #000;';document.body.appendChild(banner);}
+  banner.replaceChildren();const text=document.createElement('span');text.textContent=message;banner.appendChild(text);
+  if(gameUpdateRequired){const button=document.createElement('button');button.textContent='Update browser';button.style.marginLeft='12px';button.onclick=()=>{if(!navigator.onLine){text.textContent='Reconnect to the internet, then update. Your saved game is not reset.';return;}const url=new URL(location.href);url.searchParams.set('cc-update',String(Date.now()));location.replace(url.href);};banner.appendChild(button);}
+}
+function compatibleGameCallable() {
+  const call=firebase.app().functions('us-central1').httpsCallable('recordCheatAction');
+  return async payload=>{
+    if(gameUpdateRequired)throw Error('Update required. Refresh this browser to continue online play. Your game is not reset.');
+    if(!navigator.onLine){showGameCompatibilityNotice('Offline: reconnect before saving online moves. Your game is not reset.');throw Error('Online play requires a connection.');}
+    const result=await call({...payload,clientProtocol:GAME_CLIENT_PROTOCOL});
+    if(result.data?.reason==='client-update-required'){
+      showGameCompatibilityNotice('A browser update is required before continuing online play. Your game is not reset.',true);
+      throw Error('Browser update required; no move was applied.');
+    }
+    if(payload.operation==='compatibility'&&result.data?.status==='saved'&&!gameUpdateRequired)document.getElementById('gameCompatibilityNotice')?.remove();
+    return result;
+  };
+}
+async function checkGameCompatibility(){
+  if(!remoteRoomRef||!firebase.auth().currentUser)return;
+  try{await compatibleGameCallable()({operation:'compatibility'});}catch(error){if(!gameUpdateRequired)showGameCompatibilityNotice('Online compatibility could not be checked. Reconnect before making online moves. Your game is not reset.');}
+}
+window.addEventListener('online',checkGameCompatibility);
+window.addEventListener('offline',()=>{if(remoteRoomRef)showGameCompatibilityNotice('Offline: reconnect before saving online moves. Your game is not reset.');});
+window.addEventListener('pageshow',checkGameCompatibility);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkGameCompatibility();});
+
+function wholeCageContext(seat=wholeCageSeat()){
+  return {room:remoteRoomRef,roomCode:remoteRoomCode,roomRoot:remoteRoomRoot,
+    uid:remoteRoomRef?firebase.auth().currentUser?.uid:"local",seat,gameId:wholeCageGameId,turnStartedAt:skipTurnStartMs,
+    scope:remoteRoomRef?`${remoteRoomRoot}/${remoteRoomCode}`:"local"};
+}
+function wholeCageContextCurrent(c){
+  return c && c.room===remoteRoomRef && c.gameId===wholeCageGameId && c.seat===wholeCageSeat() &&
+    (!c.room || c.uid===firebase.auth().currentUser?.uid);
+}
+
+async function refreshConnectionState(context){
+  if(context.room!==remoteRoomRef)return;
+  try{const ref=context.room.child('state');const snap=await (typeof ref.get==='function'?ref.get():ref.once('value'));if(context.room===remoteRoomRef&&snap.val())applyRemoteState(snap.val());}catch{}
+}
+// Existing state/board transactions retain their updater semantics, but writes
+// pass through the authenticated room-root CAS. Native reads/listeners are unchanged.
+function wrapGameStateRef(reference, path="") {
+  return new Proxy(reference, {get(target,key){
+    if(key==='child')return child=>wrapGameStateRef(target.child(child),[path,child].filter(Boolean).join('/'));
+    if(['state','state/board'].includes(path) && (key==='transaction'||key==='set'))return (update,onComplete)=>{
+      const roomAtStart=remoteRoomRef,context=wholeCageContext(),requestId=crypto.randomUUID();
+      const updater=key==='set'?()=>update:update;
+      const task=(async()=>{
+        let current=(await target.once('value')).val();
+        for(let attempt=0;attempt<8;attempt++){
+          if(!wholeCageContextCurrent(context)||roomAtStart!==remoteRoomRef)throw Error('The game or player changed.');
+          const before=structuredClone(current),after=updater(structuredClone(current));
+          if(after===undefined){const snapshot={val:()=>current,exists:()=>current!=null};if(onComplete)onComplete(null,false,snapshot);return {committed:false,snapshot};}
+          const callable=compatibleGameCallable();
+          const payload={roomRoot:context.roomRoot,roomCode:context.roomCode,seat:context.seat,gameId:context.gameId,requestId,operation:'sync',syncPath:path,before,after};
+          let response;
+          for(let networkAttempt=0;networkAttempt<2;networkAttempt++){
+            try{response=(await callable(payload)).data;break;}catch(error){if(networkAttempt)throw error;}
+          }
+          if(response?.status==='retry'){current=path==='state'?response.state:response.state?.board;continue;}
+          if(response?.status!=='saved')throw Error(response?.reason||'State update was not confirmed.');
+          if(!wholeCageContextCurrent(context)||roomAtStart!==remoteRoomRef)throw Error('The game changed while saving.');
+          // Native state listeners remain authoritative; an older HTTP acknowledgment
+          // must not overwrite a newer realtime update from another player.
+          const value=path==='state'?response.state:response.state.board;
+          const snapshot={val:()=>value,exists:()=>value!=null};
+          if(onComplete)onComplete(null,true,snapshot);return {committed:true,snapshot};
+        }
+        throw Error('The room kept changing. Retry the operation.');
+      })();
+      return task.catch(async error=>{
+        // Failed optimistic maintenance must not remain on screen as a successful edit.
+        if(roomAtStart===remoteRoomRef)await refreshConnectionState(context);
+        if(typeof onComplete==='function'){onComplete(error,false,{val:()=>null});return {committed:false,snapshot:{val:()=>null}};}
+        throw error;
+      });
+    };
+    const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;
+  }});
+}
+async function commitCheatOperation(operation,c,extra={}){
+  if(!wholeCageContextCurrent(c))throw new Error("The game or player changed. Open the offer again.");
+  const intent=['edit','delete'].includes(operation)?JSON.stringify([extra.connectionId,extra.expectedVersion,extra.connection||null,extra.reason||null]):extra.lookupId||extra.challengeId||extra.connection?.id||extra.questionId||(operation==="reserve"?`${extra.category}:${extra.points}:${c.turnStartedAt}`:"");
+  const key=JSON.stringify([c.scope,c.gameId,c.uid,c.seat,operation,intent]);
+  const requestId=pendingCheatIntents[key] || (pendingCheatIntents[key]=crypto.randomUUID());
+  saveTwoPlayerState(); // retain the same request ID after an ambiguous response/reload
+  let response;
+  if(c.room){
+    const callable=compatibleGameCallable();
+    response=(await callable({roomRoot:c.roomRoot,roomCode:c.roomCode,seat:c.seat,
+      gameId:c.gameId,turnStartedAt:c.turnStartedAt,requestId,operation,...extra})).data;
+    if(response?.status!=="saved")throw new Error(response?.reason||"Payment was not confirmed.");
+    const resetArrived=operation==="reset"&&c.room===remoteRoomRef&&c.seat===wholeCageSeat()&&c.uid===firebase.auth().currentUser?.uid&&wholeCageGameId===response.gameId;
+    if(!wholeCageContextCurrent(c)&&!resetArrived)throw new Error("The game changed while the request was pending. Reconnect to check its receipt.");
+    if(operation!=="reset")applyRemoteState(response.state);
+  }else{
+    if(operation==="reset" || operation==="challenge")throw new Error("Use the local game operation.");
+    const receipt=wholeCageLocalReceipts[requestId] || (["cast","wiki"].includes(operation)?Object.values(wholeCageLocalReceipts).find(r=>r.operation===operation&&r.lookupId===extra.lookupId&&r.seat===c.seat):null);
+    if(!receipt){
+      let cost=0;
+      wholeCageUnlocked=wholeCageFlags(wholeCageUnlocked);
+      if(operation==="accept" && !wholeCageUnlocked[c.seat]){cost=20;wholeCageUnlocked[c.seat]=true;}
+      if(operation==="cast")cost=2;
+      if(operation==="wiki"){
+        if(!Object.values(wholeCageLocalReceipts).some(r=>r.operation==="cast"&&r.lookupId===extra.lookupId&&r.seat===c.seat))throw new Error("Cast lookup payment was not confirmed.");
+        cost=wholeCageUnlocked[c.seat]?0:3;
+      }
+      players[c.seat].score=Number(players[c.seat].score||0)-cost;
+      wholeCageLocalReceipts[requestId]={operation,lookupId:extra.lookupId||"",seat:c.seat,cost};
+      if(operation==="accept"||operation==="decline")wholeCageDecisions[c.seat]={choice:operation,gameId:c.gameId,requestId,at:Date.now()};
+    }
+    response={status:"saved",gameId:c.gameId,cost:(wholeCageLocalReceipts[requestId]||receipt).cost};
+  }
+  delete pendingCheatIntents[key];saveTwoPlayerState();updateScoreDisplay();return response;
+}
+async function wikipediaRecoveryStatus(context=wholeCageContext()){
+  if(!wholeCageContextCurrent(context)||!context.room)throw Error("Join the original online game first.");
+  const call=compatibleGameCallable();
+  const result=(await call({operation:'recoveryStatus',roomRoot:context.roomRoot,roomCode:context.roomCode,gameId:context.gameId,seat:context.seat})).data;
+  if(!wholeCageContextCurrent(context))throw Error("The game or player changed.");
+  if(result?.status!=='saved')throw Error(result?.reason||"Review status unavailable.");return result;
+}
+async function requestWikipediaPassReview(context=wholeCageContext()){
+  try{
+    const status=await wikipediaRecoveryStatus(context);
+    if(!status.enabled&&status.caseStatus==='none')throw Error("Pass review is not enabled yet. No points were deducted.");
+    if(!status.gameBound)throw Error("This older room needs a reviewed game identity before recovery. No points were deducted.");
+    const key=JSON.stringify([context.scope,context.gameId,context.uid,context.seat,'recoveryRequest']);
+    let result=status;
+    if(status.caseStatus==='none'&&!status.active){
+      const requestId=pendingCheatIntents[key]||(pendingCheatIntents[key]=crypto.randomUUID());saveTwoPlayerState();
+      const call=compatibleGameCallable();
+      result=(await call({operation:'recoveryRequest',roomRoot:context.roomRoot,roomCode:context.roomCode,gameId:context.gameId,seat:context.seat,requestId})).data;
+      if(result?.status!=='saved')throw Error(result?.reason||"Review request not saved.");
+    }
+    if(!wholeCageContextCurrent(context))throw Error("The game or player changed.");
+    delete pendingCheatIntents[key];saveTwoPlayerState();
+    openCheatDialog('Wikipedia pass review','<p>Review status: <strong>'+escapeHtml(status.active?'active':result.caseStatus||result.outcome||'pending')+'</strong>.</p><p>No points were charged or refunded. An authorized reviewer must check the original player and game. No purchase history has been assumed.</p><p>Case: '+escapeHtml(result.caseId||status.caseId)+'</p>','<button type="button" id="wikiReviewRefresh">Check status</button>');
+    document.getElementById('wikiReviewRefresh')?.addEventListener('click',()=>requestWikipediaPassReview(context));
+  }catch(error){setStatus('Pass review: '+error.message);}
+}
+async function declineWholeCagePass(context){
+  const button=document.getElementById("wholeCageNo");if(button)button.disabled=true;
+  try{await commitCheatOperation("decline",context);closeCheatDialog();setStatus("Wikipedia pass declined. No points deducted.");}
+  catch(err){setStatus(`Decision not confirmed: ${err.message} Retry after reconnecting.`);if(button)button.disabled=false;}
+}
 function openWholeCageOffer(){
   const seat=wholeCageSeat();
+  const context=wholeCageOfferContext=wholeCageContext(seat);
   if(wholeCageHasPass()){
     openCheatDialog("ONE MOVIE OR THE WHOLE CAGE?","<p>Wikipedia is already unlocked for this player for the rest of this game. No additional charge.</p>",'<a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Open Wikipedia</a>');
     return;
   }
   openCheatDialog("ONE MOVIE OR THE WHOLE CAGE?",
     "<p>Just making a quick connection so you can be <em>Gone in 60 Seconds</em>? Or are you <em>Wild at Heart</em>, ready to conquer the entire board?</p><p>If you're ready to <em>Face/Off</em> against the whole Cage, sacrifice <strong>20 points</strong> to unlock Wikipedia for the rest of the game.</p><p>It may sound like a <em>Con Air</em> operation, but even the most dedicated Cage fans need backup!</p><p><strong>Are you in?</strong></p>",
-    '<button type="button" id="wholeCageNo">Gone in 60 Seconds</button><button type="button" id="wholeCageYes">Face/Off</button>');
-  document.getElementById("wholeCageNo")?.addEventListener("click",()=>{closeCheatDialog();setStatus("Wikipedia pass declined. No points deducted.");});
-  document.getElementById("wholeCageYes")?.addEventListener("click",()=>buyWholeCagePass(seat));
+    '<button type="button" id="wholeCageNo">Gone in 60 Seconds</button><button type="button" id="wholeCageYes">Face/Off</button>'+(remoteRoomRef?'<button type="button" id="wholeCageReview">Previously purchased? Request review</button>':''));
+  document.getElementById("wholeCageReview")?.addEventListener("click",()=>requestWikipediaPassReview(context));
+  document.getElementById("wholeCageNo")?.addEventListener("click",()=>declineWholeCagePass(context));
+  document.getElementById("wholeCageYes")?.addEventListener("click",()=>buyWholeCagePass(seat,context));
 }
-async function buyWholeCagePass(seat){
+async function buyWholeCagePass(seat,context=wholeCageContext(seat)){
   const yes=document.getElementById("wholeCageYes");if(yes)yes.disabled=true;
-  if(remoteRoomRef){
-    if(!Number.isInteger(remotePlayerIndex)||remotePlayerIndex!==seat){setStatus("Cannot identify your player seat. No points deducted.");if(yes)yes.disabled=false;return;}
-    try{
-      const result=await remoteRoomRef.child("state").transaction(state=>{
-        if(!state||!Array.isArray(state.scores))return;
-        const unlocked=Array.isArray(state.wholeCageUnlocked)?state.wholeCageUnlocked.slice():[];
-        if(unlocked[seat]===true)return;
-        const scores=state.scores.slice();scores[seat]=Number(scores[seat]||0)-20;unlocked[seat]=true;
-        return {...state,scores,wholeCageUnlocked:unlocked};
-      },undefined,false);
-      const updated=result.snapshot.val();
-      if(!result.committed&&!updated?.wholeCageUnlocked?.[seat]){setStatus("Wikipedia unlock could not be saved. No points deducted.");if(yes)yes.disabled=false;return;}
-      wholeCageUnlocked=Array.isArray(updated?.wholeCageUnlocked)?updated.wholeCageUnlocked.slice():[];
-      if(Array.isArray(updated?.scores))players[seat].score=Number(updated.scores[seat]||0);
-    }catch(err){console.error("Wikipedia unlock failed",err);setStatus("Wikipedia unlock failed. No points deducted.");if(yes)yes.disabled=false;return;}
-  }else if(wholeCageUnlocked[seat]!==true){
-    players[seat].score=Number(players[seat].score||0)-20;wholeCageUnlocked[seat]=true;saveTwoPlayerState();
-  }
-  updateScoreDisplay();
-  addDockRecent(`${players[seat]?.name||"Player"} unlocked Wikipedia for the rest of the game (-20 once).`);
+  let response;
+  try{
+    let confirmNewPurchase=false;
+    if(context.room){
+      const review=await wikipediaRecoveryStatus(context);
+      if(!review.active&&!review.gameBound)throw Error("This older room needs a reviewed game identity before a pass purchase or recovery. No points were deducted.");
+      if(!review.active&&review.caseStatus==='pending')throw Error("Your earlier-pass claim is pending. No new charge was made.");
+      if(!review.active&&review.legacyHold){
+        if(!review.allowExplicitNewPurchase)throw Error("This older game needs a pass review before another purchase. No points were deducted.");
+        if(!window.confirm("If you previously purchased a pass, request review first. Continue as a NEW 20-point purchase? No historical payment is verified or refunded.")){if(yes)yes.disabled=false;return;}
+        confirmNewPurchase=true;
+      }
+    }
+    response=await commitCheatOperation("accept",context,{confirmNewPurchase});
+  }catch(err){setStatus(`Wikipedia payment not confirmed: ${err.message} Retry to check the saved receipt.`);if(yes)yes.disabled=false;return;}
+  const charged=response.cost===20;
+  addDockRecent(charged?`${players[seat]?.name||"Player"} purchased Wikipedia access (-20 once).`:`${players[seat]?.name||"Player"}'s existing Wikipedia pass was confirmed (no charge).`);
   closeCheatDialog();
-  openCheatDialog("Wikipedia Unlocked","<p>Wikipedia is unlocked for the rest of this game. Your 20-point pass is active.</p>",'<a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Open Wikipedia</a>');
-  setStatus("Wikipedia unlocked for this player. One-time cost: 20 points.");
+  openCheatDialog("Wikipedia Unlocked",charged?"<p>Wikipedia is unlocked for the rest of this game. Your new 20-point purchase is confirmed.</p>":"<p>Your existing pass is active for this game. No additional points were deducted.</p>",'<a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Open Wikipedia</a>');
+  setStatus(charged?"Wikipedia unlocked. New purchase: 20 points.":"Existing Wikipedia pass confirmed. No additional charge.");
 }
 
 function closeCheatDialog() {
+  if(wholeCageLookupContext?.lookupKey){
+    const c=wholeCageLookupContext;
+    const wikiKey=JSON.stringify([c.scope,c.gameId,c.uid,c.seat,"wiki",c.lookupId]);
+    if(!pendingCheatIntents[wikiKey])delete pendingCheatIntents[c.lookupKey];
+    wholeCageLookupContext=null;saveTwoPlayerState();
+  }
   cheatOverlay.classList.add("hidden");
   cheatBody.innerHTML = "";
   cheatActions.innerHTML = "";
@@ -7721,35 +7891,25 @@ function openCheatDialog(title, bodyHtml, actionsHtml = "") {
   if (closeBtn) closeBtn.addEventListener("click", closeCheatDialog);
 }
 
-// Charge the extra Wikipedia portion of Cast Lookup once per lookup dialog.
-if (cheatActions) {
-  cheatActions.addEventListener("click", function(event) {
-    const link = event.target.closest('a[data-cast-wiki-cost="3"]');
-    if (!link || link.dataset.costApplied === "1") return;
-    if(wholeCageHasPass()){link.dataset.costApplied="1";setStatus("Wikipedia opened with the Whole Cage pass. No additional Wikipedia charge.");return;}
-    link.dataset.costApplied = "1";
-    const seat=wholeCageSeat();
-    const who=players[seat]?.name || `Player ${seat+1}`;
-    const title=link.getAttribute("data-wiki-title") || "movie";
-    if(remoteRoomRef){
-      if(!Number.isInteger(remotePlayerIndex)){setStatus("Cannot charge Wikipedia: player seat unknown.");event.preventDefault();return;}
-      remoteRoomRef.child("state/scores/"+seat).transaction(score=>Number(score||0)-3,undefined,false)
-        .then(result=>{
-          if(!result.committed){setStatus("Wikipedia charge could not be saved.");return;}
-          players[seat].score=Number(result.snapshot.val()||0);
-          updateScoreDisplay();
-          addDockRecent(`${who} opened Wikipedia for ${title} (-3 more; lookup total -5).`);
-          setStatus(`${who} opened Wikipedia for ${title}. Lookup total: -5.`);
-        }).catch(err=>{console.error("Wikipedia charge failed",err);setStatus("Wikipedia charge could not be saved.");});
-    }else{
-      players[seat].score=Number(players[seat].score||0)-3;
-      saveTwoPlayerState();
-      updateScoreDisplay();
-      addDockRecent(`${who} opened Wikipedia for ${title} (-3 more; lookup total -5).`);
-      setStatus(`${who} opened Wikipedia for ${title}. Lookup total: -5.`);
-    }
-  });
-}
+// Do not navigate to Wikipedia until the game-bound payment is confirmed.
+if(cheatActions)cheatActions.addEventListener("click",async function(event){
+  const link=event.target.closest('a[data-cast-wiki-cost="3"]');if(!link)return;
+  const context=wholeCageLookupContext;
+  if(!wholeCageContextCurrent(context)){event.preventDefault();setStatus("The game changed. Open Cast Lookup again.");return;}
+  if(link.dataset.costApplied==="1")return;
+  event.preventDefault();if(link.dataset.paying==="1")return;link.dataset.paying="1";
+  // A blank tab preserves the user's popup gesture; it has no Wikipedia URL yet.
+  const popup=window.open("about:blank","_blank");if(popup)popup.opener=null;
+  try{
+    const result=await commitCheatOperation("wiki",context,{lookupId:context.lookupId});
+    link.dataset.costApplied="1";
+    delete pendingCheatIntents[context.lookupKey];saveTwoPlayerState();
+    setStatus(result.cost===0?"Wikipedia opened with the Whole Cage pass. No additional Wikipedia charge.":"Wikipedia payment saved (-3 more; lookup total -5).");
+    if(popup&&!popup.closed)popup.location.replace(link.href);
+    else setStatus("Payment saved. Select the Wikipedia link again to open it.");
+  }catch(err){if(popup&&!popup.closed)popup.close();setStatus(`Wikipedia payment not confirmed: ${err.message} Retry this link after reconnecting.`);}
+  finally{delete link.dataset.paying;}
+});
 
 function escapeAttr(text) {
   return String(text || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -8153,26 +8313,8 @@ async function resolveChallengeEvent(result, challenge){
         setStatus("This challenge is no longer active. No points were changed.");
         return;
       }
-      const outcome = await room.child("state").transaction(current => {
-        if (!current || !Array.isArray(current.scores)) return;
-        const handled = current.resolvedChallengeIds || {};
-        if (handled[challengeId]) return; // at most one penalty per challenge ID
-        const scores = current.scores.slice();
-        if (result === "won") {
-          const board = current.board || {};
-          const links = Array.isArray(board.connections) ? board.connections : [];
-          if (!links.some(c => c && c.id === challenge.connectionId)) return;
-          scores[challengedPlayerIndex] = Number(scores[challengedPlayerIndex] || 0) - penalty;
-          return { ...current, scores,
-            board: {...board, connections:links.filter(c => c && c.id !== challenge.connectionId)},
-            resolvedChallengeIds:{...handled,[challengeId]:result},
-            updatedAt:firebase.database.ServerValue.TIMESTAMP };
-        }
-        scores[challengerIndex] = Number(scores[challengerIndex] || 0) - 3;
-        return { ...current, scores,
-          resolvedChallengeIds:{...handled,[challengeId]:result},
-          updatedAt:firebase.database.ServerValue.TIMESTAMP };
-      }, undefined, false);
+      const response=await commitCheatOperation("challenge",wholeCageContext(),{challengeId,result});
+      const outcome={committed:response.status==="saved",snapshot:{val:()=>response.state}};
       if (!outcome.committed) {
         const finalState=outcome.snapshot.val();
         if (finalState) applyRemoteState(finalState);
@@ -8208,6 +8350,9 @@ async function resolveChallengeEvent(result, challenge){
       const resultNotice={id:challengeId,result,route:challenge.route || "Connection",
         challenger,challengedPlayer,penalty,createdAt:firebase.database.ServerValue.TIMESTAMP};
       try {
+        if(remoteRoomRoot===LEGACY_ROOM_ROOT){
+          if(!response.legacyPublished)throw new Error("Legacy result delivery was not confirmed.");
+        }else{
         const publish = firebase.functions()
           .httpsCallable("publishChallengeResult");
 
@@ -8220,6 +8365,7 @@ async function resolveChallengeEvent(result, challenge){
           throw new Error(
             response.data?.reason || "Result publication failed"
           );
+        }
         }
       } catch(noticeErr){
         console.error("Challenge result publication failed",noticeErr);
@@ -8276,16 +8422,12 @@ function applyChallengeWinPenalty(playerIndex, penalty) {
   penalty = Number(penalty || 0);
   if (!(Number.isInteger(playerIndex) && playerIndex>=0 && playerIndex<players.length) || penalty <= 0) return;
 
+  if(remoteRoomRef){setStatus("Resolve online challenge penalties through the challenge dialog.");return;}
   players[playerIndex].score = Number(players[playerIndex].score || 0) - penalty;
   saveTwoPlayerState();
   updateScoreDisplay();
 
-  // A successful challenge changes the other player's score, so update that
-  // specific remote score directly instead of relying on local-player-only sync.
-  if (typeof remoteRoomRef !== "undefined" && remoteRoomRef) {
-    remoteRoomRef.child(`state/scores/${playerIndex}`).transaction(current => Number(current || 0) - penalty)
-      .catch(err => console.error("Challenge score sync failed", err));
-  }
+
 }
 
     function startCastLookup() {
@@ -8303,23 +8445,17 @@ function applyChallengeWinPenalty(playerIndex, penalty) {
 }
 
    async function handleCastLookup(nodeObj) {
-  castLookupMode = false;
-
-  // Cast Lookup is a per-player cheat, not a turn action. Charge the
-  // actual browser seat and persist the score before displaying the cast.
-  const seat=wholeCageSeat();
-  if(remoteRoomRef){
-    if(!Number.isInteger(remotePlayerIndex))return;
-    try{
-      const result=await remoteRoomRef.child("state/scores/"+seat).transaction(score=>Number(score||0)-2,undefined,false);
-      if(!result.committed){setStatus("Cast Lookup charge could not be saved.");return;}
-      players[seat].score=Number(result.snapshot.val()||0);
-    }catch(err){console.error("Cast Lookup charge failed",err);setStatus("Cast Lookup unavailable: score could not be saved.");return;}
-  }else{
-    players[seat].score=Number(players[seat].score||0)-2;
-    saveTwoPlayerState();
-  }
-  updateScoreDisplay();
+  castLookupMode=false;
+  if(wholeCageCastPending)return;
+  wholeCageCastPending=true;
+  const seat=wholeCageSeat(),context=wholeCageContext(seat);
+  const key=JSON.stringify([context.scope,context.gameId,seat,nodeObj.id||nodeObj.name,"lookup"]);
+  context.lookupKey=key;
+  context.lookupId=pendingCheatIntents[key]||(pendingCheatIntents[key]=crypto.randomUUID());
+  try{await commitCheatOperation("cast",context,{lookupId:context.lookupId});}
+  catch(err){setStatus(`Cast Lookup payment not confirmed: ${err.message} Retry after reconnecting.`);return;}
+  finally{wholeCageCastPending=false;}
+  wholeCageLookupContext=context;saveTwoPlayerState();
 
   // Use the same merged cast source as Cage Check: built-in, local and approved shared additions.
   const cast = getCombinedCast(nodeObj.name);
@@ -8453,6 +8589,7 @@ function findMovie() {
     }
 
     function resetBoard() {
+      wholeCageResetContext=wholeCageContext();
       document.querySelectorAll('#toolbar details[open]').forEach(menu=>menu.removeAttribute('open'));
       const error=document.getElementById('resetConfirmError');
       if(error){error.hidden=true;error.textContent='';}
@@ -8469,10 +8606,11 @@ function findMovie() {
       const error=document.getElementById('resetConfirmError');
       if(confirm.disabled)return;
       confirm.disabled=true;cancel.disabled=true;
+      let resetSavedState=null;
       const blankState = {
         version: 3,
         board: { nodes: [], connections: [] },
-        scores: [0, 0],
+        scores: Array(remoteRoomRef?remoteMaxPlayers:players.length).fill(0),
         wholeCageUnlocked: [],
         currentPlayerIndex: 0,
         bonusUsedThisTurn: false,
@@ -8482,60 +8620,12 @@ function findMovie() {
         updatedAt: (window.firebase && firebase.database) ? firebase.database.ServerValue.TIMESTAMP : Date.now()
       };
 
-      // Clear the shared Firebase room first when online so both players receive the reset.
-      if (typeof remoteRoomRef !== "undefined" && remoteRoomRef) {
-        try {
-          // Preserve room-state fields required by Firebase security rules.
-          // Replacing the whole state with a minimal object can be rejected.
-          const write = remoteRoomRef.child("state").transaction(current => {
-            if (!current || typeof current !== "object") return;
-            return {
-              ...current,
-              ...blankState,
-              board: {nodes:[],connections:[]},
-              scores: [0,0],
-              wholeCageUnlocked: [],
-              recentActions: [],
-              skipNotice: null,
-              challenge: null,
-              challengeEvent: null,
-              resolvedChallengeIds: null,
-              turnStartedAt: firebase.database.ServerValue.TIMESTAMP
-            };
-          }, undefined, false);
-          const result = typeof withFirebaseTimeout === "function" ? await withFirebaseTimeout(write) : await write;
-          if (!result.committed) throw new Error("Reset transaction was not committed.");
-        } catch (err) {
-          console.error("Shared reset failed", err);
-          let resetDiagnostic="";
-          try {
-            const snapshot=await remoteRoomRef.once("value");
-            const room=snapshot.val()||{};
-            const state=room.state||{};
-            const uid=firebase.auth().currentUser?.uid;
-            const members=room.members||{};
-            const isMember=Object.values(members).some(m=>m&&m.uid===uid);
-            const max=Number(room.maxPlayers);
-            const checks={
-              authenticated:!!uid,
-              member:isMember,
-              roomRoot:remoteRoomRoot,
-              version:Number(state.version),
-              maxPlayers:max,
-              scoreCount:Array.isArray(state.scores)?state.scores.length:Object.keys(state.scores||{}).length,
-              scoreTypes:Array.from({length:max},(_,i)=>typeof state.scores?.[i]),
-              currentTurn:state.currentPlayerIndex,
-              stateReadable:snapshot.exists()
-            };
-            resetDiagnostic=" Diagnostics: "+JSON.stringify(checks);
-            console.info("Reset diagnostics",checks);
-          }catch(diagError){resetDiagnostic=" Diagnostics unavailable: "+(diagError.message||String(diagError));}
-
-          if (typeof setOnlineMessage === "function") setOnlineMessage(`Could not reset shared game: ${err.message || err}`);
-          setStatus("Reset failed. The current game was not cleared.");
-          if(error){error.textContent="Firebase did not accept the reset: "+(err.message||String(err))+". The game was not cleared."+resetDiagnostic;error.hidden=false;}
-          confirm.disabled=false;cancel.disabled=false;
-          return;
+      if(remoteRoomRef){
+        try{const result=await commitCheatOperation("reset",wholeCageResetContext||wholeCageContext());resetSavedState=result.state;}
+        catch(err){
+          setStatus(`Reset not confirmed: ${err.message} Reconnect before retrying.`);
+          if(error){error.textContent=String(err.message||err);error.hidden=false;}
+          confirm.disabled=false;cancel.disabled=false;return;
         }
       }
 
@@ -8551,7 +8641,10 @@ function findMovie() {
       svg.innerHTML = "";
 
       players.forEach(p => { p.score = 0; });
-      wholeCageUnlocked = [];
+      wholeCageUnlocked = [];wholeCagePassBindings={};
+      wholeCageGameId=resetSavedState?.bonusGameId||blankState.bonusGameId;
+      wholeCageDecisions={};wholeCageLocalReceipts={};pendingCheatIntents={};
+      wholeCageOfferContext=null;wholeCageLookupContext=null;closeCheatDialog();
       currentPlayerIndex = 0;
       bonusUsedThisTurn = false;
       usedBonusQuestionIds = [];
@@ -8566,7 +8659,7 @@ function findMovie() {
         localStorage.removeItem(CAST_PENALTY_KEY);
         localStorage.removeItem(SHARED_WRONG_PENALTY_KEY);
         localStorage.removeItem(WRONG_BRIDGE_PENALTY_KEY);
-        localStorage.setItem(TWO_PLAYER_STATE_KEY, JSON.stringify({ players, currentPlayerIndex, bonusUsedThisTurn, usedBonusQuestionIds }));
+        saveTwoPlayerState();
       } catch {}
 
       closeIndex();
@@ -8578,9 +8671,13 @@ function findMovie() {
       updateScoreDisplay();
       closeResetConfirmation();
       document.getElementById("cageBeeAnnouncement")?.classList.remove("open");
-      setStatus("Game reset. Player 1 starts at 0–0.");
+      if(remoteRoomRef){
+        try{const latest=await remoteRoomRef.child("state").once("value");if(latest.val())applyRemoteState(latest.val());
+          setStatus("Game reset confirmed. Latest shared state loaded.");}
+        catch(err){setStatus("Shared reset saved. Reconnect to confirm the latest game state.");}
+      }else setStatus("Game reset. Player 1 starts at 0–0.");
       if (typeof setOnlineMessage === "function" && typeof remoteRoomCode !== "undefined" && remoteRoomCode) {
-        setOnlineMessage(`Room ${remoteRoomCode} was reset for both players.`);
+        setOnlineMessage(`Room ${remoteRoomCode} was reset for all players.`);
       }
     }
 
@@ -8745,7 +8842,7 @@ function renderNode(nodeObj) {
       if (typeof remoteRoomRef !== "undefined" && remoteRoomRef) {
         const boardSnapshot = getBoardData();
         remoteRoomRef.child("state/board").set(boardSnapshot)
-          .catch(err => console.error(`${reason} sync failed`, err));
+          .catch(err => {console.error(`${reason} sync failed`, err);setStatus(`${reason} not saved: ${err.message||err}`);});
       }
     }
 
@@ -9260,6 +9357,7 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
   // Capture the current main-line membership before this connection.
   // After the connection is added, any 2+ movies newly absorbed into the
   // resulting main continuous line earn +1 point each.
+  const scoringPositions=nodes.map(n=>({id:n.id,x:n.x,y:n.y}));
   const chainMergeBaseline = getDynamicChainMergeBaseline(first, obj);
 
   const result = await showConnectionDialog(first, obj);
@@ -9355,40 +9453,9 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     const pointsEarned = Number(players[mover].score || 0) - scoreBeforeConnection;
     const nextPlayer = nextPlayablePlayerIndex(mover);
     try {
-      const outcome = await remoteRoomRef.child("state").transaction(current => {
-        if (!current || !v5CanPlay() || current.currentPlayerIndex !== mover || !proposedConnection) return;
-        const serverBoard = current.board || {nodes:[],connections:[]};
-        const remoteNodes = Array.isArray(serverBoard.nodes) ? serverBoard.nodes : [];
-        const serverConnections = Array.isArray(serverBoard.connections) ? serverBoard.connections : [];
-        if (!remoteNodes.some(n => n.id === proposedConnection.aId) ||
-            !remoteNodes.some(n => n.id === proposedConnection.bId)) return;
-        if (serverConnections.some(c => c.id === proposedConnection.id ||
-          ((c.aId === proposedConnection.aId && c.bId === proposedConnection.bId) ||
-           (c.aId === proposedConnection.bId && c.bId === proposedConnection.aId)))) return;
-        const scores = Array.isArray(current.scores) ? current.scores.slice(0,remoteMaxPlayers) : Array(remoteMaxPlayers).fill(0);
-        while(scores.length < remoteMaxPlayers) scores.push(0);
-        scores[mover] = Number(scores[mover] || 0) + pointsEarned;
-        return {
-          ...current,
-          board: {
-            ...serverBoard,
-            nodes: remoteNodes.map(node => {
-              const arranged = boardSnapshot.nodes.find(local => local.id === node.id);
-              return arranged ? {...node, x: arranged.x, y: arranged.y} : node;
-            }),
-            connections:[...serverConnections, proposedConnection]
-          },
-          recentActions: [
-            `${players[mover]?.name || `Player ${mover+1}`} connected ${nodes.find(n=>n.id===proposedConnection.aId)?.name || "Movie"} → ${nodes.find(n=>n.id===proposedConnection.bId)?.name || "Movie"} (+${pointsEarned})`,
-            ...(Array.isArray(current.recentActions) ? current.recentActions : [])
-          ].slice(0,40),
-          scores,
-          currentPlayerIndex: nextPlayer,
-          turnStartedAt: firebase.database.ServerValue.TIMESTAMP,
-          bonusUsedThisTurn: false,
-          updatedAt: firebase.database.ServerValue.TIMESTAMP
-        };
-      }, undefined, false);
+      const response=await commitCheatOperation("connect",wholeCageContext(mover),{
+        connection:proposedConnection,scoringPositions,positions:boardSnapshot.nodes.map(n=>({id:n.id,x:n.x,y:n.y}))});
+      const outcome={committed:response.status==="saved",snapshot:{val:()=>response.state}};
       if (!outcome.committed) {
         const fresh = await remoteRoomRef.child("state").once("value");
         if (fresh.val()) applyRemoteState(fresh.val());
@@ -9860,28 +9927,8 @@ async function closeBonusRound() {
         // Flush older spectator updates before writing the definitive outcome.
         await liveBonusWriteQueue;
         const seat = remotePlayerIndex;
-        const outcome = await remoteRoomRef.child('state').transaction(current => {
-          if (!current || current.currentPlayerIndex !== seat || !Array.isArray(current.scores)) return;
-          // The question is reserved when drawn (bonusUsedThisTurn).
-          // A delayed spectator update may leave bonusLive showing the PREVIOUS
-          // round as answered/closed, so its phase is not a reliable guard.
-          // The authoritative turn and reservation protect against double scores.
-          if (!current.bonusUsedThisTurn) return;
-          if (!Array.isArray(current.usedBonusQuestionIds) ||
-              !current.usedBonusQuestionIds.map(String).includes(String(item.id))) return;
-          const scores = current.scores.slice();
-          scores[seat] = Number(scores[seat] || 0) - points;
-          return {...current,
-            scores,
-            currentPlayerIndex: nextPlayablePlayerIndex(seat),
-            bonusUsedThisTurn:false,
-            turnStartedAt:firebase.database.ServerValue.TIMESTAMP,
-            usedBonusQuestionIds:[...new Set([...(current.usedBonusQuestionIds || []).map(String), String(item.id)])],
-            recentActions:[`${players[seat]?.name || `Player ${seat+1}`} forfeited Bonus Round (-${points}).`, ...(current.recentActions || [])].slice(0,4),
-            bonusLive:{...(current.bonusLive || {}),phase:'answered',seat,correct:false,selection:'Forfeited',correctAnswer:String(item.answer || ''),scoreChange:-points,answerExplanation:'Question forfeited without submitting an answer.',updatedAt:firebase.database.ServerValue.TIMESTAMP},
-            updatedAt:firebase.database.ServerValue.TIMESTAMP
-          };
-        },undefined,false);
+        const response=await commitCheatOperation("forfeit",wholeCageContext(seat),{questionId:String(item.id)});
+        const outcome={committed:response.status==="saved",snapshot:{val:()=>response.state}};
         if (!outcome.committed) {
           if (outcome.snapshot?.val()) applyRemoteState(outcome.snapshot.val());
           throw new Error('Firebase did not accept the forfeit. The turn and score have not changed. Please keep this window open and report this message.');
@@ -10218,48 +10265,10 @@ async function startBonusCategory(category) {
     await loadBonusQuestionBank();
     let item = null;
     if (remoteRoomRef) {
-      // Reserve the question on Firebase BEFORE showing it. The transaction
-      // uses the latest shared history and retries if another writer changed it.
-      // This prevents another player or stale client from reusing the same ID.
-      const room = remoteRoomRef;
-      const seat = remotePlayerIndex;
-      const points = Number(selectedBonusPointLevel);
-      let reservedId = null;
-      let exhausted = false;
-      const result = await room.child("state").transaction(current => {
-        reservedId = null;
-        exhausted = false;
-        if (!current || current.currentPlayerIndex !== seat || current.bonusUsedThisTurn) return;
-        const used = new Set([
-          ...(Array.isArray(current.usedBonusQuestionIds) ? current.usedBonusQuestionIds : []).map(String),
-          ...readBonusHistoryBackup(current.bonusGameId)
-        ]);
-        const eligible = bonusQuestionBank.filter(q =>
-          q.category === category && Number(q.points) === points &&
-          !used.has(String(q.id))
-        );
-        if (!eligible.length) { exhausted = true; return; }
-        const chosen = eligible[Math.floor(Math.random() * eligible.length)];
-        reservedId = String(chosen.id);
-        used.add(reservedId);
-        return {
-          ...current,
-          bonusUsedThisTurn: true,
-          usedBonusQuestionIds: [...used],
-          updatedAt: firebase.database.ServerValue.TIMESTAMP
-        };
-      }, undefined, false);
-      if (!result.committed || !reservedId) {
-        if (result.snapshot?.val()) applyRemoteState(result.snapshot.val());
-        bonusSubtitle.textContent = exhausted
-          ? `No unused ${points}-point ${category} questions remain.`
-          : "Could not reserve a question. Check whose turn it is and try again.";
-        return;
-      }
-      applyRemoteState(result.snapshot.val());
-      rememberBonusHistory(result.snapshot.val()?.usedBonusQuestionIds, result.snapshot.val()?.bonusGameId);
+      const response=await commitCheatOperation("reserve",wholeCageContext(),{category,points:Number(selectedBonusPointLevel),usedBackup:readBonusHistoryBackup(wholeCageGameId)});
+      rememberBonusHistory(response.state?.usedBonusQuestionIds,response.gameId);
       showBonusHistoryCount();
-      item = bonusQuestionBank.find(q => String(q.id) === reservedId) || null;
+      item=bonusQuestionBank.find(q=>String(q.id)===response.questionId)||null;
     } else {
       item = pickUnusedBonusQuestion(category);
       if (item) {
@@ -10293,7 +10302,7 @@ async function startBonusCategory(category) {
   }
 }
 
-function useBonusHint(event) {
+async function useBonusHint(event) {
   if (event) event.preventDefault();
   if (!activeBonus || bonusHintUsed) return;
 
@@ -10304,6 +10313,11 @@ function useBonusHint(event) {
   const hasImage = !!String(hint.image || "").trim();
   if (!hasText && !hasImage) return;
 
+  if(remoteRoomRef){
+    bonusHintBtn.disabled=true;
+    try{await commitCheatOperation("hint",wholeCageContext(),{questionId:String(activeBonus.id)});}
+    catch(err){bonusHintBtn.disabled=false;setStatus(`Assist not confirmed: ${err.message}`);return;}
+  }
   // The hint is supplementary: do not rerender the question or touch the
   // typed/checked response. Preserve the visible question while the image loads.
   const dialog = document.getElementById('bonusDialog');
@@ -10576,30 +10590,9 @@ async function submitBonusAnswer() {
     const roomAtStart = remoteRoomRef;
     const seat = remotePlayerIndex;
     try {
-      const outcome = await roomAtStart.child("state").transaction(current => {
-        if (!current || !v5CanPlay() || current.currentPlayerIndex !== seat || !Array.isArray(current.scores)) return;
-        const next = nextPlayablePlayerIndex(seat);
-        const nextScores = current.scores.slice();
-        nextScores[seat] = Number(nextScores[seat] || 0) + scoreChange;
-        return {
-          ...current,
-          scores: nextScores,
-          currentPlayerIndex: next,
-          // Record the outcome atomically with the turn and score change.
-          // A later state snapshot must not replace it with a generic skip event.
-          recentActions: [
-            correct
-              ? `${players[seat]?.name || `Player ${seat + 1}`} won ${earned} Bonus Round point${earned === 1 ? "" : "s"}.`
-              : `${players[seat]?.name || `Player ${seat + 1}`} failed Bonus Round.`,
-            ...(Array.isArray(current.recentActions) ? current.recentActions : [])
-          ].slice(0, 4),
-          turnStartedAt: firebase.database.ServerValue.TIMESTAMP,
-          bonusUsedThisTurn: false,
-          usedBonusQuestionIds: [...new Set([...(Array.isArray(current.usedBonusQuestionIds) ? current.usedBonusQuestionIds : []), String(item.id)])],
-          bonusLive: {...(current.bonusLive || {}),phase:'answered',seat,selection:given,correct:!!correct,correctAnswer:String(item.answer||''),scoreChange,reactionImage:bonusAssetUrl(reactionChoice),answerExplanation:String(item.answerExplanation || '')},
-          updatedAt: firebase.database.ServerValue.TIMESTAMP
-        };
-      }, undefined, false);
+      const response=await commitCheatOperation("bonus",wholeCageContext(seat),{
+        questionId:String(item.id),given,hintUsed:!!bonusHintUsed,reactionImage:bonusAssetUrl(reactionChoice)});
+      const outcome={committed:response.status==="saved",snapshot:{val:()=>response.state}};
       if (!outcome.committed) {
         bonusResult.textContent = "Bonus score was not saved. Your turn may have changed. Please check the game.";
         if (outcome.snapshot.val()) applyRemoteState(outcome.snapshot.val());
@@ -10816,7 +10809,8 @@ cageCheckOverlay.addEventListener("click", e => {
     currentPlayerIndex,
     bonusUsedThisTurn,
     usedBonusQuestionIds,
-    wholeCageUnlocked
+    wholeCageUnlocked,wholeCageGameId,wholeCageDecisions,wholeCageLocalReceipts,pendingCheatIntents,
+    wholeCageScope:remoteRoomRef?`${remoteRoomRoot}/${remoteRoomCode}`:"local"
   }));
 }
 
@@ -10836,7 +10830,12 @@ function loadTwoPlayerState() {
         saved.currentPlayerIndex < players.length) {
       currentPlayerIndex = saved.currentPlayerIndex;
     }
-    wholeCageUnlocked=Array.isArray(saved.wholeCageUnlocked)?saved.wholeCageUnlocked.map(v=>v===true):[];
+    pendingCheatIntents=saved.pendingCheatIntents||{};
+    if(!saved.wholeCageScope||saved.wholeCageScope==="local"){
+      wholeCageUnlocked=wholeCageFlags(saved.wholeCageUnlocked);
+      wholeCageGameId=saved.wholeCageGameId||wholeCageGameId;
+      wholeCageDecisions=saved.wholeCageDecisions||{};wholeCageLocalReceipts=saved.wholeCageLocalReceipts||{};
+    }
     bonusUsedThisTurn = !!saved.bonusUsedThisTurn;
     usedBonusQuestionIds = Array.isArray(saved.usedBonusQuestionIds)
       ? [...new Set(saved.usedBonusQuestionIds.map(String))]
@@ -11017,7 +11016,13 @@ function clearFocus() {
   renderBoardListMode();
 }
 
-function deleteConnection(connectionId, silent = false, breakMessage = "Connection removed.") {
+async function deleteConnection(connectionId, silent = false, breakMessage = "Connection removed.", wrong = false) {
+      if(remoteRoomRef){
+        const link=connections.find(c=>c.id===connectionId);if(!link)return false;
+        if(link.owner!==wholeCageSeat()){setStatus("Only the connection owner can remove it.");return false;}
+        try{await commitCheatOperation('delete',wholeCageContext(),{connectionId,expectedVersion:Number.isSafeInteger(link.editVersion)?link.editVersion:0,reason:wrong?'wrong':'delete'});resetAfterBrokenConnection(breakMessage);return true;}
+        catch(error){await refreshConnectionState(wholeCageContext());setStatus('Connection removal not saved: '+error.message);return false;}
+      }
       const doomed = connections.find(c => c.id === connectionId);
       connections = connections.filter(c => c.id !== connectionId);
 
@@ -11041,6 +11046,10 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
    async function editConnection(connectionId) {
   const c = connections.find(x => x.id === connectionId);
   if (!c) return;
+  const context=remoteRoomRef?wholeCageContext():null;
+  const expectedVersion=Number.isSafeInteger(c.editVersion)?c.editVersion:0;
+  if(context&&c.owner!==context.seat){setStatus("Only the connection owner can edit it.");return;}
+  const draft={...c};
 
   const action = prompt(
     `Type EDIT to change this connection, DELETE to remove it, or WRONG to mark it incorrect and lose 3 points:`,
@@ -11063,6 +11072,7 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
 
     if (!ok) return;
 
+    if(context){await deleteConnection(connectionId,true,"Wrong connection removed. Score -3.",true);return;}
     wrongBridgePenalty += 3;
     localStorage.setItem(WRONG_BRIDGE_PENALTY_KEY, String(wrongBridgePenalty));
     updateScoreDisplay();
@@ -11079,7 +11089,7 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
 
   const typeChoice = prompt(
     `Connection type:\nType BRIDGE or SHARED`,
-    c.type === "shared" ? "SHARED" : "BRIDGE"
+    draft.type === "shared" ? "SHARED" : "BRIDGE"
   );
 
   if (!typeChoice) return;
@@ -11098,11 +11108,11 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
 
     // Bridge edits are accepted without Cage Check.
 
-    c.type = "bridge";
-    c.bridgeTitle = bridgeTitle.trim();
-    c.leftActor = leftActor.trim();
-    c.rightActor = rightActor.trim();
-    c.sharedActor = "";
+    draft.type = "bridge";
+    draft.bridgeTitle = bridgeTitle.trim();
+    draft.leftActor = leftActor.trim();
+    draft.rightActor = rightActor.trim();
+    draft.sharedActor = "";
 
   } else if (normalized === "SHARED") {
     const sharedActor = prompt(
@@ -11133,17 +11143,23 @@ function deleteConnection(connectionId, silent = false, breakMessage = "Connecti
       showCageCheckUnknown(validation.message);
     }
 
-    c.type = "shared";
-    c.sharedActor = sharedActor.trim();
-    c.bridgeTitle = "";
-    c.leftActor = "";
-    c.rightActor = "";
+    draft.type = "shared";
+    draft.sharedActor = sharedActor.trim();
+    draft.bridgeTitle = "";
+    draft.leftActor = "";
+    draft.rightActor = "";
 
   } else {
     alert("Please enter BRIDGE or SHARED.");
     return;
   }
 
+  if(context){
+    try{await commitCheatOperation('edit',context,{connectionId,expectedVersion,connection:{type:draft.type,bridgeTitle:draft.bridgeTitle||"",leftActor:draft.leftActor||"",rightActor:draft.rightActor||"",sharedActor:draft.sharedActor||""}});setStatus("Connection updated.");}
+    catch(error){await refreshConnectionState(context);setStatus("Connection edit not saved: "+error.message);}
+    return;
+  }
+  Object.assign(c,draft);
   draw();
   applyFocusStyles();
   saveBoard();
@@ -12606,6 +12622,7 @@ function ensureRemoteAuth(){
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     remoteAuthReady=firebase.auth().signInAnonymously().then(result=>{
       remoteDb=firebase.database();
+      remoteDb.ref('.info/connected').on('value',snapshot=>{if(snapshot.val()===true)checkGameCompatibility();});
       return result.user;
     }).catch(error=>{remoteAuthReady=null;throw error});
   }
@@ -12759,7 +12776,7 @@ function applyRemoteMembers(members){
     if(member&&member.name)players[i].name=cleanPlayerName(member.name,`Player ${i+1}`);
   }
   if(remoteRoomRef && !remoteOccupiedSeats[currentPlayerIndex]) currentPlayerIndex=nextPlayablePlayerIndex(currentPlayerIndex);
-  localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn,usedBonusQuestionIds}));
+  saveTwoPlayerState();
   updateScoreDisplay();
   updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);
   refreshOnlinePanel();
@@ -12804,7 +12821,15 @@ function applyRemoteState(state){
       if (connectFirstNode) connectFirstNode.el.classList.add("connecting");
     }
 
-    wholeCageUnlocked=Array.isArray(state.wholeCageUnlocked)?state.wholeCageUnlocked.map(v=>v===true):[];
+    const incomingCheatGameId=String(state.bonusGameId||`legacy:${remoteRoomCode}`);
+    if(wholeCageGameId!==incomingCheatGameId ||
+       (wholeCageOfferContext&&!wholeCageContextCurrent(wholeCageOfferContext)) ||
+       (wholeCageLookupContext&&!wholeCageContextCurrent(wholeCageLookupContext))){
+      wholeCageOfferContext=null;wholeCageLookupContext=null;closeCheatDialog();
+    }
+    wholeCageUnlocked=wholeCageFlags(state.wholeCageUnlocked,remoteMaxPlayers);
+    wholeCagePassBindings=state.wikiPassBindings||{};
+    wholeCageGameId=incomingCheatGameId;
     if(Array.isArray(state.scores)){
       for(let i=0;i<remoteMaxPlayers;i++){
         if(state.scores[i] !== undefined){
@@ -12853,7 +12878,7 @@ function applyRemoteState(state){
     renderRemoteBonusLive(state.bonusLive || null);
 
     localStorage.setItem(STORAGE_KEY,JSON.stringify(incomingBoard));
-    localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn,usedBonusQuestionIds}));
+    saveTwoPlayerState();
     updateScoreDisplay();
     updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);
     refreshOnlinePanel();
@@ -12904,7 +12929,7 @@ function clearLocalBoardAfterRoomCreated(){
   bonusUsedThisTurn=false;
   dockRecentItems=["Game ready."];
   try{localStorage.removeItem(STORAGE_KEY)}catch{}
-  try{localStorage.setItem(TWO_PLAYER_STATE_KEY,JSON.stringify({players,currentPlayerIndex,bonusUsedThisTurn}))}catch{}
+  try{saveTwoPlayerState()}catch{}
   renderDockRecent(dockRecentItems);
   updateScoreDisplay();
   updateDockFromStatus(`${players[currentPlayerIndex].name}'s turn.`);
@@ -12930,13 +12955,15 @@ async function createRemoteGame(soloMode=false){
       code=makeRoomCode();
       roomRef=remoteDb.ref(`${SECURE_ROOM_ROOT}/${code}`);
       try {
-        await withFirebaseTimeout(roomRef.set({schemaVersion:5,maxPlayers:selectedMax,createdAt:firebase.database.ServerValue.TIMESTAMP,members:Object.fromEntries(Array.from({length:selectedMax},(_,i)=>[String(i),i===0?{uid:user.uid,name,occupied:true}:{name:`Player ${i+1}`,occupied:false}])),state:freshState}));
+        await withFirebaseTimeout(roomRef.set({schemaVersion:5,maxPlayers:selectedMax,createdAt:firebase.database.ServerValue.TIMESTAMP,wikiPassPolicy:{gameId:freshState.bonusGameId,version:1,allowNewPurchase:true,source:'new-room'},members:Object.fromEntries(Array.from({length:selectedMax},(_,i)=>[String(i),i===0?{uid:user.uid,name,occupied:true}:{name:`Player ${i+1}`,occupied:false}])),state:freshState}));
         created=true;
       }catch(error){if(error.code!=="PERMISSION_DENIED")throw error;}
     }
     if(!created)throw new Error("V5 room creation was denied. Check that the new V5 Firebase rules have been validated and enabled; do not change the original game rules.");
     remoteMaxPlayers=selectedMax;players=Array.from({length:selectedMax},(_,i)=>({name:i===0?name:`Player ${i+1}`,score:0}));
-    remoteRoomCode=code;remotePlayerIndex=0;remoteRoomRoot=SECURE_ROOM_ROOT;remoteRoomRef=roomRef;remoteOccupiedSeats=Array.from({length:selectedMax},(_,i)=>i===0);
+    remoteRoomCode=code;remotePlayerIndex=0;remoteRoomRoot=SECURE_ROOM_ROOT;remoteRoomRef=wrapGameStateRef(roomRef);remoteOccupiedSeats=Array.from({length:selectedMax},(_,i)=>i===0);
+    wholeCageGameId=freshState.bonusGameId;wholeCageUnlocked=[];wholeCagePassBindings={};
+    await commitCheatOperation("status",wholeCageContext());
     clearLocalBoardAfterRoomCreated();attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
     setOnlineMessage(soloMode ? `Solo game ${code} ready. You can invite Player 2 later.` : `Private room ${code} created. Share this code with Player 2.`);
     setStatus(soloMode ? `Solo game ready — ${players[0].name} goes first.` : `Room ${code} created. Invite Player 2 when ready.`);
@@ -12961,9 +12988,10 @@ async function joinRemoteGame(){
     if(!room?.state || ![2,3,4].includes(room.maxPlayers))throw new Error("Room unavailable.");
     remoteMaxPlayers=room.maxPlayers;
     players=Array.from({length:remoteMaxPlayers},(_,i)=>({name:`Player ${i+1}`,score:0}));
-    remoteRoomCode=code;remotePlayerIndex=role;remoteRoomRoot=SECURE_ROOM_ROOT;remoteRoomRef=roomRef;remoteOwnPhone="";
+    remoteRoomCode=code;remotePlayerIndex=role;remoteRoomRoot=SECURE_ROOM_ROOT;remoteRoomRef=wrapGameStateRef(roomRef);remoteOwnPhone="";
     remoteOccupiedSeats=Array(remoteMaxPlayers).fill(false);
     applyRemoteState(room.state);applyRemoteMembers(room.members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
+    await commitCheatOperation("status",wholeCageContext());
     setOnlineMessage(`Joined room ${code} as Player ${role+1}.`);
     setStatus(`Joined room ${code} as Player ${role+1}.`);
     await registerGameSms(code, "onlineJoin");
@@ -13019,8 +13047,9 @@ async function resumeRemoteGame(sessionOverride=null){
     if(![2,3,4].includes(remoteMaxPlayers)||role>=remoteMaxPlayers)throw new Error("Invalid seat for this room.");
     players=Array.from({length:remoteMaxPlayers},(_,i)=>({name:`Player ${i+1}`,score:0}));
     remoteOccupiedSeats=Array(remoteMaxPlayers).fill(false);
-    remoteRoomCode=code;remotePlayerIndex=role;remoteRoomRoot=root;remoteRoomRef=ref;remoteOwnPhone="";
+    remoteRoomCode=code;remotePlayerIndex=role;remoteRoomRoot=root;remoteRoomRef=wrapGameStateRef(ref);remoteOwnPhone="";
     applyRemoteState(room.state);applyRemoteMembers(room.members);attachRemoteListeners();saveRemoteSession();refreshOnlinePanel();
+    await commitCheatOperation("status",wholeCageContext());
     setOnlineMessage(`Resumed ${root===LEGACY_ROOM_ROOT?"original two-player":"V5"} room ${code}. Live sync is on.`);
     setStatus(`Resumed room ${code}.`);
     closeOnlinePanel();
@@ -13219,7 +13248,7 @@ async function endGameForEveryone(){
   }
 }
 
-function leaveRemoteGame(){detachRemoteListeners();clearDockChat();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);remoteRoomCode=null;remotePlayerIndex=null;remoteRoomRef=null;remoteRoomRoot=SECURE_ROOM_ROOT;remoteOccupiedSeats=[true,true];remoteMaxPlayers=2;players=players.slice(0,2);try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}try{const u=new URL(window.location.href);u.searchParams.delete("room");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch{}const c=document.getElementById("onlineResumeCode");if(c)c.value="";refreshOnlinePanel();setOnlineMessage("You left the remote room. It is no longer marked as your active/resume-last game.");setStatus("Remote game disconnected. Local mode active.")}
+function leaveRemoteGame(){wholeCageUnlocked=[];wholeCagePassBindings={};wholeCageGameId=`local-${crypto.randomUUID()}`;wholeCageDecisions={};wholeCageLocalReceipts={};wholeCageOfferContext=null;wholeCageLookupContext=null;detachRemoteListeners();clearDockChat();clearTimeout(remoteSyncTimer);clearTimeout(remoteNameSyncTimer);remoteRoomCode=null;remotePlayerIndex=null;remoteRoomRef=null;remoteRoomRoot=SECURE_ROOM_ROOT;remoteOccupiedSeats=[true,true];remoteMaxPlayers=2;players=players.slice(0,2);try{localStorage.removeItem(REMOTE_SESSION_KEY)}catch{}try{const u=new URL(window.location.href);u.searchParams.delete("room");history.replaceState(null,"",u.pathname+u.search+u.hash)}catch{}const c=document.getElementById("onlineResumeCode");if(c)c.value="";refreshOnlinePanel();setOnlineMessage("You left the remote room. It is no longer marked as your active/resume-last game.");setStatus("Remote game disconnected. Local mode active.")}
 
 // 10-minute skip test: display uses Firebase's server-time offset; the final
 // enforcement must ALSO be encoded in published rules before public release.
