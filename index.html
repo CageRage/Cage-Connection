@@ -1,27 +1,3 @@
-      if (err.reason === "actor-movie-reused" && wholeCageContextCurrent(connectionContext)) {
-        // Restore only this room's unsaved movie cards, never the rejected link or score.
-        if (remotePlayerIndex === currentPlayerIndex && movieAddRoomCode === remoteRoomCode) {
-          for (const card of pendingMovieCards) {
-            if (!nodes.some(n => n.id === card.id || normalizeTitle(n.name) === normalizeTitle(card.name))) {
-              createNodeFromData(card);
-              movieAddPendingIds.add(card.id);
-            }
-          }
-          saveBoard();
-          draw();
-          syncAddedMovieBoardNow();
-        }
-        showActorMovieReuseWarning();
-        return;
-      }
-    const connectionContext = wholeCageContext(mover);
-    const pendingMovieCards = boardSnapshot.nodes.filter(n => movieAddPendingIds.has(n.id));
-const ACTOR_MOVIE_REUSE_MESSAGE = "This actor is already used with this movie. Break the existing connection before reusing this actor with the same movie.";
-function showActorMovieReuseWarning() {
-  setStatus(ACTOR_MOVIE_REUSE_MESSAGE);
-  openCheatDialog("Actor already used", "<p>" + ACTOR_MOVIE_REUSE_MESSAGE + "</p>");
-}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7787,6 +7763,12 @@ function wrapGameStateRef(reference, path="") {
     const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;
   }});
 }
+const ACTOR_MOVIE_REUSE_MESSAGE = "This actor is already used with this movie. Break the existing connection before reusing this actor with the same movie.";
+function showActorMovieReuseWarning() {
+  setStatus(ACTOR_MOVIE_REUSE_MESSAGE);
+  openCheatDialog("Actor already used", "<p>" + ACTOR_MOVIE_REUSE_MESSAGE + "</p>");
+}
+
 async function commitCheatOperation(operation,c,extra={}){
   if(!wholeCageContextCurrent(c))throw new Error("The game or player changed. Open the offer again.");
   const intent=['edit','delete'].includes(operation)?JSON.stringify([extra.connectionId,extra.expectedVersion,extra.connection||null,extra.reason||null]):extra.lookupId||extra.challengeId||extra.connection?.id||extra.questionId||(operation==="reserve"?`${extra.category}:${extra.points}:${c.turnStartedAt}`:"");
@@ -9478,6 +9460,8 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     autoArrangeAllComponents(true);
     const boardSnapshot = getBoardData();
     const proposedConnection = boardSnapshot.connections[boardSnapshot.connections.length - 1];
+    const connectionContext = wholeCageContext(mover);
+    const pendingMovieCards = boardSnapshot.nodes.filter(n => movieAddPendingIds.has(n.id));
     const pointsEarned = Number(players[mover].score || 0) - scoreBeforeConnection;
     const nextPlayer = nextPlayablePlayerIndex(mover);
     try {
@@ -9501,6 +9485,22 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
         const fresh = await remoteRoomRef.child("state").once("value");
         if (fresh.val()) applyRemoteState(fresh.val());
       } catch (reloadError) { console.error("Could not restore server state", reloadError); }
+      if (err.reason === "actor-movie-reused" && wholeCageContextCurrent(connectionContext)) {
+        // Restore only this room's unsaved movie cards, never the rejected link or score.
+        if (remotePlayerIndex === currentPlayerIndex && movieAddRoomCode === remoteRoomCode) {
+          for (const card of pendingMovieCards) {
+            if (!nodes.some(n => n.id === card.id || normalizeTitle(n.name) === normalizeTitle(card.name))) {
+              createNodeFromData(card);
+              movieAddPendingIds.add(card.id);
+            }
+          }
+          saveBoard();
+          draw();
+          syncAddedMovieBoardNow();
+        }
+        showActorMovieReuseWarning();
+        return;
+      }
       setStatus("Connection not confirmed. Check connection and resume before another move.");
       return;
     } finally {
