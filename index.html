@@ -1,3 +1,27 @@
+      if (err.reason === "actor-movie-reused" && wholeCageContextCurrent(connectionContext)) {
+        // Restore only this room's unsaved movie cards, never the rejected link or score.
+        if (remotePlayerIndex === currentPlayerIndex && movieAddRoomCode === remoteRoomCode) {
+          for (const card of pendingMovieCards) {
+            if (!nodes.some(n => n.id === card.id || normalizeTitle(n.name) === normalizeTitle(card.name))) {
+              createNodeFromData(card);
+              movieAddPendingIds.add(card.id);
+            }
+          }
+          saveBoard();
+          draw();
+          syncAddedMovieBoardNow();
+        }
+        showActorMovieReuseWarning();
+        return;
+      }
+    const connectionContext = wholeCageContext(mover);
+    const pendingMovieCards = boardSnapshot.nodes.filter(n => movieAddPendingIds.has(n.id));
+const ACTOR_MOVIE_REUSE_MESSAGE = "This actor is already used with this movie. Break the existing connection before reusing this actor with the same movie.";
+function showActorMovieReuseWarning() {
+  setStatus(ACTOR_MOVIE_REUSE_MESSAGE);
+  openCheatDialog("Actor already used", "<p>" + ACTOR_MOVIE_REUSE_MESSAGE + "</p>");
+}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7774,7 +7798,11 @@ async function commitCheatOperation(operation,c,extra={}){
     const callable=compatibleGameCallable();
     response=(await callable({roomRoot:c.roomRoot,roomCode:c.roomCode,seat:c.seat,
       gameId:c.gameId,turnStartedAt:c.turnStartedAt,requestId,operation,...extra})).data;
-    if(response?.status!=="saved")throw new Error(response?.reason||"Payment was not confirmed.");
+    if(response?.status!=="saved"){
+      const error=new Error(response?.reason||"Payment was not confirmed.");
+      error.reason=response?.reason;
+      throw error;
+    }
     const resetArrived=operation==="reset"&&c.room===remoteRoomRef&&c.seat===wholeCageSeat()&&c.uid===firebase.auth().currentUser?.uid&&wholeCageGameId===response.gameId;
     if(!wholeCageContextCurrent(c)&&!resetArrived)throw new Error("The game changed while the request was pending. Reconnect to check its receipt.");
     if(operation!=="reset")applyRemoteState(response.state);
@@ -9453,7 +9481,7 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     const pointsEarned = Number(players[mover].score || 0) - scoreBeforeConnection;
     const nextPlayer = nextPlayablePlayerIndex(mover);
     try {
-      const response=await commitCheatOperation("connect",wholeCageContext(mover),{
+      const response=await commitCheatOperation("connect",connectionContext,{
         connection:proposedConnection,scoringPositions,positions:boardSnapshot.nodes.map(n=>({id:n.id,x:n.x,y:n.y}))});
       const outcome={committed:response.status==="saved",snapshot:{val:()=>response.state}};
       if (!outcome.committed) {
@@ -11156,7 +11184,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
 
   if(context){
     try{await commitCheatOperation('edit',context,{connectionId,expectedVersion,connection:{type:draft.type,bridgeTitle:draft.bridgeTitle||"",leftActor:draft.leftActor||"",rightActor:draft.rightActor||"",sharedActor:draft.sharedActor||""}});setStatus("Connection updated.");}
-    catch(error){await refreshConnectionState(context);setStatus("Connection edit not saved: "+error.message);}
+    catch(error){await refreshConnectionState(context);if(error.reason==='actor-movie-reused'&&wholeCageContextCurrent(context)){showActorMovieReuseWarning();}else{setStatus("Connection edit not saved: "+error.message);}}
     return;
   }
   Object.assign(c,draft);
