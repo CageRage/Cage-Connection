@@ -4046,6 +4046,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 <summary>Cheats ▸</summary>
 <div class="tools-submenu-panel">
 <button onclick="this.closest('details').removeAttribute('open'); openWholeCageOffer()">One Movie or the Whole Cage? (Wikipedia)</button>
+<button onclick="this.closest('details').removeAttribute('open'); openWikipediaReviewer()">Review Wikipedia pass claims</button>
 <button onclick="this.closest('details').removeAttribute('open'); startCastLookup()">Cast Lookup (-2)</button>
 <button onclick="this.closest('details').removeAttribute('open'); openPathFinder()">Find Path</button>
 <button onclick="this.closest('details').removeAttribute('open'); showIndex()">Show Index</button>
@@ -7808,6 +7809,94 @@ async function commitCheatOperation(operation,c,extra={}){
   }
   delete pendingCheatIntents[key];saveTwoPlayerState();updateScoreDisplay();return response;
 }
+// Reviewer access is enforced by the server's UID allowlist AND token claim.
+function wikiReviewPayload(context, caseId, gameId) {
+  if (!wholeCageContextCurrent(context)) throw Error('The room, player, or game changed. Reopen pass reviews.');
+  if (!/^[a-f0-9]{64}$/.test(caseId)) throw Error('Paste the complete 64-character case ID.');
+  if (!gameId || gameId.length > 160) throw Error('Enter the original game ID.');
+  return {roomRoot:context.roomRoot,roomCode:context.roomCode,gameId,caseId};
+}
+async function wikiReviewEvidenceHash(reference) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(reference.trim()));
+  return Array.from(new Uint8Array(bytes), b=>b.toString(16).padStart(2,'0')).join('');
+}
+function wikiReviewCanDecide(entry, expired, uid) {
+  return !expired && entry.status === 'pending' && entry.uid !== uid;
+}
+async function openWikipediaReviewer() {
+  if (!remoteRoomRef || !firebase.auth().currentUser) {setStatus('Join the claim’s room before opening pass reviews.');return;}
+  const context=wholeCageContext();
+  try {
+    const token=await firebase.auth().currentUser.getIdTokenResult(true);
+    if(!wholeCageContextCurrent(context))return;
+    if(token.claims.wikiPassRecoveryReviewer!==true)throw Error('This browser identity is not an authorized reviewer.');
+    openCheatDialog('Review Wikipedia pass',
+      '<p>Open the claimant’s room and paste their case ID. Approval requires a server-recorded entitlement or purchase receipt for the same player, seat, and game.</p>'+
+      '<label>Case ID <input id="wikiCaseInput" autocomplete="off" style="width:100%;box-sizing:border-box"></label>'+
+      '<label>Original game ID <input id="wikiGameInput" style="width:100%;box-sizing:border-box"></label>'+
+      '<p id="wikiReviewerError" role="alert"></p><div id="wikiReviewerDetails"></div>',
+      '<button type="button" id="wikiInspectCase">Load case</button>');
+    const panel=document.getElementById('wikiReviewerDetails');
+    const errorBox=document.getElementById('wikiReviewerError');
+    const gameInput=document.getElementById('wikiGameInput');gameInput.value=context.gameId;
+    const active=()=>wholeCageContextCurrent(context)&&document.getElementById('wikiReviewerDetails')===panel;
+    let busy=false;
+    document.getElementById('wikiInspectCase').onclick=async()=>{
+      if(busy)return;
+      panel.replaceChildren();errorBox.textContent='';
+      try {
+        const payload=wikiReviewPayload(context,document.getElementById('wikiCaseInput').value.trim(),gameInput.value.trim());
+        busy=true;
+        const response=(await compatibleGameCallable()({...payload,operation:'recoveryInspect'})).data;
+        if(!active())return;
+        if(response?.status!=='saved')throw Error(response?.reason||'Case could not be loaded.');
+        const entry=response.case;
+        const field=(name,value)=>'<p><strong>'+escapeHtml(name)+':</strong> '+escapeHtml(String(value))+'</p>';
+        panel.innerHTML=field('Player UID',entry.uid)+field('Seat',Number(entry.seat)+1)+field('Original game',entry.gameId)+field('Status',entry.status)+field('Revision',entry.revision)+
+          field('Claimant evidence hash',entry.claimantEvidenceHash||'None supplied')+
+          '<p>The case and any hash are not proof of payment. Independently inspect the original server record before approval. Decisions do not charge or refund points.</p>';
+        if(!wikiReviewCanDecide(entry,response.expired,context.uid)){
+          const note=document.createElement('p');note.textContent=response.expired?'This game has ended. Recovery is unavailable.':entry.uid===context.uid?'You cannot review your own claim. Ask the other reviewer.':'This case has already been decided. No further decision is available here.';panel.appendChild(note);return;
+        }
+        panel.insertAdjacentHTML('beforeend',
+          '<label>Evidence reference <textarea id="wikiEvidenceReference" rows="3" style="width:100%;box-sizing:border-box" placeholder="Identify the server record, its location, and the player/seat/game it supports. Do not paste passwords or tokens."></textarea></label>'+
+          '<p>Only a SHA-256 hash of this reference is recorded. Keep the reference and original evidence separately so the audit can be checked later.</p>'+
+          '<label><input type="checkbox" id="wikiEvidenceChecked"> I checked a server-recorded entitlement or purchase receipt for this player, seat, and game.</label>'+
+          '<p><label>Denial reason <select id="wikiDenialReason"><option value="insufficient_evidence">Insufficient evidence</option><option value="wrong_game">Wrong game</option><option value="identity_unverified">Identity unverified</option></select></label></p>'+
+          '<button type="button" id="wikiApproveCase">Approve documented entitlement</button> <button type="button" id="wikiDenyCase">Deny claim</button>');
+        const approve=document.getElementById('wikiApproveCase'),deny=document.getElementById('wikiDenyCase');
+        const evidence=document.getElementById('wikiEvidenceReference'),checked=document.getElementById('wikiEvidenceChecked'),reason=document.getElementById('wikiDenialReason');
+        async function decide(decision){
+          if(busy)return;
+          errorBox.textContent='';
+          try {
+            wikiReviewPayload(context,payload.caseId,payload.gameId);
+            if(!active())return;
+            const reference=evidence.value.trim();
+            if(reference.length<8)throw Error('Enter an evidence reference or a reference documenting the reason for denial.');
+            if(decision==='approve'&&!checked.checked)throw Error('Confirm that you independently checked the matching server record.');
+            const evidenceHash=await wikiReviewEvidenceHash(reference);
+            if(!active())return;
+            const decisionPayload={...payload,operation:'recoveryReview',expectedRevision:entry.revision,decision,evidenceHash,...(decision==='approve'?{basis:'documented_entitlement'}:{reasonCode:reason.value})};
+            if(!window.confirm((decision==='approve'?'Approve':'Deny')+' this claim for player '+entry.uid+', seat '+(Number(entry.seat)+1)+'? No points will be charged or refunded.'))return;
+            busy=true;approve.disabled=deny.disabled=true;
+            const key=JSON.stringify(['reviewer-decision',context.uid,decisionPayload]);
+            const requestId=pendingCheatIntents[key]||(pendingCheatIntents[key]=crypto.randomUUID());saveTwoPlayerState();
+            const result=(await compatibleGameCallable()({...decisionPayload,requestId})).data;
+            if(!active())return;
+            if(result?.status!=='saved')throw Error(result?.reason||'Decision was not confirmed.');
+            delete pendingCheatIntents[key];saveTwoPlayerState();
+            panel.replaceChildren();const message=document.createElement('p');message.textContent='Decision confirmed: '+result.outcome+'. No points were charged or refunded. The claimant can check their pass status.';panel.appendChild(message);
+          } catch(error){if(active())errorBox.textContent='Decision not confirmed: '+error.message+' Load the case again to check its current status before retrying.';}
+          finally{busy=false;approve.disabled=deny.disabled=false;}
+        }
+        approve.onclick=()=>decide('approve');deny.onclick=()=>decide('deny');
+      }catch(error){if(active())errorBox.textContent=error.message;}
+      finally{busy=false;}
+    };
+  }catch(error){setStatus('Pass reviews: '+error.message);}
+}
+
 async function wikipediaRecoveryStatus(context=wholeCageContext()){
   if(!wholeCageContextCurrent(context)||!context.room)throw Error("Join the original online game first.");
   const call=compatibleGameCallable();
