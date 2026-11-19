@@ -3994,6 +3994,10 @@ body[data-card-size="compact"] #surface .node::before {
   #toolbar .utility-text-row{font-size:11px !important;}
   #cageMilestoneNotice{max-width:100% !important;}
 }
+/* Wikipedia pass: persistent, player-specific filmography shortcut. */
+#cageFilmographyLink { display:inline-flex; align-items:center; justify-content:center; border:1px solid #c79a40; border-radius:6px; padding:6px 9px; color:#ffd54a; font-weight:700; text-decoration:none; }
+#cageFilmographyLink:hover, #cageFilmographyLink:focus-visible { background:#2f2613; text-decoration:underline; }
+#cageFilmographyLink[hidden] { display:none !important; }
 </style>
 
 <style id="ccConnectionDetailsStyles">
@@ -4101,6 +4105,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
     <button class="utility-text-action" id="arrangeExistingBoardBtn" type="button" onclick="arrangeExistingBoardTest()" title="Repair existing movie positions without changing scores or connections"><span>Arrange Board</span></button>
     <span class="utility-text-field"><span class="utility-field-label">Code:</span><span class="online-status-badge" id="onlineStatusBadge">Offline</span></span>
     <span class="utility-text-field cc-turn-inline" role="status" aria-live="polite" aria-label="Current player turn"><span class="turn-tile-caption">Turn:</span><span id="turnDisplay">Player 1</span></span>
+    <a id="cageFilmographyLink" href="https://en.wikipedia.org/wiki/Nicolas_Cage_filmography" target="_blank" rel="noopener noreferrer" hidden>Cage Filmography ↗</a>
   </div>
 </section>
 </div>
@@ -5105,7 +5110,14 @@ function calculateScore() {
   return connectionScore - ((typeof remoteRoomRef !== "undefined" && remoteRoomRef) ? Number(remoteBoardPenalties.cast || 0) + Number(remoteBoardPenalties.shared || 0) + Number(remoteBoardPenalties.bridge || 0) : castPenalty + sharedWrongPenalty + wrongBridgePenalty);
 }
 
+function updateCageFilmographyLink(){
+  const link=document.getElementById("cageFilmographyLink");
+  if(!link)return;
+  // The entitlement is per player and per game, not per current turn.
+  link.hidden=!wholeCageHasPass();
+}
 function updateScoreDisplay() {
+  updateCageFilmographyLink();
   const scoreDisplay = document.getElementById("scoreDisplay");
   const turnDisplay = document.getElementById("turnDisplay");
 
