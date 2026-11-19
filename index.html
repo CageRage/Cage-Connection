@@ -436,6 +436,14 @@
   display: block !important;
 }
   
+#actorReuseOverlay { position:fixed; inset:0; z-index:21000; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.77); }
+#actorReuseOverlay.hidden { display:none; }
+#actorReuseDialog { width:min(500px,92vw); background:#111826; color:#fff; border:1px solid #c79a40; border-radius:14px; padding:20px; box-shadow:0 18px 50px rgba(0,0,0,.6); }
+#actorReuseDialog h2 { margin:0 0 10px; color:#ffd54a; font-size:22px; }
+#actorReuseDialog p { line-height:1.5; }
+#actorReuseActions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+#actorReuseActions button { flex:1; min-width:175px; }
+#actorReuseBreak:disabled { opacity:.45; cursor:not-allowed; }
 /* In-page connection dialog (avoids browser prompt blocking in embedded previews) */
 #connectionOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; z-index:20000; }
 #connectionOverlay.hidden { display:none; }
@@ -4467,6 +4475,18 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 </div>
 
   
+<div id="actorReuseOverlay" class="hidden" role="presentation">
+  <div id="actorReuseDialog" role="dialog" aria-modal="true" aria-labelledby="actorReuseTitle">
+    <h2 id="actorReuseTitle">Actor Already Used!</h2>
+    <p id="actorReuseText"></p>
+    <p id="actorReuseWitty" style="color:#ffd54a">That actor has already made this connection.</p>
+    <p id="actorReuseOwnership" style="font-size:13px"></p>
+    <div id="actorReuseActions">
+      <button type="button" id="actorReuseBreak">Break Existing Connection</button>
+      <button type="button" id="actorReuseChange">Change New Connection</button>
+    </div>
+  </div>
+</div>
 <div id="bonusOverlay" class="hidden">
   <div id="bonusDialog" role="dialog" aria-modal="true" aria-labelledby="bonusTitle">
     <h2 id="bonusTitle">Bonus Round</h2>
@@ -9275,6 +9295,60 @@ function renderNode(nodeObj) {
       return connection.a.id === nodeId ? connection.b : connection.a;
     }
 
+function actorMovieUses(c){
+  if(!c)return [];
+  const a=c.a?.name||"", b=c.b?.name||"";
+  const type=String(c.type||"").toLowerCase();
+  const pairs=type==="shared" ? [[a,c.sharedActor],[b,c.sharedActor]]
+    : type==="bridge" ? [[a,c.leftActor],[c.bridgeTitle,c.leftActor],
+      [c.bridgeTitle,c.rightActor],[b,c.rightActor]] : [];
+  return pairs.filter(([m,actor])=>String(m||"").trim()&&String(actor||"").trim())
+    .map(([m,actor])=>({movie:String(m).trim(),actor:String(actor).trim(),
+      key:normalizeTitle(m)+"|"+normalizeActorName(actor)}));
+}
+function findReusedActorMoviePair(candidate,excludeId=null){
+  const proposed=actorMovieUses(candidate);
+  for(const existing of connections){
+    if(excludeId&&existing.id===excludeId)continue;
+    const used=new Set(actorMovieUses(existing).map(p=>p.key));
+    const conflict=proposed.find(p=>used.has(p.key));
+    if(conflict)return {...conflict,connection:existing};
+  }
+  return null;
+}
+function showActorReuseWarning(conflict){
+  return new Promise(resolve=>{
+    const overlay=document.getElementById("actorReuseOverlay");
+    const change=document.getElementById("actorReuseChange");
+    const breaker=document.getElementById("actorReuseBreak");
+    if(!overlay||!change||!breaker){resolve("change");return;}
+    const link=conflict.connection;
+    document.getElementById("actorReuseText").textContent=
+      `${conflict.actor} has already been used with ${conflict.movie} in ${link.a?.name||"Movie"} ↔ ${link.b?.name||"Movie"}.`;
+    const permitted=!remoteRoomRef||link.owner===wholeCageSeat();
+    document.getElementById("actorReuseOwnership").textContent=permitted
+      ? "Break the old connection or change your new one."
+      : "Only the existing connection's owner can break it. Change your new connection instead.";
+    breaker.disabled=!permitted;
+    overlay.classList.remove("hidden");
+    const finish=choice=>{
+      overlay.classList.add("hidden");
+      change.removeEventListener("click",onChange);
+      breaker.removeEventListener("click",onBreak);
+      resolve(choice);
+    };
+    const onChange=()=>finish("change"),onBreak=()=>finish("break");
+    change.addEventListener("click",onChange);
+    breaker.addEventListener("click",onBreak);
+    change.focus();
+  });
+}
+async function handleActorReuseConflict(conflict){
+  if(await showActorReuseWarning(conflict)!=="break")return "change";
+  const result=await deleteConnection(conflict.connection.id,true,
+    "Old connection removed. Start the new connection again.");
+  return result===false ? "failed" : "removed";
+}
     function connectionExists(idA, idB) {
       return connections.some(c =>
         (c.a.id === idA && c.b.id === idB) || (c.a.id === idB && c.b.id === idA)
@@ -9464,6 +9538,16 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     setStatus(`Connecting from: ${first.name}`);
     return;
   }
+  const conflictAfterDialog=findReusedActorMoviePair({
+    type:result.type,a:first,b:obj,sharedActor:result.sharedActor,
+    bridgeTitle:result.bridgeTitle,leftActor:result.leftActor,rightActor:result.rightActor
+  });
+  if(conflictAfterDialog){
+    const action=await handleActorReuseConflict(conflictAfterDialog);
+    setStatus(action==="removed" ? "Old connection removed. Start again."
+      : "Connection not saved. Change the actor or ask the owner to remove the old link.");
+    return;
+  }
   // Recheck after the dialog: the turn might have changed while it was open.
   if (remoteRoomRef && (remoteConnectionCommitPending || remotePlayerIndex !== currentPlayerIndex)) {
     connectFirstNode = null; clearNodeStates();
@@ -9647,7 +9731,7 @@ function showConnectionDialog(first, second) {
     const cancel = () => { cleanup(); resolve(null); };
     const outside = e => { if (e.target === connectionOverlay) cancel(); };
 
-    const save = () => {
+    const save = async () => {
       if (!connectionType.value) {
         connectionDialogError.textContent = "Choose Multi-Movie Connection or Same Actor.";
         return;
@@ -9659,6 +9743,13 @@ function showConnectionDialog(first, second) {
           connectionDialogError.textContent = "Enter the actor who appears in both movies.";
           return;
         }
+        const conflict=findReusedActorMoviePair({type:"shared",a:first,b:second,sharedActor});
+        if(conflict){
+          const action=await handleActorReuseConflict(conflict);
+          if(action==="removed"){cleanup();resolve(null);setStatus("Old link removed. Start the new connection again.");}
+          else connectionDialogError.textContent="Actor/movie pair already used. Choose another actor.";
+          return;
+        }
         cleanup();
         resolve({type:"SHARED", sharedActor});
       } else {
@@ -9667,6 +9758,13 @@ function showConnectionDialog(first, second) {
         const rightActor = rightActorInput.value.trim();
         if (!bridgeTitle || !leftActor || !rightActor) {
           connectionDialogError.textContent = "Complete the other movie and both actor names.";
+          return;
+        }
+        const conflict=findReusedActorMoviePair({type:"bridge",a:first,b:second,bridgeTitle,leftActor,rightActor});
+        if(conflict){
+          const action=await handleActorReuseConflict(conflict);
+          if(action==="removed"){cleanup();resolve(null);setStatus("Old link removed. Start the new connection again.");}
+          else connectionDialogError.textContent="Actor/movie pair already used. Change the new connection.";
           return;
         }
         cleanup();
@@ -11271,6 +11369,13 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
     return;
   }
 
+  const editConflict=findReusedActorMoviePair(draft,connectionId);
+  if(editConflict){
+    const action=await handleActorReuseConflict(editConflict);
+    setStatus(action==="removed" ? "Conflicting link removed. Reopen this edit to finish."
+      : "Edit cancelled. Change the actor/movie combination.");
+    return;
+  }
   if(context){
     try{await commitCheatOperation('edit',context,{connectionId,expectedVersion,connection:{type:draft.type,bridgeTitle:draft.bridgeTitle||"",leftActor:draft.leftActor||"",rightActor:draft.rightActor||"",sharedActor:draft.sharedActor||""}});setStatus("Connection updated.");}
     catch(error){await refreshConnectionState(context);if(error.reason==='actor-movie-reused'&&wholeCageContextCurrent(context)){showActorMovieReuseWarning();}else{setStatus("Connection edit not saved: "+error.message);}}
