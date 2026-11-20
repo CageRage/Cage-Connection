@@ -11873,17 +11873,23 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       const overlaps = (a,b) => a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
       for (const link of links) {
         const a = movies.get(link.a.id), b = movies.get(link.b.id);
-        if (!a?.w || !b?.w || Math.hypot(a.x+a.w/2-b.x-b.w/2,a.y+a.h/2-b.y-b.h/2) <= maxDistance) continue;
-        for (const [anchor, original, replaceStart] of [[a,b,false],[b,a,true]]) {
-          for (const direction of [1,-1]) {
+        if (!a?.w || !b?.w) continue;
+        const dx = a.x+a.w/2-b.x-b.w/2, dy = a.y+a.h/2-b.y-b.h/2;
+        const distance = Math.hypot(dx,dy);
+        const differentRows = Math.abs(dy) >= Math.min(a.h,b.h)/2;
+        if (distance <= maxDistance && !differentRows) continue;
+        for (const direction of [1,-1]) {
+          for (const [anchor, original, replaceStart] of [[a,b,false],[b,a,true]]) {
             const gap = 240, w = original.w, h = original.h;
+            if (distance < gap+(anchor.w+w)/2+100) continue;
             const tile = {x:direction===1 ? anchor.x+anchor.w+gap : anchor.x-gap-w,
               y:anchor.y+(anchor.h-h)/2,w,h};
             const centerY = anchor.y+anchor.h/2;
-            const space = {x:Math.min(tile.x,anchor.x+anchor.w)-8,
-              y:Math.min(tile.y,centerY-46)-8,w:gap+w+16,
-              h:Math.max(tile.y+h,centerY+12)-Math.min(tile.y,centerY-46)+16};
-            if (space.x<0 || space.y<0 || space.x+space.w>width || space.y+space.h>height ||
+            const edge = direction===1 ? anchor.x+anchor.w : anchor.x;
+            const top = Math.max(0,Math.min(tile.y,centerY-46)-8);
+            const space = {x:Math.min(tile.x,edge)-8,y:top,w:gap+w+16,
+              h:Math.max(tile.y+h,centerY+12)+8-top};
+            if (space.x<0 || tile.y<0 || space.x+space.w>width || space.y+space.h>height ||
                 occupied.some(rect=>rect!==anchor && overlaps(space,rect))) continue;
             occupied.push(space);
             aliases.set(link.id,{tile,originalId:replaceStart?link.a.id:link.b.id,replaceStart});
