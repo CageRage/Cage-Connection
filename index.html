@@ -9368,7 +9368,7 @@ function findReusedActorMoviePair(candidate,excludeId=null){
   }
   return null;
 }
-function showActorReuseWarning(conflict){
+function showActorReuseWarning(conflict, keepDraft=false){
   return new Promise(resolve=>{
     const overlay=document.getElementById("actorReuseOverlay");
     const change=document.getElementById("actorReuseChange");
@@ -9379,7 +9379,7 @@ function showActorReuseWarning(conflict){
       `${conflict.actor} has already been used with ${conflict.movie} in ${link.a?.name||"Movie"} ↔ ${link.b?.name||"Movie"}.`;
     const permitted=!remoteRoomRef||link.owner===wholeCageSeat();
     document.getElementById("actorReuseOwnership").textContent=permitted
-      ? "Break the old connection or change your new one."
+      ? (keepDraft ? "Break Existing Connection removes the connection shown above and brings you back to your new connection with everything you entered. Click Save Connection to add it to the board." : "Break the old connection or change your new one.")
       : "Only the existing connection's owner can break it. Change your new connection instead.";
     breaker.disabled=!permitted;
     overlay.classList.remove("hidden");
@@ -9397,14 +9397,14 @@ function showActorReuseWarning(conflict){
 }
 function brokenActorReuseMessage(conflict){
   const link=conflict.connection;
-  const route=link.type==="bridge" ? [link.a.name,link.bridgeTitle,link.b.name] : [link.a.name,link.b.name];
-  return "Connection broken: "+route.join(" ↔ ")+".";
+  const bridge=link.type==="bridge"&&link.bridgeTitle ? ` via ${link.bridgeTitle}` : "";
+  return `Removed the connection between ${link.a.name} and ${link.b.name}${bridge}.`;
 }
 async function handleActorReuseConflict(conflict, keepDraft=false){
   const context=wholeCageContext();
   const link=conflict.connection;
   const expectedVersion=Number.isSafeInteger(link.editVersion)?link.editVersion:0;
-  if(await showActorReuseWarning(conflict)!=="break")return "change";
+  if(await showActorReuseWarning(conflict,keepDraft)!=="break")return "change";
   if(!wholeCageContextCurrent(context))return "failed";
   const result=await deleteConnection(link.id,true,brokenActorReuseMessage(conflict),false,{expectedVersion,keepDraft});
   return result===false ? "failed" : "removed";
@@ -9614,7 +9614,7 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     if(!conflict)break;
     const action=await handleActorReuseConflict(conflict,true);
     draft=result;
-    draftMessage=action==="removed"?brokenActorReuseMessage(conflict)+" Your draft is ready to continue."
+    draftMessage=action==="removed"?brokenActorReuseMessage(conflict)+" Everything you entered for your new connection is still here. Click Save Connection to add it to the board."
       :"Your draft is still open. Change the actor or try again.";
   }
 
@@ -9818,7 +9818,7 @@ function showConnectionDialog(first, second, draft=null, draftMessage="") {
       try{
         const action=await handleActorReuseConflict(conflict,true);
         connectionDialogError.textContent=action==="removed"
-          ? brokenActorReuseMessage(conflict)+" Your draft is ready to save."
+          ? brokenActorReuseMessage(conflict)+" Everything you entered for your new connection is still here. Click Save Connection to add it to the board."
           : action==="failed" ? "Connection could not be broken. Your draft is still open."
           : "Actor/movie pair already used. Change the new connection.";
         input.focus();
