@@ -8004,7 +8004,7 @@ function openWholeCageOffer(){
   const seat=wholeCageSeat();
   const context=wholeCageOfferContext=wholeCageContext(seat);
   if(wholeCageHasPass()){
-    openCheatDialog("ONE MOVIE OR THE WHOLE CAGE?","<p>Wikipedia is already unlocked for this player for the rest of this game. No additional charge.</p>",'<a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Open Wikipedia</a>');
+    openCheatDialog("ONE MOVIE OR THE WHOLE CAGE?","<p>Wikipedia is already unlocked for this player for the rest of this game. No additional charge.</p>",'<a href="https://en.wikipedia.org/wiki/Nicolas_Cage_filmography#Film" target="_blank" rel="noopener">Open Cage Filmography</a>');
     return;
   }
   openCheatDialog("ONE MOVIE OR THE WHOLE CAGE?",
@@ -8034,7 +8034,7 @@ async function buyWholeCagePass(seat,context=wholeCageContext(seat)){
   const charged=response.cost===20;
   addDockRecent(charged?`${players[seat]?.name||"Player"} purchased Wikipedia access (-20 once).`:`${players[seat]?.name||"Player"}'s existing Wikipedia pass was confirmed (no charge).`);
   closeCheatDialog();
-  openCheatDialog("Wikipedia Unlocked",charged?"<p>Wikipedia is unlocked for the rest of this game. Your new 20-point purchase is confirmed.</p>":"<p>Your existing pass is active for this game. No additional points were deducted.</p>",'<a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Open Wikipedia</a>');
+  openCheatDialog("Wikipedia Unlocked",charged?"<p>Wikipedia is unlocked for the rest of this game. Your new 20-point purchase is confirmed.</p>":"<p>Your existing pass is active for this game. No additional points were deducted.</p>",'<a href="https://en.wikipedia.org/wiki/Nicolas_Cage_filmography#Film" target="_blank" rel="noopener">Open Cage Filmography</a>');
   setStatus(charged?"Wikipedia unlocked. New purchase: 20 points.":"Existing Wikipedia pass confirmed. No additional charge.");
 }
 
