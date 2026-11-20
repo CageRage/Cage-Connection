@@ -4003,8 +4003,8 @@ body[data-card-size="compact"] #surface .node::before {
 <style id="ccMovieRowsStyles">
 .cc-movie-rows { padding:16px; background:#201911; color:#fff2d7; }
 .cc-movie-rows h2 { margin:0 0 8px; }
-.cc-movie-rows-feed { display:grid; gap:14px; margin-top:12px; }
-.cc-movie-row { display:flex; align-items:center; gap:8px; overflow-x:auto; padding:8px; }
+.cc-movie-rows-feed { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; margin-top:12px; overflow-x:auto; }
+.cc-movie-row { display:grid; grid-template-columns:repeat(9,minmax(76px,1fr) minmax(44px,.65fr)) minmax(76px,1fr); align-items:center; column-gap:4px; min-width:1240px; box-sizing:border-box; padding:8px; }
 .cc-movie-row-tile { flex:0 0 100px; min-width:0; min-height:135px; display:grid; align-content:start; gap:4px; padding:5px; background:#eedec1; color:#21180e; text-align:center; overflow-wrap:anywhere; }
 .cc-movie-row-tile img { width:100%; height:108px; object-fit:cover; }
 .cc-movie-row-tile small { font-size:11px; }
@@ -11971,7 +11971,13 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         }
         rows.push(row);
       }
-      return rows;
+      return rows.flatMap(chain=>{
+        const stacked = [chain.slice(0,10)];
+        for (let start=10; start<chain.length; start+=9) {
+          stacked.push([{movie:chain[start-1].movie,continuation:true},...chain.slice(start,start+9)]);
+        }
+        return stacked;
+      });
     }
 
     function ccRenderMovieRows() {
@@ -11987,16 +11993,14 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         document.getElementById("boardShell").before(panel);
       }
       const feed=panel.querySelector(".cc-movie-rows-feed");
-      const scrollPositions=new Map([...feed.children].map(row=>[row.dataset.rowKey,row.scrollLeft]));
       const seen=new Set();
       const rows=ccBuildMovieRows(nodes,connections).map((steps,index)=>{
         const row=document.createElement("div");
         row.className="cc-movie-row";
         row.tabIndex=0;
-        row.dataset.rowKey=String(steps[1].link.id);
         row.setAttribute("role","region");
-        row.setAttribute("aria-label","Movie chain "+(index+1));
-        for(const {movie,link} of steps){
+        row.setAttribute("aria-label","Movie chain row "+(index+1));
+        for(const {movie,link,continuation} of steps){
           if(link){
             const button=document.createElement("button");
             button.type="button";
@@ -12025,7 +12029,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
           card.appendChild(title);
           if(seen.has(movie.id)){
             const copy=document.createElement("small");
-            copy.textContent="Board copy";
+            copy.textContent=continuation?"Continued from above":"Board copy";
             card.appendChild(copy);
           }
           seen.add(movie.id);
@@ -12035,7 +12039,6 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       });
       feed.replaceChildren(...rows);
       panel.hidden=!rows.length;
-      for(const row of rows) row.scrollLeft=scrollPositions.get(row.dataset.rowKey)||0;
     }
 
     function draw() {
