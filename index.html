@@ -4000,6 +4000,16 @@ body[data-card-size="compact"] #surface .node::before {
 #toolbar #cageFilmographyLink[hidden] { display:none !important; }
 </style>
 
+<style id="ccMovieRowsStyles">
+.cc-movie-rows { padding:16px; background:#201911; color:#fff2d7; }
+.cc-movie-rows h2 { margin:0 0 8px; }
+.cc-movie-rows-feed { display:grid; gap:14px; margin-top:12px; }
+.cc-movie-row { display:flex; align-items:center; gap:8px; overflow-x:auto; padding:8px; }
+.cc-movie-row-tile { flex:0 0 100px; min-width:0; min-height:135px; display:grid; align-content:start; gap:4px; padding:5px; background:#eedec1; color:#21180e; text-align:center; overflow-wrap:anywhere; }
+.cc-movie-row-tile img { width:100%; height:108px; object-fit:cover; }
+.cc-movie-row-tile small { font-size:11px; }
+.cc-movie-row-link { flex:0 0 132px; min-height:44px; white-space:normal; overflow-wrap:anywhere; }
+</style>
 <style id="ccConnectionDetailsStyles">
 #surface .cc-movie-alias { position:absolute; z-index:3; box-sizing:border-box; display:grid; place-content:center; gap:4px; padding:5px; border:1px dashed #98a8c0; border-radius:8px; background:#202d40; color:#fff; text-align:center; overflow-wrap:anywhere; cursor:pointer; touch-action:manipulation; }
 #surface .cc-movie-alias small { color:#c5d4e8; }
@@ -11937,6 +11947,97 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       surface.appendChild(button);
     }
 
+    // Put each saved link in exactly one horizontal trail. Junctions and
+    // closed loops can repeat movie tiles without adding movies to the game.
+    function ccBuildMovieRows(movies, links) {
+      const byMovie = new Map(movies.map(movie=>[movie.id,[]]));
+      for (const link of links) {
+        byMovie.get(link.a.id)?.push(link);
+        byMovie.get(link.b.id)?.push(link);
+      }
+      const remaining = new Set(links);
+      const rows = [];
+      const degree = movie => byMovie.get(movie.id).filter(link=>remaining.has(link)).length;
+      while (remaining.size) {
+        const first = movies.find(movie=>degree(movie)===1) || remaining.values().next().value.a;
+        const row = [{movie:first}];
+        let movie = first;
+        let link;
+        while ((link=byMovie.get(movie.id).find(candidate=>remaining.has(candidate)))) {
+          remaining.delete(link);
+          movie = link.a.id===movie.id ? link.b : link.a;
+          row.push({movie,link});
+          if (movie.id===first.id) break;
+        }
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function ccRenderMovieRows() {
+      if (new URLSearchParams(location.search).get("movieRows") !== "1") return;
+      let panel=document.getElementById("ccMovieRows");
+      if (!panel) {
+        panel=document.createElement("section");
+        panel.className="cc-movie-rows";
+        panel.id="ccMovieRows";
+        panel.setAttribute("aria-label","Movie chain rows");
+        panel.innerHTML='<h2>Movie chain rows</h2><button type="button">Go to playable board</button><div class="cc-movie-rows-feed"></div>';
+        panel.querySelector("button").onclick=()=>document.getElementById("boardShell").scrollIntoView();
+        document.getElementById("boardShell").before(panel);
+      }
+      const feed=panel.querySelector(".cc-movie-rows-feed");
+      const scrollPositions=new Map([...feed.children].map(row=>[row.dataset.rowKey,row.scrollLeft]));
+      const seen=new Set();
+      const rows=ccBuildMovieRows(nodes,connections).map((steps,index)=>{
+        const row=document.createElement("div");
+        row.className="cc-movie-row";
+        row.tabIndex=0;
+        row.dataset.rowKey=String(steps[1].link.id);
+        row.setAttribute("role","region");
+        row.setAttribute("aria-label","Movie chain "+(index+1));
+        for(const {movie,link} of steps){
+          if(link){
+            const button=document.createElement("button");
+            button.type="button";
+            button.className="cc-movie-row-link";
+            button.textContent=link.sharedActor || link.bridgeTitle || "Connection details";
+            button.setAttribute("aria-label",movie.name+" connection: "+button.textContent);
+            button.onclick=()=>{
+              const r=button.getBoundingClientRect();
+              ccConnectionDetailsShow(link,{clientX:r.left+r.width/2,clientY:r.top},true,movie.id);
+            };
+            row.appendChild(button);
+          }
+          const card=document.createElement("div");
+          card.className="cc-movie-row-tile";
+          card.dataset.movieId=movie.id;
+          const poster=movie.el.querySelector(".node-poster");
+          if(poster?.getAttribute("src")){
+            const image=document.createElement("img");
+            image.src=poster.src;
+            image.alt="";
+            image.loading="lazy";
+            card.appendChild(image);
+          }
+          const title=document.createElement("strong");
+          title.textContent=movie.name;
+          card.appendChild(title);
+          if(seen.has(movie.id)){
+            const copy=document.createElement("small");
+            copy.textContent="Board copy";
+            card.appendChild(copy);
+          }
+          seen.add(movie.id);
+          row.appendChild(card);
+        }
+        return row;
+      });
+      feed.replaceChildren(...rows);
+      panel.hidden=!rows.length;
+      for(const row of rows) row.scrollLeft=scrollPositions.get(row.dataset.rowKey)||0;
+    }
+
     function draw() {
       ccConnectionDetailsClose();
       svg.innerHTML = "";
@@ -12052,6 +12153,7 @@ if (breakConnectionMode) {
         [hitbox, bg, title, actors].forEach(el => ccBindConnectionDetails(el, c));
       }
 
+      ccRenderMovieRows();
       applyFocusStyles();
       updateScoreDisplay();
     }
