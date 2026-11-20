@@ -4014,7 +4014,21 @@ body[data-card-size="compact"] #surface .node::before {
 .cc-playable-rows > #boardListMode,
 .cc-playable-rows > #leftBoardScroll,
 body:has(.cc-playable-rows) #topBoardScroll { display:none !important; }
-.cc-movie-rows-feed { margin-top:0; }
+.cc-movie-rows-feed {
+  margin-top:0;
+  max-height:min(65vh, 760px);
+  overflow:auto;
+  scrollbar-color:#c4a67b #3b2a1e;
+  scrollbar-gutter:stable;
+  overflow-anchor:none;
+}
+.cc-movie-rows-scroll {
+  overflow-x:scroll;
+  overflow-y:hidden;
+  margin-bottom:8px;
+  scrollbar-color:#c4a67b #3b2a1e;
+}
+.cc-movie-rows-scroll > div { height:1px; }
 .cc-movie-row-tile { width:100%; cursor:pointer; }
 .cc-movie-row-tile:focus-visible,
 .cc-movie-row-link:focus-visible { outline:2px solid #f5cc65; outline-offset:2px; }
@@ -12001,7 +12015,18 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         panel.className="cc-movie-rows";
         panel.id="ccMovieRows";
         panel.setAttribute("aria-label","Movie chain rows");
-        panel.innerHTML='<div class="cc-movie-rows-feed"></div>';
+        panel.innerHTML='<div class="cc-movie-rows-scroll" tabindex="0" role="region" aria-label="Scroll movie rows horizontally"><div></div></div><div class="cc-movie-rows-feed" tabindex="0" role="region" aria-label="Scrollable movie board"></div>';
+        const scrollbar=panel.querySelector(".cc-movie-rows-scroll");
+        const viewport=panel.querySelector(".cc-movie-rows-feed");
+        scrollbar.addEventListener("scroll",()=>{viewport.scrollLeft=scrollbar.scrollLeft;});
+        viewport.addEventListener("scroll",()=>{scrollbar.scrollLeft=viewport.scrollLeft;});
+        const updateScrollbar=()=>{
+          const overflow=viewport.scrollWidth-viewport.clientWidth;
+          scrollbar.hidden=overflow<=0;
+          scrollbar.firstElementChild.style.width=(scrollbar.clientWidth+Math.max(0,overflow))+"px";
+          scrollbar.scrollLeft=viewport.scrollLeft;
+        };
+        new ResizeObserver(updateScrollbar).observe(viewport);
         const shell=document.getElementById("boardShell");
         shell.classList.add("cc-playable-rows");
         shell.prepend(panel);
@@ -12057,7 +12082,10 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         }
         return row;
       });
+      const {scrollLeft,scrollTop}=feed;
       feed.replaceChildren(...rows);
+      feed.scrollLeft=scrollLeft;
+      feed.scrollTop=scrollTop;
       panel.hidden=false;
     }
 
