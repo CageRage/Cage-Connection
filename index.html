@@ -4002,13 +4002,22 @@ body[data-card-size="compact"] #surface .node::before {
 
 <style id="ccMovieRowsStyles">
 .cc-movie-rows { padding:16px; background:#201911; color:#fff2d7; }
-.cc-movie-rows h2 { margin:0 0 8px; }
 .cc-movie-rows-feed { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; margin-top:12px; overflow-x:auto; }
 .cc-movie-row { display:grid; grid-template-columns:repeat(9,minmax(76px,1fr) minmax(44px,.65fr)) minmax(76px,1fr); align-items:center; column-gap:4px; min-width:1240px; box-sizing:border-box; padding:8px; }
 .cc-movie-row-tile { flex:0 0 100px; min-width:0; min-height:135px; display:grid; align-content:start; gap:4px; padding:5px; background:#eedec1; color:#21180e; text-align:center; overflow-wrap:anywhere; }
 .cc-movie-row-tile img { width:100%; height:108px; object-fit:cover; }
 .cc-movie-row-tile small { font-size:11px; }
 .cc-movie-row-link { flex:0 0 132px; min-height:44px; white-space:normal; overflow-wrap:anywhere; }
+
+#boardShell.cc-playable-rows { display:block; height:auto; }
+.cc-playable-rows > #board,
+.cc-playable-rows > #boardListMode,
+.cc-playable-rows > #leftBoardScroll,
+body:has(.cc-playable-rows) #topBoardScroll { display:none !important; }
+.cc-movie-rows-feed { margin-top:0; }
+.cc-movie-row-tile { width:100%; cursor:pointer; }
+.cc-movie-row-tile:focus-visible,
+.cc-movie-row-link:focus-visible { outline:2px solid #f5cc65; outline-offset:2px; }
 </style>
 <style id="ccConnectionDetailsStyles">
 #surface .cc-movie-alias { position:absolute; z-index:3; box-sizing:border-box; display:grid; place-content:center; gap:4px; padding:5px; border:1px dashed #98a8c0; border-radius:8px; background:#202d40; color:#fff; text-align:center; overflow-wrap:anywhere; cursor:pointer; touch-action:manipulation; }
@@ -11971,6 +11980,10 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         }
         rows.push(row);
       }
+      const unlinked = movies.filter(movie => byMovie.get(movie.id).length === 0);
+      for (let start = 0; start < unlinked.length; start += 10) {
+        rows.push(unlinked.slice(start,start+10).map(movie => ({movie})));
+      }
       return rows.flatMap(chain=>{
         const stacked = [chain.slice(0,10)];
         for (let start=10; start<chain.length; start+=9) {
@@ -11988,9 +12001,10 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         panel.className="cc-movie-rows";
         panel.id="ccMovieRows";
         panel.setAttribute("aria-label","Movie chain rows");
-        panel.innerHTML='<h2>Movie chain rows</h2><button type="button">Go to playable board</button><div class="cc-movie-rows-feed"></div>';
-        panel.querySelector("button").onclick=()=>document.getElementById("boardShell").scrollIntoView();
-        document.getElementById("boardShell").before(panel);
+        panel.innerHTML='<div class="cc-movie-rows-feed"></div>';
+        const shell=document.getElementById("boardShell");
+        shell.classList.add("cc-playable-rows");
+        shell.prepend(panel);
       }
       const feed=panel.querySelector(".cc-movie-rows-feed");
       const seen=new Set();
@@ -12000,7 +12014,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         row.tabIndex=0;
         row.setAttribute("role","region");
         row.setAttribute("aria-label","Movie chain row "+(index+1));
-        for(const {movie,link,continuation} of steps){
+        for(const [column,{movie,link,continuation}] of steps.entries()){
           if(link){
             const button=document.createElement("button");
             button.type="button";
@@ -12008,18 +12022,24 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
             button.textContent=link.sharedActor || link.bridgeTitle || "Connection details";
             button.setAttribute("aria-label",movie.name+" connection: "+button.textContent);
             button.onclick=()=>{
+              if (breakConnectionMode) return breakConnectionFromBoard(link.id);
+              if (challengeMode) return challengeConnection(link.id);
               const r=button.getBoundingClientRect();
               ccConnectionDetailsShow(link,{clientX:r.left+r.width/2,clientY:r.top},true,movie.id);
             };
             row.appendChild(button);
           }
-          const card=document.createElement("div");
+          const card=document.createElement("button");
+          card.type="button";
+          card.onclick=()=>handleMovieCardAction(movie);
           card.className="cc-movie-row-tile";
           card.dataset.movieId=movie.id;
-          const poster=movie.el.querySelector(".node-poster");
-          if(poster?.getAttribute("src")){
+          card.style.gridColumn=String(column*2+1);
+          const poster=posterSrcForMovie(movie.name);
+          if(poster){
             const image=document.createElement("img");
-            image.src=poster.src;
+            image.src=poster;
+            image.onerror=()=>image.remove();
             image.alt="";
             image.loading="lazy";
             card.appendChild(image);
@@ -12038,7 +12058,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         return row;
       });
       feed.replaceChildren(...rows);
-      panel.hidden=!rows.length;
+      panel.hidden=false;
     }
 
     function draw() {
