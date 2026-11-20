@@ -4471,7 +4471,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
         <div><label for="sharedActorInput">Actor in both movies</label><input id="sharedActorInput" type="text"></div>
       </div>
     </div>
-    <div id="connectionDialogError" class="conn-error"></div>
+    <div id="connectionDialogError" class="conn-error" aria-live="polite"></div>
     <div class="conn-actions">
       <button type="button" id="connectionCancelBtn">Cancel</button>
       <button type="button" id="connectionSaveBtn">Save Connection</button>
@@ -9355,10 +9355,18 @@ function showActorReuseWarning(conflict){
     change.focus();
   });
 }
-async function handleActorReuseConflict(conflict){
+function brokenActorReuseMessage(conflict){
+  const link=conflict.connection;
+  const route=link.type==="bridge" ? [link.a.name,link.bridgeTitle,link.b.name] : [link.a.name,link.b.name];
+  return "Connection broken: "+route.join(" ↔ ")+".";
+}
+async function handleActorReuseConflict(conflict, keepDraft=false){
+  const context=wholeCageContext();
+  const link=conflict.connection;
+  const expectedVersion=Number.isSafeInteger(link.editVersion)?link.editVersion:0;
   if(await showActorReuseWarning(conflict)!=="break")return "change";
-  const result=await deleteConnection(conflict.connection.id,true,
-    "Old connection removed. Start the new connection again.");
+  if(!wholeCageContextCurrent(context))return "failed";
+  const result=await deleteConnection(link.id,true,brokenActorReuseMessage(conflict),false,{expectedVersion,keepDraft});
   return result===false ? "failed" : "removed";
 }
     function connectionExists(idA, idB) {
@@ -9512,7 +9520,7 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
 }
 
    let remoteConnectionCommitPending = false;
-   async function handleConnectClick(obj) {
+   async function handleConnectClick(obj, draft=null, draftMessage="") {
   if (remoteRoomRef && (remoteConnectionCommitPending || remotePlayerIndex !== currentPlayerIndex)) {
     setStatus("Wait for the current connection to save, or for your turn.");
     return;
@@ -9537,35 +9545,41 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     return;
   }
 
-  const first = connectFirstNode;
+  let first = connectFirstNode;
+  const firstId=first.id, secondId=obj.id;
+  const context=wholeCageContext();
+  let result;
+  while(true){
+    result=await showConnectionDialog(first,obj,draft,draftMessage);
+    if(!wholeCageContextCurrent(context) || (context.room &&
+      (remoteConnectionCommitPending || remotePlayerIndex!==currentPlayerIndex || context.turnStartedAt!==wholeCageContext().turnStartedAt))){
+      connectFirstNode=null;
+      clearNodeStates();
+      setStatus("The game or turn changed while the connection was open. Nothing saved.");
+      return;
+    }
+    first=nodes.find(node=>node.id===firstId);
+    obj=nodes.find(node=>node.id===secondId);
+    if(!first||!obj||connectionExists(firstId,secondId)){
+      setStatus("The selected movies or connection changed. Nothing saved.");
+      return;
+    }
+    connectFirstNode=first;
+    if(!result){
+      first.el.classList.add("connecting");
+      setStatus(`Connecting from: ${first.name}`);
+      return;
+    }
+    const conflict=findReusedActorMoviePair({...result,a:first,b:obj});
+    if(!conflict)break;
+    const action=await handleActorReuseConflict(conflict,true);
+    draft=result;
+    draftMessage=action==="removed"?brokenActorReuseMessage(conflict)+" Your draft is ready to continue."
+      :"Your draft is still open. Change the actor or try again.";
+  }
 
-  // Capture the current main-line membership before this connection.
-  // After the connection is added, any 2+ movies newly absorbed into the
-  // resulting main continuous line earn +1 point each.
   const scoringPositions=nodes.map(n=>({id:n.id,x:n.x,y:n.y}));
-  const chainMergeBaseline = getDynamicChainMergeBaseline(first, obj);
-
-  const result = await showConnectionDialog(first, obj);
-  if (!result) {
-    setStatus(`Connecting from: ${first.name}`);
-    return;
-  }
-  const conflictAfterDialog=findReusedActorMoviePair({
-    type:result.type,a:first,b:obj,sharedActor:result.sharedActor,
-    bridgeTitle:result.bridgeTitle,leftActor:result.leftActor,rightActor:result.rightActor
-  });
-  if(conflictAfterDialog){
-    const action=await handleActorReuseConflict(conflictAfterDialog);
-    setStatus(action==="removed" ? "Old connection removed. Start again."
-      : "Connection not saved. Change the actor or ask the owner to remove the old link.");
-    return;
-  }
-  // Recheck after the dialog: the turn might have changed while it was open.
-  if (remoteRoomRef && (remoteConnectionCommitPending || remotePlayerIndex !== currentPlayerIndex)) {
-    connectFirstNode = null; clearNodeStates();
-    setStatus("Turn changed before this connection was submitted. Nothing saved.");
-    return;
-  }
+  const chainMergeBaseline=getDynamicChainMergeBaseline(first,obj);
   const scoreBeforeConnection = Number(players[currentPlayerIndex].score || 0);
 
   if (result.type === "SHARED") {
@@ -9683,6 +9697,13 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
           draw();
           syncAddedMovieBoardNow();
         }
+        const liveFirst=nodes.find(node=>node.id===firstId);
+        const liveSecond=nodes.find(node=>node.id===secondId);
+        if(liveFirst&&liveSecond&&remotePlayerIndex===currentPlayerIndex){
+          connectFirstNode=liveFirst;
+          remoteConnectionCommitPending=false;
+          return handleConnectClick(liveSecond,result,"This actor/movie pair is already used. Your draft is still open.");
+        }
         showActorMovieReuseWarning();
         return;
       }
@@ -9695,7 +9716,7 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
   switchTurnAfterConnection(chainMergeBonus);
 }
 
-function showConnectionDialog(first, second) {
+function showConnectionDialog(first, second, draft=null, draftMessage="") {
   return new Promise(resolve => {
     connectionDialogSubtitle.textContent = `${first.name} ↔ ${second.name}`;
     leftActorLabel.textContent = `Actor from “${first.name}”`;
@@ -9743,6 +9764,29 @@ function showConnectionDialog(first, second) {
     const cancel = () => { cleanup(); resolve(null); };
     const outside = e => { if (e.target === connectionOverlay) cancel(); };
 
+    if(draft){
+      chooseType(draft.type);
+      bridgeTitleInput.value=draft.bridgeTitle||"";
+      leftActorInput.value=draft.leftActor||"";
+      rightActorInput.value=draft.rightActor||"";
+      sharedActorInput.value=draft.sharedActor||"";
+      connectionDialogError.textContent=draftMessage;
+    }
+
+    const resolveDraftConflict = async (conflict,input) => {
+      connectionSaveBtn.disabled=true;
+      try{
+        const action=await handleActorReuseConflict(conflict,true);
+        connectionDialogError.textContent=action==="removed"
+          ? brokenActorReuseMessage(conflict)+" Your draft is ready to save."
+          : action==="failed" ? "Connection could not be broken. Your draft is still open."
+          : "Actor/movie pair already used. Change the new connection.";
+        input.focus();
+      }finally{
+        connectionSaveBtn.disabled=false;
+      }
+    };
+
     const save = async () => {
       if (!connectionType.value) {
         connectionDialogError.textContent = "Choose Multi-Movie Connection or Same Actor.";
@@ -9757,9 +9801,7 @@ function showConnectionDialog(first, second) {
         }
         const conflict=findReusedActorMoviePair({type:"shared",a:first,b:second,sharedActor});
         if(conflict){
-          const action=await handleActorReuseConflict(conflict);
-          if(action==="removed"){cleanup();resolve(null);setStatus("Old link removed. Start the new connection again.");}
-          else connectionDialogError.textContent="Actor/movie pair already used. Choose another actor.";
+          await resolveDraftConflict(conflict,sharedActorInput);
           return;
         }
         cleanup();
@@ -9774,9 +9816,7 @@ function showConnectionDialog(first, second) {
         }
         const conflict=findReusedActorMoviePair({type:"bridge",a:first,b:second,bridgeTitle,leftActor,rightActor});
         if(conflict){
-          const action=await handleActorReuseConflict(conflict);
-          if(action==="removed"){cleanup();resolve(null);setStatus("Old link removed. Start the new connection again.");}
-          else connectionDialogError.textContent="Actor/movie pair already used. Change the new connection.";
+          await resolveDraftConflict(conflict,leftActorInput);
           return;
         }
         cleanup();
@@ -11243,14 +11283,22 @@ function clearFocus() {
   renderBoardListMode();
 }
 
-async function deleteConnection(connectionId, silent = false, breakMessage = "Connection removed.", wrong = false) {
+async function deleteConnection(connectionId, silent = false, breakMessage = "Connection removed.", wrong = false, options = {}) {
       if(remoteRoomRef){
         const link=connections.find(c=>c.id===connectionId);if(!link)return false;
         if(link.owner!==wholeCageSeat()){setStatus("Only the connection owner can remove it.");return false;}
-        try{await commitCheatOperation('delete',wholeCageContext(),{connectionId,expectedVersion:Number.isSafeInteger(link.editVersion)?link.editVersion:0,reason:wrong?'wrong':'delete'});resetAfterBrokenConnection(breakMessage);return true;}
+        const version=Number.isSafeInteger(link.editVersion)?link.editVersion:0;
+        if(options.expectedVersion!==undefined&&options.expectedVersion!==version){setStatus("The existing connection changed before it could be broken.");return false;}
+        try{
+          await commitCheatOperation('delete',wholeCageContext(),{connectionId,expectedVersion:version,reason:wrong?'wrong':'delete'});
+          if(options.keepDraft)setStatus(breakMessage);
+          else resetAfterBrokenConnection(breakMessage);
+          return true;
+        }
         catch(error){await refreshConnectionState(wholeCageContext());setStatus('Connection removal not saved: '+error.message);return false;}
       }
       const doomed = connections.find(c => c.id === connectionId);
+      if(!doomed)return false;
       connections = connections.filter(c => c.id !== connectionId);
 
       // V76 TEST: Do not reflow the entire graph after breaking one edge.
@@ -11266,8 +11314,9 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       renderMovieList();
       updateWinStatus();
 
-      // Always restore a clean board interaction state after a link is broken.
-      resetAfterBrokenConnection(breakMessage);
+      if(options.keepDraft)setStatus(breakMessage);
+      else resetAfterBrokenConnection(breakMessage);
+      return true;
     }
 
    async function editConnection(connectionId) {
