@@ -11706,7 +11706,11 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       const body = s.popup.querySelector('#ccConnectionDetailsBody'); body.replaceChildren();
       const row = (label, value) => { const p=document.createElement('p'); p.textContent=label+saved(value); body.appendChild(p); };
       if(c.type === 'shared') row('Shared actor: ', c.sharedActor);
-      else if(c.type === 'bridge') { row('Bridge movie: ', c.bridgeTitle); row('First movie actor: ', c.leftActor); row('Second movie actor: ', c.rightActor); }
+      else if(c.type === 'bridge') {
+        const bridge = saved(c.bridgeTitle);
+        row(`${saved(c.a.name)} ↔ ${bridge}: `, c.leftActor);
+        row(`${bridge} ↔ ${saved(c.b.name)}: `, c.rightActor);
+      }
       else { row('Saved actor: ', c.sharedActor); row('Saved bridge: ', c.bridgeTitle); }
       const v=window.visualViewport, left=v?v.offsetLeft:0, top=v?v.offsetTop:0;
       const width=v?v.width:innerWidth, height=v?v.height:innerHeight;
