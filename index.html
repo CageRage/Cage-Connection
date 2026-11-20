@@ -4001,6 +4001,9 @@ body[data-card-size="compact"] #surface .node::before {
 </style>
 
 <style id="ccConnectionDetailsStyles">
+#surface .cc-movie-alias { position:absolute; z-index:3; box-sizing:border-box; display:grid; place-content:center; gap:4px; padding:5px; border:1px dashed #98a8c0; border-radius:8px; background:#202d40; color:#fff; text-align:center; overflow-wrap:anywhere; cursor:pointer; touch-action:manipulation; }
+#surface .cc-movie-alias small { color:#c5d4e8; }
+#surface .cc-movie-alias:focus-visible { outline:2px solid #ffd54a; outline-offset:2px; }
 #ccConnectionDetails { position:fixed; z-index:999998; width:420px; box-sizing:border-box; overflow-wrap:anywhere; overscroll-behavior:contain; }
 #ccConnectionDetails[hidden] { display:none !important; }
 #ccConnectionDetails h2 { font-size:18px; }
@@ -11809,23 +11812,24 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       s.popup.style.left=Math.max(left+12,Math.min(x,left+width-r.width-12))+'px';
       s.popup.style.top=Math.max(top+12,Math.min(y,top+height-r.height-12))+'px';
     }
-    function ccConnectionDetailsShow(c, e, pinned) {
+    function ccConnectionDetailsShow(c, e, pinned, movieId=null) {
       if(breakConnectionMode || challengeMode) return;
       const s=ccConnectionDetailsController(); clearTimeout(s.timer);
+      s.popup.querySelector(".cc-alias-jump")?.remove();
       s.id=c.id; s.point={x:e.clientX,y:e.clientY}; s.pinned=pinned;
       // Include nearby saved links, so identical or crossing lines are individually reachable.
-      const ids=new Set([c.id]);
+      const ids=new Set(movieId ? getConnectionsForNode(movieId).map(link=>String(link.id)) : [c.id]);
       svg.querySelectorAll('.connection-hitbox').forEach(line => {
         const m=line.getScreenCTM(); if(!m)return;
         const point=(x,y)=>{const p=svg.createSVGPoint();p.x=x;p.y=y;return p.matrixTransform(m);};
         const a=point(+line.getAttribute('x1'),+line.getAttribute('y1')), b=point(+line.getAttribute('x2'),+line.getAttribute('y2'));
         const dx=b.x-a.x,dy=b.y-a.y,length=dx*dx+dy*dy;
         const t=length?Math.max(0,Math.min(1,((e.clientX-a.x)*dx+(e.clientY-a.y)*dy)/length)):0;
-        if(Math.hypot(e.clientX-a.x-t*dx,e.clientY-a.y-t*dy)<=20) ids.add(line.dataset.ccConnectionId);
+        if(!movieId && Math.hypot(e.clientX-a.x-t*dx,e.clientY-a.y-t*dy)<=20) ids.add(line.dataset.ccConnectionId);
       });
       svg.querySelectorAll('.connection-label-bg').forEach(label => {
         const r=label.getBoundingClientRect();
-        if(e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom) ids.add(label.dataset.ccConnectionId);
+        if(!movieId && e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom) ids.add(label.dataset.ccConnectionId);
       });
       const select=s.popup.querySelector('select'); select.replaceChildren();
       connections.filter(link=>ids.has(String(link.id))).forEach(link=>{
@@ -11858,25 +11862,99 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();const r=el.getBoundingClientRect();ccConnectionDetailsShow(c,{clientX:r.x+r.width/2,clientY:r.y+r.height/2},true);}});
       }
     }
+    // Review preview. The query flag changes only how this browser draws the board.
+    function ccReviewMovieAliases() {
+      return new URLSearchParams(location.search).get("movieAliases") === "1";
+    }
+
+    function ccPlanMovieAliases(movies, links, width, height, maxDistance) {
+      const aliases = new Map();
+      const occupied = [...movies.values()];
+      const overlaps = (a,b) => a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+      for (const link of links) {
+        const a = movies.get(link.a.id), b = movies.get(link.b.id);
+        if (!a?.w || !b?.w || Math.hypot(a.x+a.w/2-b.x-b.w/2,a.y+a.h/2-b.y-b.h/2) <= maxDistance) continue;
+        for (const [anchor, original, replaceStart] of [[a,b,false],[b,a,true]]) {
+          for (const direction of [1,-1]) {
+            const gap = 240, w = original.w, h = original.h;
+            const tile = {x:direction===1 ? anchor.x+anchor.w+gap : anchor.x-gap-w,
+              y:anchor.y+(anchor.h-h)/2,w,h};
+            const centerY = anchor.y+anchor.h/2;
+            const space = {x:Math.min(tile.x,anchor.x+anchor.w)-8,
+              y:Math.min(tile.y,centerY-46)-8,w:gap+w+16,
+              h:Math.max(tile.y+h,centerY+12)-Math.min(tile.y,centerY-46)+16};
+            if (space.x<0 || space.y<0 || space.x+space.w>width || space.y+space.h>height ||
+                occupied.some(rect=>rect!==anchor && overlaps(space,rect))) continue;
+            occupied.push(space);
+            aliases.set(link.id,{tile,originalId:replaceStart?link.a.id:link.b.id,replaceStart});
+            break;
+          }
+          if (aliases.has(link.id)) break;
+        }
+      }
+      return aliases;
+    }
+
+    function ccRenderMovieAlias(alias, connection) {
+      const original = nodes.find(movie=>movie.id===alias.originalId);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "cc-movie-alias";
+      button.dataset.movieId = alias.originalId;
+      Object.assign(button.style,{left:alias.tile.x+"px",top:alias.tile.y+"px",
+        width:alias.tile.w+"px",height:alias.tile.h+"px",zIndex:String(Number(getComputedStyle(svg).zIndex)+1||3)});
+      const label = document.createElement("small");
+      label.textContent = "↗ Board copy";
+      const title = document.createElement("strong");
+      title.textContent = original.name;
+      button.append(label,title);
+      button.setAttribute("aria-label", "Go to original movie and inspect connections: "+original.name);
+      button.addEventListener("click",event=>{
+        event.stopPropagation();
+        const movie = nodes.find(node=>node.id===alias.originalId);
+        const link = connections.find(saved=>saved.id===connection.id);
+        if (!movie || !link || breakConnectionMode || challengeMode) return;
+        focusedNodeId = movie.id;
+        applyFocusStyles();
+        const rect = button.getBoundingClientRect();
+        ccConnectionDetailsShow(link,{clientX:rect.left+rect.width/2,clientY:rect.top},true,movie.id);
+        const jump = document.createElement("button");
+        jump.type = "button";
+        jump.textContent = "Go to original movie";
+        jump.className = "cc-alias-jump";
+        jump.onclick = () => {
+          ccConnectionDetailsClose();
+          movie.el.scrollIntoView({block:"nearest",inline:"center"});
+        };
+        ccConnectionDetailsState.popup.querySelector(".cheat-actions").prepend(jump);
+      });
+      surface.appendChild(button);
+    }
+
     function draw() {
       ccConnectionDetailsClose();
       svg.innerHTML = "";
+      surface.querySelectorAll(".cc-movie-alias").forEach(tile=>tile.remove());
+      const measured = new Map(nodes.map(n=>[n.id,{x:n.x,y:n.y,w:n.el.offsetWidth,h:n.el.offsetHeight}]));
+      const boardWidth = board.clientWidth/(window.ccPhoneBoardZoom||1);
+      const aliases = ccReviewMovieAliases() ? ccPlanMovieAliases(measured,connections,
+        surface.clientWidth,surface.clientHeight,Math.max(650,Math.min(1000,boardWidth))) : new Map();
 
       for (const c of connections) {
-        let x1 = c.a.x + (c.a.el.offsetWidth / 2);
-        let y1 = c.a.y + (c.a.el.offsetHeight / 2);
-        let x2 = c.b.x + (c.b.el.offsetWidth / 2);
-        let y2 = c.b.y + (c.b.el.offsetHeight / 2);
+        const alias = aliases.get(c.id);
+        if (alias) ccRenderMovieAlias(alias,c);
+        const a = alias?.replaceStart ? alias.tile : measured.get(c.a.id);
+        const b = alias && !alias.replaceStart ? alias.tile : measured.get(c.b.id);
+        const {w:aWidth,h:aHeight}=a, {w:bWidth,h:bHeight}=b;
+        let x1=a.x+aWidth/2, y1=a.y+aHeight/2;
+        let x2=b.x+bWidth/2, y2=b.y+bHeight/2;
 
-        // Close cards can entirely conceal a center-to-center line and label.
-        // Route such connections just above the cards, where both players can see them.
-        const aWidth = c.a.el.offsetWidth, bWidth = c.b.el.offsetWidth;
-        const aHeight = c.a.el.offsetHeight, bHeight = c.b.el.offsetHeight;
+        // Close cards can conceal the center-to-center line.
         const cardsOverlapOrTouch =
-          c.a.x <= c.b.x + bWidth + 8 && c.b.x <= c.a.x + aWidth + 8 &&
-          c.a.y <= c.b.y + bHeight + 8 && c.b.y <= c.a.y + aHeight + 8;
+          a.x <= b.x + bWidth + 8 && b.x <= a.x + aWidth + 8 &&
+          a.y <= b.y + bHeight + 8 && b.y <= a.y + aHeight + 8;
         if (cardsOverlapOrTouch) {
-          const labelY = Math.max(22, Math.min(c.a.y, c.b.y) - 18);
+          const labelY = Math.max(22, Math.min(a.y, b.y) - 18);
           y1 = labelY;
           y2 = labelY;
         }
