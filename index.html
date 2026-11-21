@@ -4710,6 +4710,9 @@ const FIREBASE_CONFIG={apiKey:"AIzaSyCW9X7o1xr-hmB1Xf1vp6J77BP8FZDaanM",authDoma
     const bonusResult = document.getElementById("bonusResult");
     const bonusExplanation = document.getElementById("bonusExplanation");
     const bonusReactionPanel = document.getElementById("bonusReactionPanel");
+    const bonusOscar = document.querySelector('button[aria-label="Bonus Round"] .top-image-symbol img').cloneNode();
+    bonusOscar.className = 'bonus-oscar-icon';
+    document.getElementById('bonusTitle').prepend(bonusOscar);
     const bonusReactionImage = document.getElementById("bonusReactionImage");
     const bonusCloseBtn = document.getElementById("bonusCloseBtn");
     const bonusCancelBtn = document.getElementById("bonusCancelBtn");
@@ -9940,8 +9943,7 @@ const BONUS_CORRECT_REACTIONS = [
   "reactions/correct/bonus_correct_03.gif",
   "reactions/correct/bonus_correct_04.gif",
   "reactions/correct/bonus_correct_05.gif",
-  "reactions/correct/bonus_correct_06.gif",
-  "reactions/correct/bonus_correct_07.gif"
+  "reactions/correct/bonus_correct_06.gif"
 ];
 
 function shuffleCopy(items) {
@@ -9974,29 +9976,37 @@ function bonusWrongCandidates() {
   } else if (unqueued.length) queue.push(...shuffleCopy(unqueued));
   return queue;
 }
-function showBonusReaction(candidates, altText, onSuccess) {
-  const queue = [...new Set(candidates)].filter(src => !bonusFailedAssets.has(src));
-  bonusReactionPanel.classList.add("hidden");
+function resetBonusReaction() {
+  bonusReactionImage.onload = null;
+  bonusReactionImage.onerror = null;
   bonusReactionImage.removeAttribute("src");
   bonusReactionImage.alt = "";
-  const tryNext = () => {
-    if (!queue.length) {
-      console.warn("No usable Bonus Round reaction GIFs found. Check deployed GIF filenames.");
+  bonusReactionPanel.classList.add("hidden");
+}
+
+function showBonusReaction(candidates, altText, onSuccess) {
+  const queue = [...new Set(candidates)].filter(src => src && !bonusFailedAssets.has(src));
+  resetBonusReaction();
+
+  function tryNext() {
+    const src = queue.shift();
+    if (!src) {
+      resetBonusReaction();
+      console.warn("No usable Bonus Round reaction GIFs found.");
       return;
     }
-    const src = queue.shift();
-    const probe = new Image();
-    probe.onload = () => {
-      bonusReactionImage.onload = () => bonusReactionPanel.classList.remove("hidden");
-      bonusReactionImage.onerror = () => { bonusFailedAssets.add(src); tryNext(); };
-      bonusReactionImage.alt = altText;
+    bonusReactionImage.alt = altText;
+    bonusReactionImage.onload = () => {
+      bonusReactionPanel.classList.remove("hidden");
       lastBonusReactionSrc = src;
-      bonusReactionImage.src = probe.src;
       if (onSuccess) onSuccess(src);
     };
-    probe.onerror = () => { bonusFailedAssets.add(src); tryNext(); };
-    probe.src = `${bonusAssetUrl(src)}?v=${Date.now()}`;
-  };
+    bonusReactionImage.onerror = () => {
+      bonusFailedAssets.add(src);
+      tryNext();
+    };
+    bonusReactionImage.src = bonusAssetUrl(src);
+  }
   tryNext();
 }
 function showRandomWrongBonusReaction() {
@@ -10359,8 +10369,7 @@ function resetBonusPlayUi() {
   bonusResult.className = "";
   bonusExplanation.textContent = "";
   bonusExplanation.classList.add("hidden");
-  bonusReactionPanel.classList.add("hidden");
-  bonusReactionImage.removeAttribute("src");
+  resetBonusReaction();
   bonusSubmitBtn.disabled = false;
   bonusSubmitBtn.textContent = "Submit Answer";
   bonusCancelBtn.textContent = "Close Bonus Round";
@@ -11760,11 +11769,16 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       popup.id = 'ccConnectionDetails'; popup.className = 'cc-popup-themed'; popup.hidden = true;
       popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-modal', 'false');
       popup.setAttribute('aria-label', 'Saved connection details');
-      popup.innerHTML = '<h2></h2><label hidden>Connections at this point <select aria-label="Connections at this point"></select></label><div id="ccConnectionDetailsBody"></div><div class="cheat-actions"><button type="button">Edit connection</button><button type="button">Close</button></div>';
+      popup.innerHTML = '<h2></h2><label hidden>Connections at this point <select aria-label="Connections at this point"></select></label><div id="ccConnectionDetailsBody"></div><div class="cheat-actions"><button type="button">Edit connection</button><button type="button">Challenge</button><button type="button">Close</button></div>';
       document.body.appendChild(popup);
       const s = ccConnectionDetailsState = {popup, pinned:false, timer:null, id:null, point:null, gesture:null};
       const buttons = popup.querySelectorAll('button');
-      buttons[1].onclick = ccConnectionDetailsClose;
+      buttons[2].onclick = ccConnectionDetailsClose;
+      buttons[1].onclick = () => {
+        const id = s.id;
+        ccConnectionDetailsClose();
+        if (!breakConnectionMode && !challengeMode && remoteTurnAllowed()) challengeConnection(id);
+      };
       buttons[0].onclick = () => {
         const id = s.id; ccConnectionDetailsClose();
         if (connections.some(c => c.id === id) && !breakConnectionMode && !challengeMode) editConnection(id);
@@ -11849,12 +11863,12 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       if(!s.gesture || !s.gesture.moved) ccConnectionDetailsShow(c,e,true);
       return true;
     }
-    function ccBindConnectionDetails(el,c) {
+    function ccBindConnectionDetails(el,c, isBridgeTitle = false) {
       ccConnectionDetailsController();el.dataset.ccConnectionId=c.id;
       el.addEventListener('pointerenter',e=>{
         const s=ccConnectionDetailsState;
         if(e.pointerType!=='mouse'||e.buttons||s.pinned)return;
-        clearTimeout(s.timer);s.timer=setTimeout(()=>ccConnectionDetailsShow(c,e,false),160);
+        clearTimeout(s.timer);s.timer=setTimeout(()=>ccConnectionDetailsShow(c,e,false),isBridgeTitle ? 0 : 160);
       });
       el.addEventListener('pointerleave',()=>{const s=ccConnectionDetailsState;if(!s.pinned){clearTimeout(s.timer);s.timer=setTimeout(ccConnectionDetailsClose,180);}});
       if(el.classList.contains('connection-hitbox')) {
@@ -12045,7 +12059,7 @@ if (breakConnectionMode) {
         actors.setAttribute("class", "connection-actors");
         actors.textContent = c.type === "shared"
           ? "same actor in both"
-          : `${c.leftActor} ↔ ${c.rightActor}`;
+          : "";
         actors.addEventListener("click", (e) => {
           e.stopPropagation();
           if (ccConnectionDetailsClick(e, c)) return;
@@ -12057,7 +12071,8 @@ if (breakConnectionMode) {
   editConnection(c.id);
 }        });
         svg.appendChild(actors);
-        [hitbox, bg, title, actors].forEach(el => ccBindConnectionDetails(el, c));
+        [hitbox, bg, actors].forEach(el => ccBindConnectionDetails(el, c));
+        ccBindConnectionDetails(title, c, c.type === "bridge");
       }
 
       applyFocusStyles();
@@ -14800,7 +14815,14 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
 :is(#challengeEventCard, #actorReuseDialog, #resetConfirmDialog) { --cc-popup-icon: "⚠︎"; }
 :is(#challengeResultOverlay > [role="dialog"], #cageCheckCard) { --cc-popup-icon: "✓"; }
 #onlineModal { --cc-popup-icon: "◎"; }
-#bonusDialog { --cc-popup-icon: "★"; }
+#bonusDialog > #bonusTitle::before { content: none; }
+#bonusTitle .bonus-oscar-icon {
+  width: 1.35em;
+  height: 1.35em;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-inline-end: .42em;
+}
 #cheatDialog { --cc-popup-icon: "⚿"; }
 :is(#cageBeeDialog, #cageBeeAnnouncementCard) { --cc-popup-icon: "⬡"; }
 </style>
