@@ -4226,7 +4226,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 }
 </style>
 
-<div id="onlineModal" onclick="event.stopPropagation()">
+<div id="onlineModal" class="cc-popup-themed" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h2>Remote Game</h2>
         <button type="button" onclick="closeOnlinePanel()">Close</button>
@@ -4377,7 +4377,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
   </div>
 
   <div id="pickerOverlay" class="hidden" onclick="closeMoviePicker(event)">
-    <div id="pickerModal" onclick="event.stopPropagation()">
+    <div id="pickerModal" class="cc-popup-themed" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h2>Add Nicolas Cage Movies</h2>
         <button onclick="closeMoviePicker()">Close</button>
@@ -4399,7 +4399,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 
 
   <div id="pathOverlay" class="hidden" onclick="closePathFinder(event)">
-    <div id="modal" onclick="event.stopPropagation()">
+    <div id="modal" class="cc-popup-themed" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h2>Find Shortest Path</h2>
         <button onclick="closePathFinder()">Close</button>
@@ -4426,7 +4426,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
   </div>
 
   <div id="modalOverlay" class="hidden" onclick="closeIndex(event)">
-    <div id="modal" onclick="event.stopPropagation()">
+    <div id="modal" class="cc-popup-themed" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h2>Cage Connection Index</h2>
         <button onclick="closeIndex()">Close</button>
@@ -4438,7 +4438,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 
 
 <div id="movieListOverlay" class="hidden">
-  <div id="movieListDialog" role="dialog" aria-modal="true" aria-labelledby="movieListTitle">
+  <div id="movieListDialog" class="cc-popup-themed" role="dialog" aria-modal="true" aria-labelledby="movieListTitle">
     <div class="modal-header">
       <h2 id="movieListTitle">Movies on Board</h2>
       <button type="button" onclick="closeBoardMovieList()">Close</button>
@@ -4449,7 +4449,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 
 
 <div id="connectionOverlay" class="hidden">
-  <div id="connectionDialog" role="dialog" aria-modal="true" aria-labelledby="connectionDialogTitle">
+  <div id="connectionDialog" class="cc-popup-themed" role="dialog" aria-modal="true" aria-labelledby="connectionDialogTitle">
     <h2 id="connectionDialogTitle">Make Connection</h2>
     <div id="connectionDialogSubtitle" class="conn-sub"></div>
     <div class="conn-type-choices" id="connectionTypeChoices">
@@ -4485,7 +4485,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 
   
 <div id="actorReuseOverlay" class="hidden" role="presentation">
-  <div id="actorReuseDialog" role="dialog" aria-modal="true" aria-labelledby="actorReuseTitle">
+  <div id="actorReuseDialog" class="cc-popup-themed" role="dialog" aria-modal="true" aria-labelledby="actorReuseTitle">
     <h2 id="actorReuseTitle">Actor Already Used!</h2>
     <p id="actorReuseText"></p>
     <p id="actorReuseWitty" style="color:#ffd54a">That actor has already made this connection.</p>
@@ -4497,7 +4497,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
   </div>
 </div>
 <div id="bonusOverlay" class="hidden">
-  <div id="bonusDialog" role="dialog" aria-modal="true" aria-labelledby="bonusTitle">
+  <div id="bonusDialog" class="cc-popup-themed" role="dialog" aria-modal="true" aria-labelledby="bonusTitle">
     <h2 id="bonusTitle">Bonus Round</h2>
     <div id="bonusSubtitle" class="bonus-sub"></div>
     <div id="bonusHistoryCountV52" class="bonus-sub" style="font-size:12px; margin-top:-10px;"></div>
@@ -4564,14 +4564,14 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 </div>
 
 <div id="challengeResultOverlay" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:27000;padding:20px">
-  <div role="dialog" aria-modal="true" aria-labelledby="challengeResultTitle" style="width:min(520px,92vw);background:#171717;border:2px solid #b78a24;border-radius:14px;padding:26px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.55)">
+  <div class="cc-popup-themed" role="dialog" aria-modal="true" aria-labelledby="challengeResultTitle" style="width:min(520px,92vw);background:#171717;border:2px solid #b78a24;border-radius:14px;padding:26px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.55)">
     <h2 id="challengeResultTitle">Challenge Result</h2>
     <p id="challengeResultText" style="font-size:18px;line-height:1.5"></p>
     <button type="button" id="challengeResultOK">OK</button>
   </div>
 </div>
 <div id="challengeEventOverlay" class="hidden">
-  <div id="challengeEventCard" role="dialog" aria-modal="true" aria-labelledby="challengeEventTitle">
+  <div id="challengeEventCard" class="cc-popup-themed" role="dialog" aria-modal="true" aria-labelledby="challengeEventTitle">
     <h2 id="challengeEventTitle">Connection Challenged</h2>
     <div id="challengeEventText"></div>
     <div id="challengeEventActions"></div>
@@ -4581,7 +4581,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 
 
 <div id="cageCheckOverlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="cageCheckTitle">
-  <div id="cageCheckCard">
+  <div id="cageCheckCard" class="cc-popup-themed">
     <h2 id="cageCheckTitle">Cage Check: FAILED</h2>
     <div id="cageCheckReason"></div>
     <div id="cageCheckPenalty">-1 point</div>
@@ -4595,7 +4595,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 </div>
 
 <div id="cageRulesOverlay" class="hidden" role="presentation">
-  <section class="cage-rules-dialog" role="dialog" aria-modal="true" aria-labelledby="cageRulesHeading">
+  <section class="cage-rules-dialog cc-popup-themed" role="dialog" aria-modal="true" aria-labelledby="cageRulesHeading">
     <header class="cage-rules-header"><h2 id="cageRulesHeading">Cage Connection — Game Rules</h2><button type="button" onclick="closeCageRules()" aria-label="Close rules">✕ Close</button></header>
     <div class="cage-rules-body">
       <h3>The objective</h3>
@@ -4623,7 +4623,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
   </section>
 </div>
 <div id="resetConfirmOverlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="resetConfirmTitle">
-  <div id="resetConfirmDialog">
+  <div id="resetConfirmDialog" class="cc-popup-themed">
     <h2 id="resetConfirmTitle">Reset this test game?</h2>
     <p>This will remove all movies and connections, reset all player scores to zero, and clear Wikipedia passes for this game.</p>
     <p id="resetConfirmError" role="alert" hidden></p>
@@ -4634,7 +4634,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
   </div>
 </div>
 <div id="cheatOverlay" class="hidden">
-  <div id="cheatDialog" role="dialog" aria-modal="true" aria-labelledby="cheatTitle">
+  <div id="cheatDialog" class="cc-popup-themed" role="dialog" aria-modal="true" aria-labelledby="cheatTitle">
     <h2 id="cheatTitle">Cheat</h2>
     <div id="cheatBody"></div>
     <div class="cheat-actions" id="cheatActions"></div>
@@ -4710,6 +4710,9 @@ const FIREBASE_CONFIG={apiKey:"AIzaSyCW9X7o1xr-hmB1Xf1vp6J77BP8FZDaanM",authDoma
     const bonusResult = document.getElementById("bonusResult");
     const bonusExplanation = document.getElementById("bonusExplanation");
     const bonusReactionPanel = document.getElementById("bonusReactionPanel");
+    const bonusOscar = document.querySelector('button[aria-label="Bonus Round"] .top-image-symbol img').cloneNode();
+    bonusOscar.className = 'bonus-oscar-icon';
+    document.getElementById('bonusTitle').prepend(bonusOscar);
     const bonusReactionImage = document.getElementById("bonusReactionImage");
     const bonusCloseBtn = document.getElementById("bonusCloseBtn");
     const bonusCancelBtn = document.getElementById("bonusCancelBtn");
@@ -9940,8 +9943,7 @@ const BONUS_CORRECT_REACTIONS = [
   "reactions/correct/bonus_correct_03.gif",
   "reactions/correct/bonus_correct_04.gif",
   "reactions/correct/bonus_correct_05.gif",
-  "reactions/correct/bonus_correct_06.gif",
-  "reactions/correct/bonus_correct_07.gif"
+  "reactions/correct/bonus_correct_06.gif"
 ];
 
 function shuffleCopy(items) {
@@ -9974,29 +9976,37 @@ function bonusWrongCandidates() {
   } else if (unqueued.length) queue.push(...shuffleCopy(unqueued));
   return queue;
 }
-function showBonusReaction(candidates, altText, onSuccess) {
-  const queue = [...new Set(candidates)].filter(src => !bonusFailedAssets.has(src));
-  bonusReactionPanel.classList.add("hidden");
+function resetBonusReaction() {
+  bonusReactionImage.onload = null;
+  bonusReactionImage.onerror = null;
   bonusReactionImage.removeAttribute("src");
   bonusReactionImage.alt = "";
-  const tryNext = () => {
-    if (!queue.length) {
-      console.warn("No usable Bonus Round reaction GIFs found. Check deployed GIF filenames.");
+  bonusReactionPanel.classList.add("hidden");
+}
+
+function showBonusReaction(candidates, altText, onSuccess) {
+  const queue = [...new Set(candidates)].filter(src => src && !bonusFailedAssets.has(src));
+  resetBonusReaction();
+
+  function tryNext() {
+    const src = queue.shift();
+    if (!src) {
+      resetBonusReaction();
+      console.warn("No usable Bonus Round reaction GIFs found.");
       return;
     }
-    const src = queue.shift();
-    const probe = new Image();
-    probe.onload = () => {
-      bonusReactionImage.onload = () => bonusReactionPanel.classList.remove("hidden");
-      bonusReactionImage.onerror = () => { bonusFailedAssets.add(src); tryNext(); };
-      bonusReactionImage.alt = altText;
+    bonusReactionImage.alt = altText;
+    bonusReactionImage.onload = () => {
+      bonusReactionPanel.classList.remove("hidden");
       lastBonusReactionSrc = src;
-      bonusReactionImage.src = probe.src;
       if (onSuccess) onSuccess(src);
     };
-    probe.onerror = () => { bonusFailedAssets.add(src); tryNext(); };
-    probe.src = `${bonusAssetUrl(src)}?v=${Date.now()}`;
-  };
+    bonusReactionImage.onerror = () => {
+      bonusFailedAssets.add(src);
+      tryNext();
+    };
+    bonusReactionImage.src = bonusAssetUrl(src);
+  }
   tryNext();
 }
 function showRandomWrongBonusReaction() {
@@ -10359,8 +10369,7 @@ function resetBonusPlayUi() {
   bonusResult.className = "";
   bonusExplanation.textContent = "";
   bonusExplanation.classList.add("hidden");
-  bonusReactionPanel.classList.add("hidden");
-  bonusReactionImage.removeAttribute("src");
+  resetBonusReaction();
   bonusSubmitBtn.disabled = false;
   bonusSubmitBtn.textContent = "Submit Answer";
   bonusCancelBtn.textContent = "Close Bonus Round";
@@ -11757,14 +11766,19 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
     function ccConnectionDetailsController() {
       if (ccConnectionDetailsState) return ccConnectionDetailsState;
       const popup = document.createElement('section');
-      popup.id = 'ccConnectionDetails'; popup.hidden = true;
+      popup.id = 'ccConnectionDetails'; popup.className = 'cc-popup-themed'; popup.hidden = true;
       popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-modal', 'false');
       popup.setAttribute('aria-label', 'Saved connection details');
-      popup.innerHTML = '<h2></h2><label hidden>Connections at this point <select aria-label="Connections at this point"></select></label><div id="ccConnectionDetailsBody"></div><div class="cheat-actions"><button type="button">Edit connection</button><button type="button">Close</button></div>';
+      popup.innerHTML = '<h2></h2><label hidden>Connections at this point <select aria-label="Connections at this point"></select></label><div id="ccConnectionDetailsBody"></div><div class="cheat-actions"><button type="button">Edit connection</button><button type="button">Challenge</button><button type="button">Close</button></div>';
       document.body.appendChild(popup);
       const s = ccConnectionDetailsState = {popup, pinned:false, timer:null, id:null, point:null, gesture:null};
       const buttons = popup.querySelectorAll('button');
-      buttons[1].onclick = ccConnectionDetailsClose;
+      buttons[2].onclick = ccConnectionDetailsClose;
+      buttons[1].onclick = () => {
+        const id = s.id;
+        ccConnectionDetailsClose();
+        if (!breakConnectionMode && !challengeMode && remoteTurnAllowed()) challengeConnection(id);
+      };
       buttons[0].onclick = () => {
         const id = s.id; ccConnectionDetailsClose();
         if (connections.some(c => c.id === id) && !breakConnectionMode && !challengeMode) editConnection(id);
@@ -11849,12 +11863,12 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       if(!s.gesture || !s.gesture.moved) ccConnectionDetailsShow(c,e,true);
       return true;
     }
-    function ccBindConnectionDetails(el,c) {
+    function ccBindConnectionDetails(el,c, isBridgeTitle = false) {
       ccConnectionDetailsController();el.dataset.ccConnectionId=c.id;
       el.addEventListener('pointerenter',e=>{
         const s=ccConnectionDetailsState;
         if(e.pointerType!=='mouse'||e.buttons||s.pinned)return;
-        clearTimeout(s.timer);s.timer=setTimeout(()=>ccConnectionDetailsShow(c,e,false),160);
+        clearTimeout(s.timer);s.timer=setTimeout(()=>ccConnectionDetailsShow(c,e,false),isBridgeTitle ? 0 : 160);
       });
       el.addEventListener('pointerleave',()=>{const s=ccConnectionDetailsState;if(!s.pinned){clearTimeout(s.timer);s.timer=setTimeout(ccConnectionDetailsClose,180);}});
       if(el.classList.contains('connection-hitbox')) {
@@ -12045,7 +12059,7 @@ if (breakConnectionMode) {
         actors.setAttribute("class", "connection-actors");
         actors.textContent = c.type === "shared"
           ? "same actor in both"
-          : `${c.leftActor} ↔ ${c.rightActor}`;
+          : "";
         actors.addEventListener("click", (e) => {
           e.stopPropagation();
           if (ccConnectionDetailsClick(e, c)) return;
@@ -12057,7 +12071,8 @@ if (breakConnectionMode) {
   editConnection(c.id);
 }        });
         svg.appendChild(actors);
-        [hitbox, bg, title, actors].forEach(el => ccBindConnectionDetails(el, c));
+        [hitbox, bg, actors].forEach(el => ccBindConnectionDetails(el, c));
+        ccBindConnectionDetails(title, c, c.type === "bridge");
       }
 
       applyFocusStyles();
@@ -14045,7 +14060,7 @@ async function confirmCageSkip(){
 </script>
 
 <div id="cageBeeOverlay" role="dialog" aria-modal="true" aria-labelledby="cageBeeTitle">
- <div id="cageBeeDialog">
+ <div id="cageBeeDialog" class="cc-popup-themed">
   <h2 id="cageBeeTitle">NOT THE BEES!</h2>
   <p id="cageBeeTarget">You're about to skip someone's turn. Are you sure you want to unleash this level of chaos?</p>
   <div id="cageBeeActions">
@@ -14055,7 +14070,7 @@ async function confirmCageSkip(){
  </div>
 </div>
 <div id="cageBeeAnnouncement" role="dialog" aria-modal="true" aria-labelledby="cageBeeAnnouncementTitle">
- <div id="cageBeeAnnouncementCard">
+ <div id="cageBeeAnnouncementCard" class="cc-popup-themed">
   <h2 id="cageBeeAnnouncementTitle">THE BEES HAVE BEEN RELEASED!</h2>
   <p id="cageBeeAnnouncementText"></p>
   <button type="button" onclick="document.getElementById('cageBeeAnnouncement').classList.remove('open')">OK</button>
@@ -14497,7 +14512,7 @@ body > .cc-expanded-history #dockRecent .dock-recent-line:nth-last-child(n+3){di
 #cageNotYourTurnOkay { min-width:110px; min-height:40px; color:#f0ce79 !important; border:1px solid #8a6a2b !important; font-weight:700; }
 </style>
 <div id="cageNotYourTurnOverlay" class="hidden" role="presentation">
-  <div id="cageNotYourTurnDialog" role="alertdialog" aria-modal="true" aria-label="Not your turn" aria-describedby="cageNotYourTurnMessage">
+  <div id="cageNotYourTurnDialog" class="cc-popup-themed" role="alertdialog" aria-modal="true" aria-label="Not your turn" aria-describedby="cageNotYourTurnMessage">
     <p id="cageNotYourTurnMessage">Don't make me go Cage Rage on you! It's not your turn.</p>
     <button type="button" id="cageNotYourTurnOkay" onclick="dismissCageNotYourTurnWarning()">OK</button>
   </div>
@@ -14739,6 +14754,79 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
   }
 })();
 </script>
+
+<style id="ccPopupTheme">
+/* Shared theme for the game's custom popup surfaces. */
+:is(
+  #onlineModal, #pickerModal, #pathOverlay > #modal, #modalOverlay > #modal,
+  #movieListDialog, #connectionDialog, #actorReuseDialog, #bonusDialog,
+  #challengeResultOverlay > [role="dialog"], #challengeEventCard,
+  #cageCheckCard, #cageRulesOverlay > .cage-rules-dialog, #resetConfirmDialog,
+  #cheatDialog, #ccConnectionDetails, #cageBeeDialog, #cageBeeAnnouncementCard,
+  #cageNotYourTurnDialog
+) {
+  --cc-popup-gold: #e4b960;
+  --cc-popup-border: #b78d42;
+  background: linear-gradient(155deg, #4b2e1d 0%, #332014 44%, #21140e 100%) !important;
+  border: 2px solid var(--cc-popup-border) !important;
+  border-radius: 14px;
+  color: #fff !important;
+  font-style: normal;
+  box-shadow: 0 18px 55px #0e0704b8, inset 0 0 0 1px #f4ce7926;
+}
+.cc-popup-themed :is(p, label, div, span, small, li, dt, dd, strong, em, i, button, input, select, textarea, a),
+#cageBeeDialog.cc-popup-themed :is(button, p, em),
+#cageNotYourTurnDialog.cc-popup-themed :is(button, p, em),
+#pickerModal.cc-popup-themed .picker-actions button:nth-child(3) {
+  color: #fff !important;
+  font-style: normal !important;
+}
+.cc-popup-themed :is(button, input, select, textarea) {
+  border-color: var(--cc-popup-border) !important;
+}
+.cc-popup-themed :is(input, select, textarea) {
+  background-color: #25170f;
+}
+.cc-popup-themed :is(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--cc-popup-gold);
+  outline-offset: 2px;
+}
+.cc-popup-themed :is(.online-card, .index-box) {
+  background: #2d1c13;
+  border-color: #765531;
+}
+.cc-popup-themed :is(.modal-header, .cage-rules-header) {
+  background: transparent;
+  border-color: var(--cc-popup-border);
+}
+.cc-popup-themed :is(h2, h3, h4) {
+  color: var(--cc-popup-gold);
+  font-style: normal;
+}
+.cc-popup-themed > h2:first-of-type::before,
+.cc-popup-themed > :is(.modal-header, .cage-rules-header) > h2::before {
+  content: var(--cc-popup-icon, "✦") / "";
+  display: inline-block;
+  color: var(--cc-popup-gold);
+  font-family: "Segoe UI Symbol", sans-serif;
+  margin-inline-end: .42em;
+}
+:is(#connectionDialog, #ccConnectionDetails, #pathOverlay > #modal) { --cc-popup-icon: "↔"; }
+:is(#pickerModal, #movieListDialog, #modalOverlay > #modal) { --cc-popup-icon: "▤"; }
+:is(#challengeEventCard, #actorReuseDialog, #resetConfirmDialog) { --cc-popup-icon: "⚠︎"; }
+:is(#challengeResultOverlay > [role="dialog"], #cageCheckCard) { --cc-popup-icon: "✓"; }
+#onlineModal { --cc-popup-icon: "◎"; }
+#bonusDialog > #bonusTitle::before { content: none; }
+#bonusTitle .bonus-oscar-icon {
+  width: 1.35em;
+  height: 1.35em;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-inline-end: .42em;
+}
+#cheatDialog { --cc-popup-icon: "⚿"; }
+:is(#cageBeeDialog, #cageBeeAnnouncementCard) { --cc-popup-icon: "⬡"; }
+</style>
 
 </body>
 </html> 
