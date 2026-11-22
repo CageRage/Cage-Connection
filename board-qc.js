@@ -55,7 +55,7 @@
     const movies=Array.isArray(board.nodes)?board.nodes:[];
     const links=Array.isArray(board.connections)?board.connections:[];
     const byId=new Map(movies.map(n=>[String(n.id),n]));
-    const issues=[], warnings=[], appearances=new Map(), ids=new Map(), pairs=new Map();
+    const issues=[], warnings=[], appearances=new Map(), ids=new Map(), pairs=new Map(), endpointsByLink=new Map();
     const degrees=new Map(movies.map(n=>[String(n.id),0]));
     const neighbor=new Map(movies.map(n=>[String(n.id),[]]));
     const addIssue=(title,detail,targets)=>issues.push({title,detail,targets:targets||[]});
@@ -81,6 +81,7 @@
       neighbor.get(String(a.id)).push(String(b.id));
       neighbor.get(String(b.id)).push(String(a.id));
       const linkKey=lid||'#'+i;
+      endpointsByLink.set(linkKey,[a.name,b.name]);
       if(c.type==='shared'){
         recordActor(a.name,c.sharedActor,linkKey);recordActor(b.name,c.sharedActor,linkKey);
         if(!norm(c.sharedActor))addIssue('Missing shared actor',a.name+' ↔ '+b.name+' has an empty actor field.',[a.name,b.name]);
@@ -95,7 +96,7 @@
     });
     const repeated=[];
     for (const v of appearances.values())if(v.links.size>1){
-      repeated.push(v);addIssue('Actor reused from one production',v.actor+' appears in '+v.production+' on '+v.links.size+' connections.',[v.production]);
+      repeated.push(v);addIssue('Actor reused from one production',v.actor+' appears in '+v.production+' on '+v.links.size+' connections.',[...v.links].flatMap(id=>endpointsByLink.get(id)||[]));
     }
     const groups=new Map();
     for (const v of appearances.values()){
@@ -111,7 +112,7 @@
       const key=[a,b].sort().join('|')+'|'+norm(g[i].production);
       if(warned.has(key))continue;
       warned.add(key);
-      warnings.push({title:'Possible spelling variant',detail:g[i].production+': '+g[i].actor+' / '+g[j].actor+'. Check whether these are the same person.',targets:[g[i].production]});
+      warnings.push({title:'Possible spelling variant',detail:g[i].production+': '+g[i].actor+' / '+g[j].actor+'. Check whether these are the same person.',targets:[...g[i].links,...g[j].links].flatMap(id=>endpointsByLink.get(id)||[])});
     }
     const isolated=movies.filter(n=>!degrees.get(String(n.id)));
     const branches=movies.filter(n=>(degrees.get(String(n.id))||0)>2);
@@ -133,6 +134,8 @@
     }
     if(cyclic.length)addIssue('Circular connection(s)',cyclic.length+' component(s) contain a loop. This is a layout warning, not necessarily an invalid play.',cyclic.flatMap(part=>part.slice(0,2).map(id=>byId.get(id)?.name)));
     if(isolated.length)warnings.push({title:'Unconnected movies',detail:isolated.length+' board movie(s) have no links.',targets:isolated.slice(0,10).map(n=>n.name)});
+    const connectedParts=components.filter(part=>part.some(id=>(degrees.get(id)||0)>0));
+    if(connectedParts.length>1)warnings.push({title:'Separate movie chains',detail:connectedParts.length+' independent connected chains are present. This is informational, not an error.',targets:connectedParts.map(part=>byId.get(part[0])?.name)});
     const ends=movies.filter(n=>degrees.get(String(n.id))===1);
     return {movies,links,components,ends,issues,warnings,repeated};
   }
