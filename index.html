@@ -11852,6 +11852,8 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       const s=ccConnectionDetailsController(); clearTimeout(s.timer);
       s.popup.querySelector(".cc-alias-jump")?.remove();
       s.id=c.id; s.point={x:e.clientX,y:e.clientY}; s.pinned=pinned;
+      // Mouse hover uses a compact cast summary; touch and keyboard retain full controls.
+      s.popup.classList.toggle('cc-actor-hover-summary', !pinned);
       // Include nearby saved links, so identical or crossing lines are individually reachable.
       const ids=new Set(movieId ? getConnectionsForNode(movieId).map(link=>String(link.id)) : [c.id]);
       svg.querySelectorAll('.connection-hitbox').forEach(line => {
@@ -14921,6 +14923,21 @@ body.break-connect-mode #surface > svg .connection-label-bg {
 #surface > svg .connection-title {
   fill: #ffefdc !important;
   font: 500 11px system-ui !important;
+}
+
+/* Compact cast-on-hover; full connection details remain on touch/keyboard. */
+@media (hover: hover) and (pointer: fine) {
+  #ccConnectionDetails.cc-actor-hover-summary {
+    width: min(340px, 90vw) !important;
+    padding: 11px 14px !important;
+    border-width: 1px !important;
+    border-radius: 11px !important;
+    pointer-events: none;
+  }
+  #ccConnectionDetails.cc-actor-hover-summary h2 { font-size: 14px !important; margin: 0 0 6px !important; }
+  #ccConnectionDetails.cc-actor-hover-summary #ccConnectionDetailsBody p { font-size: 13px !important; margin: 5px 0 !important; line-height: 1.3 !important; }
+  #ccConnectionDetails.cc-actor-hover-summary .cheat-actions,
+  #ccConnectionDetails.cc-actor-hover-summary label { display: none !important; }
 }
 </style>
 
