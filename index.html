@@ -11769,7 +11769,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       popup.id = 'ccConnectionDetails'; popup.className = 'cc-popup-themed'; popup.hidden = true;
       popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-modal', 'false');
       popup.setAttribute('aria-label', 'Saved connection details');
-      popup.innerHTML = '<h2></h2><label hidden>Connections at this point <select aria-label="Connections at this point"></select></label><div id="ccConnectionDetailsBody"></div><div class="cheat-actions"><button type="button">Edit connection</button><button type="button">Challenge</button><button type="button">Close</button></div>';
+      popup.innerHTML = '<h2></h2><label hidden>Connections at this point <select aria-label="Connections at this point"></select></label><div id="ccConnectionDetailsBody"></div><div class="cheat-actions"><button type="button" data-details-action="edit">Edit connection</button><button type="button" data-details-action="challenge">Challenge</button><button type="button" data-details-action="close">Close</button></div>';
       document.body.appendChild(popup);
       const s = ccConnectionDetailsState = {popup, pinned:false, timer:null, id:null, point:null, gesture:null};
       const buttons = popup.querySelectorAll('button');
@@ -14826,6 +14826,66 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
 }
 #cheatDialog { --cc-popup-icon: "⚿"; }
 :is(#cageBeeDialog, #cageBeeAnnouncementCard) { --cc-popup-icon: "⬡"; }
+
+/* Connection details uses the board's dark finish and larger gold accents. */
+#ccConnectionDetails.cc-popup-themed {
+  width: 570px;
+  padding: clamp(12px, 3vw, 18px);
+  background: linear-gradient(155deg, #3c2615, #24170e 52%, #110d09) !important;
+  border-radius: 20px;
+}
+#ccConnectionDetails > h2 {
+  --details-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 13a4 4 0 0 0 6 0l4-4a4 4 0 0 0-6-6l-2 2M14 11a4 4 0 0 0-6 0l-4 4a4 4 0 0 0 6 6l2-2' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  display: flex;
+  align-items: flex-start;
+  gap: .5em;
+  margin: 0 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--cc-popup-border);
+  color: #f2cc73;
+  font: 700 clamp(19px, 3.6vw, 26px)/1.18 Georgia, serif;
+}
+#ccConnectionDetailsBody > p {
+  --details-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22ZM12 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM5 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM19 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM8 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM16 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z'/%3E%3C/svg%3E");
+  display: flex;
+  align-items: flex-start;
+  gap: .65em;
+  margin: 0 0 8px;
+  font: 400 clamp(16px, 2.8vw, 20px)/1.32 system-ui, sans-serif;
+}
+#ccConnectionDetails .cheat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+#ccConnectionDetails .cheat-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: .42em;
+  min-height: 42px;
+  padding: 7px 10px;
+  border: 2px solid var(--cc-popup-border);
+  border-radius: 8px;
+  background: #17100b;
+  font: 600 15px/1.2 system-ui, sans-serif;
+}
+#ccConnectionDetails .cheat-actions button:hover { background: #3d2919; }
+#ccConnectionDetails [data-details-action="edit"] { --details-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 20l5-1L21 7l-4-4L5 15l-1 5zM15 5l4 4' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+#ccConnectionDetails [data-details-action="challenge"] { --details-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l8 4v5c0 5-3 9-8 11-5-2-8-6-8-11V6l8-4zM12 7v6M12 16h.01' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+#ccConnectionDetails [data-details-action="close"] { --details-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5l14 14M19 5 5 19' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+#ccConnectionDetails > h2::before,
+#ccConnectionDetailsBody > p::before,
+#ccConnectionDetails [data-details-action]::before {
+  content: "" / "";
+  flex: 0 0 1.15em;
+  width: 1.15em;
+  height: 1.15em;
+  margin: .04em 0 0;
+  background: var(--cc-popup-gold);
+  mask: var(--details-icon) center / contain no-repeat;
+}
 </style>
 
 </body>
