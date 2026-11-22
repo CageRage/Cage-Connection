@@ -3,7 +3,6 @@
 (function () {
   'use strict';
   const api='https://en.wikipedia.org/w/api.php';
-  const safe=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const norm=s=>String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const pageLink=title=>'https://en.wikipedia.org/wiki/'+encodeURIComponent(title.replace(/ /g,'_'));
   async function request(params){
@@ -24,7 +23,8 @@
   const cached=new Map();
   function titleMatches(movie, page){
     const m=norm(movie).replace(/^(the|a|an) /,'');
-    const p=norm(page).replace(/ \b(film|american film|british film|television film|tv film|movie)\b.*$/,'').replace(/^(the|a|an) /,'');
+    const title=String(page||'').replace(/\s*\((?:\d{4}\s+)?(?:[\w-]+\s+)*(?:film|movie)\)\s*$/i,'');
+    const p=norm(title).replace(/^(the|a|an) /,'');
     return m===p;
   }
   async function sourceFor(movie) {
@@ -35,8 +35,7 @@
       const knownTitle=url&&/^https:\/\/en\.wikipedia\.org\/wiki\//.test(url)
         ? decodeURIComponent(new URL(url).pathname.split('/wiki/')[1]).replace(/_/g,' ')
         :null;
-      const candidates=knownTitle?[knownTitle]:await searchPages(movie);
-      const matching=candidates.filter(t=>titleMatches(movie,t));
+      const matching=knownTitle?[knownTitle]:[...new Set(await searchPages(movie))].filter(t=>titleMatches(movie,t));
       // Never silently choose between distinct similarly named films.
       if(matching.length!==1)return {status:'unverified',reason:matching.length?'Ambiguous movie title':'No confidently matching Wikipedia film article'};
       const title=matching[0], meta=await request({page:title,prop:'sections'});
@@ -53,11 +52,17 @@
     })().catch(err=>({status:'unverified',reason:err.message||'Online lookup failed'}));
     cached.set(key,work);return work;
   }
-  function actorMentioned(source,actor){
-    const text=norm(source.replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g,'$1').replace(/\{\{[^{}]*\}\}/g,' '));
+  function hasCastCredit(source,actor){
     const name=norm(actor);
-    if(name.length<5)return false;
-    return (' '+text+' ').includes(' '+name+' ');
+    if(!name)return false;
+    // Require an explicit actor-to-role entry. Prose mentions and ambiguous
+    // formats remain for review, even within a dedicated Cast section.
+    return source.split(/\r?\n/).some(line=>{
+      const entry=line.match(/^\s*[*#]+\s*(.*?)\s+as\s+(\S.*)$/i);
+      if(!entry)return false;
+      const credited=entry[1].replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g,'$1').replace(/'{2,}/g,'');
+      return norm(credited)===name;
+    });
   }
   let running=false;
   async function runOnline(button){
@@ -83,7 +88,7 @@
           if(!document.getElementById('ccQcInternetResults'))return;
           summary.textContent='Checking Wikipedia cast sections: '+(verified+open)+' of '+unique.length+' completed…';
           const source=await sourceFor(item.production);
-          const positive=source.status==='source'&&actorMentioned(source.cast,item.actor);
+          const positive=source.status==='source'&&hasCastCredit(source.cast,item.actor);
           const entry=document.createElement('p');
           const marker=document.createElement('strong');
           marker.textContent=positive?'Source match: ':'Still needs review: ';
@@ -94,7 +99,7 @@
             const a=document.createElement('a');a.href=source.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Wikipedia source';a.style.color='#f0c776';entry.appendChild(a);
           }
           if(!positive){
-            const note=source.status==='source'?'Actor not found in this cast section; absence does not disprove credit.':(source.reason||'No matching source');
+            const note=source.status==='source'?'No explicit actor-to-role entry matched; the credit may still be valid.':(source.reason||'No matching source');
             entry.appendChild(document.createTextNode(' ('+note+')'));open++;
           }else verified++;
           results.appendChild(entry);
