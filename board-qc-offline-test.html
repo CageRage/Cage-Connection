@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cage Connection Board QC — Offline Real-Board Test</title>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cage Connection Board QC — Direct Test v2</title>
 <style>
 body{background:#110d09;color:#f3dfb6;font:15px/1.5 system-ui,Arial,sans-serif;margin:0;padding:24px}
 main{max-width:960px;margin:auto}h1{font: bold 29px Georgia,serif;color:#f2c879}
@@ -26,7 +26,9 @@ code{color:#ffda8c}
 </div>
 <div class="panel">
   <h2>2. Run Board QC and optional online cast research</h2>
-  <details class="toolbar-menu tools-menu" open><summary>Tools &amp; Rules</summary><div class="toolbar-menu-panel"></div></details>
+  <p><button id="runQcDirect" type="button" style="font-size:17px;font-weight:700;background:#68411b;border:2px solid #f2c879">Run Board QC</button></p>
+  <p class="muted">Use the button above directly. You do not need to open Tools &amp; Rules.</p>
+  <details class="toolbar-menu tools-menu" open><summary>Tools &amp; Rules (alternative)</summary><div class="toolbar-menu-panel"></div></details>
   <p class="muted">This is the latest Board QC from our combined draft PR #22. It can check your saved connections and optionally look up unresolved cast credits on Wikipedia; it cannot write to your game.</p>
 </div>
 <div class="panel"><h2>Board movie locator</h2><p class="muted">Find buttons in the QC results will scroll to and highlight these movie titles. This tests navigation within this page, not the live game's map.</p><div id="movies"></div></div>
@@ -320,6 +322,7 @@ document.getElementById('sample').addEventListener('click',()=>{
     if(f){const title=f.getAttribute('data-qc-find');overlay.remove();overlay=null;findTitle(title);}
   });
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay){overlay.remove();overlay=null;}});
+  document.getElementById('runQcDirect')?.addEventListener('click', () => show());
   window.ccBoardQcScan=scan; // Pure diagnostic helper for regression testing.
   window.ccBoardQcVerifyConnections=verifyConnections; // Diagnostic helper; no writes.
 })();
