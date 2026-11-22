@@ -11724,7 +11724,6 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       const lineEls = svg.querySelectorAll(".connection-line");
       const bgEls = svg.querySelectorAll(".connection-label-bg");
       const titleEls = svg.querySelectorAll(".connection-title");
-      const actorEls = svg.querySelectorAll(".connection-actors");
 
       connections.forEach((c, index) => {
         const active = !focusedNodeId || (activeNodeIds.has(c.a.id) && activeNodeIds.has(c.b.id));
@@ -11732,14 +11731,12 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         const line = lineEls[index];
         const bg = bgEls[index];
         const title = titleEls[index];
-        const actors = actorEls[index];
 
-        if (!line || !bg || !title || !actors) return;
+        if (!line || !bg || !title) return;
 
         line.classList.remove("active", "dimmed");
         bg.classList.remove("active", "dimmed");
         title.classList.remove("label-dimmed");
-        actors.classList.remove("label-dimmed");
 
         if (!focusedNodeId) return;
 
@@ -11750,7 +11747,6 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
           line.classList.add("dimmed");
           bg.classList.add("dimmed");
           title.classList.add("label-dimmed");
-          actors.classList.add("label-dimmed");
         }
       });
     }
@@ -11946,6 +11942,26 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       surface.appendChild(button);
     }
 
+    function ccWrapConnectorLabel(label, maxWidth, measure) {
+      const words = String(label || "Not recorded").trim().split(/\s+/);
+      const lines = [];
+      let line = "";
+      for (const word of words) {
+        const next = line ? line + " " + word : word;
+        if (line && measure.measureText(next).width > maxWidth) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = next;
+        }
+      }
+      lines.push(line);
+      return lines;
+    }
+
+    const labelMeasure = document.createElement("canvas").getContext("2d");
+    labelMeasure.font = "500 11px system-ui";
+
     function draw() {
       ccConnectionDetailsClose();
       svg.innerHTML = "";
@@ -12016,63 +12032,47 @@ if (breakConnectionMode) {
         const midX = (x1 + x2) / 2;
         const midY = (y1 + y2) / 2;
 
+        const horizontalGap = Math.max(b.x - (a.x + aWidth), a.x - (b.x + bWidth));
+        const sameRow = Math.abs(y1 - y2) < 8 && !cardsOverlapOrTouch;
+        const labelWidth = sameRow ? Math.max(34, Math.min(152, horizontalGap - 6)) : 152;
+        const label = c.type === "shared" ? c.sharedActor : c.bridgeTitle;
+        const lines = ccWrapConnectorLabel(label, labelWidth - 8, labelMeasure);
+        const labelHeight = Math.max(24, lines.length * 13 + 8);
+
         const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        bg.setAttribute("x", midX - 110);
-        bg.setAttribute("y", midY - 36);
-        bg.setAttribute("width", 220);
-        bg.setAttribute("height", 48);
-        bg.setAttribute("rx", 8);
-        bg.setAttribute("ry", 8);
+        bg.setAttribute("x", midX - labelWidth / 2);
+        bg.setAttribute("y", midY - labelHeight / 2);
+        bg.setAttribute("width", labelWidth);
+        bg.setAttribute("height", labelHeight);
+        bg.setAttribute("rx", 3);
         bg.setAttribute("class", "connection-label-bg");
-        bg.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (ccConnectionDetailsClick(e, c)) return;
-if (breakConnectionMode) {
-  breakConnectionFromBoard(c.id);
-} else if (challengeMode) {
-  challengeConnection(c.id);
-} else {
-  editConnection(c.id);
-}        });
-        svg.appendChild(bg);
 
         const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        title.setAttribute("x", midX);
-        title.setAttribute("y", midY - 16);
         title.setAttribute("class", "connection-title");
-        title.textContent = c.type === "shared" ? c.sharedActor : c.bridgeTitle;
-        title.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (ccConnectionDetailsClick(e, c)) return;
-if (breakConnectionMode) {
-  breakConnectionFromBoard(c.id);
-} else if (challengeMode) {
-  challengeConnection(c.id);
-} else {
-  editConnection(c.id);
-}        });
-        svg.appendChild(title);
+        lines.forEach((part, index) => {
+          const span = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+          span.setAttribute("x", midX);
+          span.setAttribute("y", midY + 4 + (index - (lines.length - 1) / 2) * 13);
+          if (labelMeasure.measureText(part).width > labelWidth - 8) {
+            span.setAttribute("textLength", labelWidth - 8);
+            span.setAttribute("lengthAdjust", "spacingAndGlyphs");
+          }
+          span.textContent = part + (index < lines.length - 1 ? " " : "");
+          title.appendChild(span);
+        });
 
-        const actors = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        actors.setAttribute("x", midX);
-        actors.setAttribute("y", midY + 4);
-        actors.setAttribute("class", "connection-actors");
-        actors.textContent = c.type === "shared"
-          ? "same actor in both"
-          : "";
-        actors.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (ccConnectionDetailsClick(e, c)) return;
-if (breakConnectionMode) {
-  breakConnectionFromBoard(c.id);
-} else if (challengeMode) {
-  challengeConnection(c.id);
-} else {
-  editConnection(c.id);
-}        });
-        svg.appendChild(actors);
-        [hitbox, bg, actors].forEach(el => ccBindConnectionDetails(el, c));
-        ccBindConnectionDetails(title, c, c.type === "bridge");
+        for (const el of [bg, title]) {
+          el.addEventListener("click", event => {
+            event.stopPropagation();
+            if (ccConnectionDetailsClick(event, c)) return;
+            if (breakConnectionMode) breakConnectionFromBoard(c.id);
+            else if (challengeMode) challengeConnection(c.id);
+            else editConnection(c.id);
+          });
+          svg.appendChild(el);
+          ccBindConnectionDetails(el, c, c.type === "bridge");
+        }
+        ccBindConnectionDetails(hitbox, c);
       }
 
       applyFocusStyles();
@@ -14118,7 +14118,7 @@ async function confirmCageSkip(){
     "Karaoke is kind of like a prayer. You’re not supposed to videotape that. I’m not a professional singer. I’m just enjoying my life and blowing off some steam with friends.",
     "I was already close with my animals, but it only made us closer because I really needed their support during that time [Covid].",
     "I personally think I’m very boring.",
-    "I'm really happily married. I know five is a lot, but I think I got it right this time."
+    "I'm really happily married. I know five is a lot, but I think I got it right this time.",
     "Every color of the universe is in the love story.",
     "When I saw him naked in my wardrobe with my leather jacket I used verbal judo to scare him.",
     "It’s not because I have no control. It’s because I’m in control by being out of control.",
@@ -14885,6 +14885,18 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
   margin: .04em 0 0;
   background: var(--cc-popup-gold);
   mask: var(--details-icon) center / contain no-repeat;
+}
+#surface > svg .connection-label-bg {
+  fill: #241b13 !important;
+  stroke: #624c33 !important;
+}
+#surface > svg .connection-label-bg.active,
+body.break-connect-mode #surface > svg .connection-label-bg {
+  stroke: #d6ae68 !important;
+}
+#surface > svg .connection-title {
+  fill: #ffefdc !important;
+  font: 500 11px system-ui !important;
 }
 </style>
 
