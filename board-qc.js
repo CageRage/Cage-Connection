@@ -139,6 +139,49 @@
     const ends=movies.filter(n=>degrees.get(String(n.id))===1);
     return {movies,links,components,ends,issues,warnings,repeated};
   }
+  // Cast checks use the same in-game combined cast lookup as Cage Check.
+  // Missing records are UNVERIFIED; absent actors in a list are REVIEW, not
+  // conclusive proof of an invalid play (credits can be incomplete).
+  function verifyConnections() {
+    const board=typeof getBoardData==='function' ? getBoardData() : {nodes:[],connections:[]};
+    const movies=Array.isArray(board.nodes)?board.nodes:[];
+    const links=Array.isArray(board.connections)?board.connections:[];
+    const byId=new Map(movies.map(n=>[String(n.id),n]));
+    const castLookup=typeof getCombinedCast==='function' ? getCombinedCast : null;
+    const results=[];
+    function appearance(movie,actor) {
+      if(!String(movie||'').trim()||!String(actor||'').trim())
+        return {status:'unverified',detail:'Missing production title or actor'};
+      if(!castLookup)return {status:'unverified',detail:'Cast records unavailable in this test'};
+      let cast;
+      try { cast=castLookup(movie); }
+      catch(e){return {status:'unverified',detail:'Cast lookup failed'};}
+      if(!Array.isArray(cast)||!cast.length)
+        return {status:'unverified',detail:'No cast listing available'};
+      const found=cast.some(name=>norm(name)===norm(actor));
+      return {status:found?'matched':'review',detail:found?'Actor listed in cast data':'Actor not found in available cast list'};
+    }
+    links.forEach((c,index)=>{
+      const a=byId.get(String(c.aId))?.name,b=byId.get(String(c.bId))?.name;
+      const label=[a||'(missing movie)',c.type==='shared'?null:c.bridgeTitle,b||'(missing movie)'].filter(Boolean).join(' → ');
+      const checks=c.type==='shared'?
+        [{production:a,actor:c.sharedActor},{production:b,actor:c.sharedActor}]:
+        [{production:a,actor:c.leftActor},{production:c.bridgeTitle,actor:c.leftActor},
+         {production:c.bridgeTitle,actor:c.rightActor},{production:b,actor:c.rightActor}];
+      const inspected=checks.map(x=>({...x,...appearance(x.production,x.actor)}));
+      if(inspected.some(x=>norm(x.actor)==='nicolas cage'))
+        inspected.push({production:'Game rule',actor:'Nicolas Cage',status:'review',detail:'Cage cannot be used as the connector actor'});
+      const status=inspected.some(x=>x.status==='review')?'review':
+        inspected.some(x=>x.status==='unverified')?'unverified':'matched';
+      results.push({id:c.id||String(index),label,status,checks:inspected,targets:[a,b].filter(Boolean)});
+    });
+    return {
+      results,
+      matched:results.filter(x=>x.status==='matched').length,
+      review:results.filter(x=>x.status==='review').length,
+      unverified:results.filter(x=>x.status==='unverified').length
+    };
+  }
   let overlay=null;
   function issueHtml(issue,level){
     return '<div class="ccqc-issue"><strong class="'+(level==='warn'?'ccqc-warning':'')+'">'+esc(issue.title)+'</strong><p>'+esc(issue.detail)+'</p>'+
@@ -146,15 +189,20 @@
   }
   function show(){
     const r=scan();
+    const v=verifyConnections();
     if(overlay)overlay.remove();
     overlay=document.createElement('div');overlay.id='ccBoardQcOverlay';
     overlay.innerHTML='<section id="ccBoardQcDialog" role="dialog" aria-modal="true" aria-label="Board quality check">'+
     '<div class="ccqc-top"><h2>✓ BOARD QUALITY CHECK</h2><button type="button" data-qc-close>Close</button></div>'+
     '<div class="ccqc-stats">'+[['Connections',r.links.length],['Board movies',r.movies.length],['Chains / components',r.components.length],['Endpoints',r.ends.length]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+a[0]+'</div>').join('')+'</div>'+
     '<p class="ccqc-muted">Read-only scan of the current board. No connections, turns, scores, or cast records are changed.</p>'+
+    '<h3>Cast verification (game cast records)</h3>'+
+    '<p class="ccqc-muted">Checks each saved actor against both relevant productions (four cast appearances for bridge connections). This is an in-game cast-data check, not independent external research. Missing/incomplete credits require human review.</p>'+
+    '<div class="ccqc-stats">'+[['Cast data matches',v.matched],['Needs review',v.review],['Unverified',v.unverified]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+esc(a[0])+'</div>').join('')+'</div>'+
+    (v.results.length?v.results.filter(x=>x.status!=='matched').map(x=>issueHtml({title:(x.status==='review'?'Review cast: ':'Unverified cast: ')+x.label,detail:x.checks.filter(c=>c.status!=='matched').map(c=>c.production+' / '+c.actor+': '+c.detail).join('; '),targets:x.targets},x.status==='unverified'?'warn':'issue')).join('') || '<p class="ccqc-ok">All saved actor appearances match available cast records.</p>':'<p>No saved connections to check.</p>')+
     '<h3>Findings ('+r.issues.length+')</h3>'+(r.issues.length?r.issues.map(x=>issueHtml(x,'issue')).join(''):'<p class="ccqc-ok">✓ No structural or exact-actor reuse problems detected.</p>')+
     '<h3>Review warnings ('+r.warnings.length+')</h3>'+(r.warnings.length?r.warnings.map(x=>issueHtml(x,'warn')).join(''):'<p class="ccqc-ok">✓ No additional review warnings.</p>')+
-    '<p class="ccqc-muted">Actor reuse is checked against stored text, including bridge productions. Similar spellings are flagged only when plausible. This scan does not independently validate cast credits or search for new connections. Multiple chains or a loop can be legitimate; they are reported for awareness.</p>'+
+    '<p class="ccqc-muted">Actor reuse is checked against stored text, including bridge productions. Similar spellings are flagged only when plausible. Cast verification uses the game's existing cast records; it does not independently research external credits or search for new connections. Multiple chains or a loop can be legitimate; they are reported for awareness.</p>'+
     '<div style="text-align:right;margin-top:12px"><button type="button" data-qc-close>Close QC Review</button></div></section>';
     document.body.appendChild(overlay);
     overlay.querySelector('[data-qc-close]').focus();
@@ -177,4 +225,5 @@
   });
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay){overlay.remove();overlay=null;}});
   window.ccBoardQcScan=scan; // Pure diagnostic helper for regression testing.
+  window.ccBoardQcVerifyConnections=verifyConnections; // Diagnostic helper; no writes.
 })();
