@@ -10769,24 +10769,30 @@ function bonusTypoDistanceV58(a,b) {
   }
   return d[n][m];
 }
-function bonusTypedMatchV58(given,expected) {
-  const a=normalizeBonusText(given),b=normalizeBonusText(expected);
+// Typed answers that are movie titles may omit the leading English article.
+// Do not apply this to Cage Fact, Cage Quote, or other non-title answers.
+function bonusTitleAnswerKey(value) {
+  return normalizeBonusText(value).replace(/^(?:the|a|an)\s+/, "").replace(/\s+/g, "");
+}
+function bonusTypedMatchV58(given, expected, item) {
+  const titleCategory = /^(?:movie quote|photo identification)$/i.test(String(item?.category || ""));
+  const a = titleCategory ? bonusTitleAnswerKey(given) : normalizeBonusText(given).replace(/\s+/g, "");
+  const b = titleCategory ? bonusTitleAnswerKey(expected) : normalizeBonusText(expected).replace(/\s+/g, "");
   if(!a || !b) return false;
   if(a===b) return true;
-  const compactA=a.replace(/\s+/g,''), compactB=b.replace(/\s+/g,'');
-  if(compactA===compactB) return true;
   // Never fuzzy-match short or materially different responses.
-  if(Math.min(compactA.length,compactB.length)<6) return false;
-  const allowed=Math.min(compactA.length,compactB.length)>=11 ? 2 : 1;
-  if(Math.abs(compactA.length-compactB.length)>allowed) return false;
-  const distance=bonusTypoDistanceV58(compactA,compactB);
+  if(Math.min(a.length,b.length)<6) return false;
+  const allowed=Math.min(a.length,b.length)>=11 ? 2 : 1;
+  if(Math.abs(a.length-b.length)>allowed) return false;
+  const distance=bonusTypoDistanceV58(a,b);
   if(distance>allowed) return false;
-  // If an alternative valid answer in the bank is equally close, reject the ambiguity.
+  // Do not accept answers that are equally close to another valid answer
+  // in this question category.
   const competitors=(Array.isArray(bonusQuestionBank)?bonusQuestionBank:[])
-    .filter(q=>q && (q.category===undefined || q.category===activeBonus?.category))
-    .map(q=>normalizeBonusText(q.answer).replace(/\s+/g,''))
-    .filter(x=>x.length>=6 && x!==compactB);
-  return !competitors.some(x=>Math.abs(x.length-compactA.length)<=distance && bonusTypoDistanceV58(compactA,x)<=distance);
+    .filter(q=>q && q.id!==item?.id && q.category===item?.category)
+    .map(q=>titleCategory ? bonusTitleAnswerKey(q.answer) : normalizeBonusText(q.answer).replace(/\s+/g,''))
+    .filter(x=>x.length>=6 && x!==b);
+  return !competitors.some(x=>Math.abs(x.length-a.length)<=distance && bonusTypoDistanceV58(a,x)<=distance);
 }
 
 function isBonusAnswerCorrectV2(item, given) {
@@ -10804,7 +10810,7 @@ function isBonusAnswerCorrectV2(item, given) {
   // Choice answers must match exactly; spelling tolerance is for typed answers.
   if (["single choice","multiple choice"].includes(answerType) && Array.isArray(item.choices) && item.choices.length)
     return normalizeBonusText(given) === normalizeBonusText(item.answer);
-  return bonusTypedMatchV58(given, item.answer);
+  return bonusTypedMatchV58(given, item.answer, item);
 }
 
 function revealCorrectBonusChoices(item, given) {
