@@ -5217,6 +5217,20 @@ function posterSrcForMovie(title) {
         .replace(/\b\w/g, c => c.toUpperCase());
     }
 
+    // These legacy poster basenames describe existing Cage titles with a typo,
+    // missing article, alternate shorthand, or incomplete title. Keep the image
+    // files in place, but do not create extra Add Movies options from them.
+    // The canonical movies remain available through BUILT_IN_TITLES / cast data.
+    const POSTER_CATALOG_NONCANONICAL_TITLES = new Set([
+      'cityofangles',       // City of Angels
+      'cottonclub',         // The Cotton Club
+      'frozenground',       // The Frozen Ground
+      'ghostrider2',        // Ghost Rider: Spirit of Vengeance
+      'jiujutsiu',          // Jiu Jitsu
+      'thegunslingers',     // Gunslingers
+      'ussindianapolis'    // USS Indianapolis: Men of Courage
+    ]);
+
     function incorporatePosterFiles(files) {
       if (!Array.isArray(files)) return;
       const known = [
@@ -5233,7 +5247,7 @@ function posterSrcForMovie(title) {
         const basename = file.split('/').pop();
         const posterTitle = readablePosterTitle(basename);
         const key = posterMatchKey(posterTitle);
-        if (!key) continue;
+        if (!key || POSTER_CATALOG_NONCANONICAL_TITLES.has(key)) continue;
         const canonical = knownByKey.get(key) || posterTitle;
         titles.add(canonical);
         // Preserve the *actual* filename, not a guessed slug.
