@@ -54,19 +54,19 @@ function refresh(data){
 function parseIndex(text){
   const names=new Map(),links=[];
   function getId(name){const key=name.trim();if(!names.has(key))names.set(key,'m'+names.size);return names.get(key)}
-  const entries=text.split(/(?=\\*\\*\\d+\\.\\s)/);
+  const entries=text.split(/(?=\*\*\d+\.\s)/);
   for(const entry of entries){
-    const header=entry.match(/^\\*\\*\\d+\\.\\s*(.*?)\\s*↔\\s*(.*?)\\*\\*/m);
+    const header=entry.match(/^\*\*\d+\.\s*(.*?)\s*↔\s*(.*?)\*\*/m);
     if(!header)continue;
-    const a=header[1].trim(),b=header[2].trim(),kind=(entry.match(/Type:\\s*(bridge|shared)/i)||[])[1]||'bridge';
-    const id=(entry.match(/Stored ID:\\s*([\\w-]+)/)||[])[1]||'indexed-'+links.length;
+    const a=header[1].trim(),b=header[2].trim(),kind=(entry.match(/Type:\s*(bridge|shared)/i)||[])[1]||'bridge';
+    const id=(entry.match(/Stored ID:\s*([\w-]+)/)||[])[1]||'indexed-'+links.length;
     let link={id,aId:getId(a),bId:getId(b),type:kind};
     if(kind==='bridge'){
-      const bridge=(entry.match(/Bridge:\\s*([^|\\n]+)/)||[])[1]||'';
-      const actors=(entry.match(/Actors:\\s*([^/\\n]+?)\\s*\\/\\s*([^\\n]+)/)||[]);
+      const bridge=(entry.match(/Bridge:\s*([^|\n]+)/)||[])[1]||'';
+      const actors=(entry.match(/Actors:\s*([^/\n]+?)\s*\/\s*([^\n]+)/)||[]);
       Object.assign(link,{bridgeTitle:bridge.trim(),leftActor:(actors[1]||'').trim(),rightActor:(actors[2]||'').trim()});
     }else{
-      link.sharedActor=((entry.match(/Actors?:\\s*([^|\\n]+)/)||[])[1]||'').trim();
+      link.sharedActor=((entry.match(/Actors?:\s*([^|\n]+)/)||[])[1]||'').trim();
     }
     links.push(link);
   }
