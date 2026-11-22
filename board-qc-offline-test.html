@@ -19,8 +19,8 @@ code{color:#ffda8c}
 <p>Real-data offline tester. This does not connect to Firebase, and it does not change your live board.</p>
 <div class="panel">
   <h2>1. Load your own board backup</h2>
-  <p>In the regular Cage Connection game, choose the <strong>Export / Backup</strong> option to download its JSON backup. Return here and select that file below. It stays on your computer.</p>
-  <input type="file" id="backupFile" accept=".json,application/json">
+  <p>Select your existing <strong>Show Index</strong> markdown/text export (such as your 123-connection index), or a Cage Connection JSON backup. Everything is processed locally in this browser; the game is not contacted.</p>
+  <input type="file" id="backupFile" accept=".json,.md,.txt,application/json,text/plain">
   <p><button id="sample" type="button">Use built-in test example instead</button></p>
   <p id="status" aria-live="polite">No board loaded yet.</p>
 </div>
@@ -51,9 +51,36 @@ function refresh(data){
   clearMovieSearchHighlight();
   setStatus('Loaded '+loaded.nodes.length+' board movies and '+loaded.connections.length+' stored connections. Select Board QC under Tools & Rules.');
 }
+function parseIndex(text){
+  const names=new Map(),links=[];
+  function getId(name){const key=name.trim();if(!names.has(key))names.set(key,'m'+names.size);return names.get(key)}
+  const entries=text.split(/(?=\\*\\*\\d+\\.\\s)/);
+  for(const entry of entries){
+    const header=entry.match(/^\\*\\*\\d+\\.\\s*(.*?)\\s*↔\\s*(.*?)\\*\\*/m);
+    if(!header)continue;
+    const a=header[1].trim(),b=header[2].trim(),kind=(entry.match(/Type:\\s*(bridge|shared)/i)||[])[1]||'bridge';
+    const id=(entry.match(/Stored ID:\\s*([\\w-]+)/)||[])[1]||'indexed-'+links.length;
+    let link={id,aId:getId(a),bId:getId(b),type:kind};
+    if(kind==='bridge'){
+      const bridge=(entry.match(/Bridge:\\s*([^|\\n]+)/)||[])[1]||'';
+      const actors=(entry.match(/Actors:\\s*([^/\\n]+?)\\s*\\/\\s*([^\\n]+)/)||[]);
+      Object.assign(link,{bridgeTitle:bridge.trim(),leftActor:(actors[1]||'').trim(),rightActor:(actors[2]||'').trim()});
+    }else{
+      link.sharedActor=((entry.match(/Actors?:\\s*([^|\\n]+)/)||[])[1]||'').trim();
+    }
+    links.push(link);
+  }
+  if(!links.length)throw new Error('No indexed connections found in this text file.');
+  return {nodes:[...names].map(([name,id])=>({name,id})),connections:links};
+}
 document.getElementById('backupFile').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
-  try{refresh(JSON.parse(await file.text()))}catch(err){setStatus('Unable to load file: '+err.message)}
+  try{
+    const text=await file.text();
+    const parsed=file.name.toLowerCase().endsWith('.json')?JSON.parse(text):parseIndex(text);
+    refresh(parsed);
+    if(!file.name.toLowerCase().endsWith('.json'))setStatus('Loaded '+loaded.connections.length+' indexed connections and '+loaded.nodes.length+' connected movie titles. This index does not list unconnected movies. Click Board QC.');
+  }catch(err){setStatus('Unable to load file: '+err.message)}
 });
 document.getElementById('sample').addEventListener('click',()=>{
   const names=['8MM','Bringing Out the Dead',"Butcher's Crossing",'Pig','Raising Arizona'];
