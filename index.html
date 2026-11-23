@@ -2787,6 +2787,18 @@ svg:has(.connection-line) {
     #resetConfirmError {color:#ffb5b5;}
     .reset-confirm-actions {display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap;}
     #resetConfirmBtn {border-color:#e0ad54;color:#ffd54a;}
+
+/* Advisory only: make reused non-Cage bridge productions visible on the board. */
+#surface svg .connection-line.cc-etiquette-repeat {
+  stroke: #f3c75d !important;
+  stroke-width: 5 !important;
+  stroke-dasharray: 11 5;
+  filter: drop-shadow(0 0 3px rgba(243,199,93,.55));
+}
+#surface svg .connection-label-bg.cc-etiquette-repeat {
+  stroke: #f3c75d !important;
+  stroke-width: 2.5 !important;
+}
 </style>
 
 <style id="bonusLiveSpectatorStyle">
@@ -12029,6 +12041,32 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
     const labelMeasure = document.createElement("canvas").getContext("2d");
     labelMeasure.font = "500 11px system-ui";
 
+    // Visual etiquette only: repeated non-Cage bridge productions are permitted.
+    // Calculate from saved links on every redraw so corrections clear the highlight.
+    function ccRepeatedNonCageBridges() {
+      const normProduction = value => String(value||"").normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+      const cageTitles = new Set((typeof BUILT_IN_TITLES!=="undefined"?BUILT_IN_TITLES:[])
+        .concat(typeof extraKnownMovieTitles!=="undefined"?extraKnownMovieTitles:[])
+        .map(normProduction));
+      for (const node of nodes) cageTitles.add(normProduction(node.name));
+      const buckets = new Map();
+      for (const connection of connections) {
+        if (connection.type!=="bridge" || !connection.bridgeTitle) continue;
+        const title = normProduction(connection.bridgeTitle);
+        if (!title || cageTitles.has(title)) continue;
+        const type = normProduction(connection.bridgeMediaType);
+        const year = String(connection.bridgeYear||"").trim();
+        const id = String(connection.bridgeProductionId||"").trim();
+        const key = id ? "id:"+id : "title:"+title+(type||year?"|"+type+"|"+year:"");
+        if (!buckets.has(key)) buckets.set(key,[]);
+        buckets.get(key).push(connection.id);
+      }
+      const repeated=new Set();
+      for (const ids of buckets.values()) if(ids.length>1)ids.forEach(id=>repeated.add(id));
+      return repeated;
+    }
+
     function draw() {
       ccConnectionDetailsClose();
       svg.innerHTML = "";
@@ -12037,6 +12075,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       const boardWidth = board.clientWidth/(window.ccPhoneBoardZoom||1);
       const aliases = ccPlanMovieAliases(measured, connections,
         surface.clientWidth, surface.clientHeight, Math.max(650, Math.min(1000, boardWidth)));
+      const etiquetteDuplicates = ccRepeatedNonCageBridges();
 
       for (const c of connections) {
         const alias = aliases.get(c.id);
@@ -12062,7 +12101,8 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         line.setAttribute("y1", y1);
         line.setAttribute("x2", x2);
         line.setAttribute("y2", y2);
-        line.setAttribute("class", "connection-line");
+        line.setAttribute("class", "connection-line"+(etiquetteDuplicates.has(c.id)?" cc-etiquette-repeat":""));
+        if (etiquetteDuplicates.has(c.id)) line.setAttribute("aria-label", "Questionable Etiquette: repeated "+c.bridgeTitle+" bridge production");
         svg.appendChild(line);
 
         // Mark the downward turn between aligned cards at neighboring row ends.
@@ -12112,7 +12152,7 @@ if (breakConnectionMode) {
         bg.setAttribute("width", labelWidth);
         bg.setAttribute("height", labelHeight);
         bg.setAttribute("rx", 3);
-        bg.setAttribute("class", "connection-label-bg");
+        bg.setAttribute("class", "connection-label-bg"+(etiquetteDuplicates.has(c.id)?" cc-etiquette-repeat":""));
 
         const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
         title.setAttribute("class", "connection-title");
