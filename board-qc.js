@@ -115,7 +115,7 @@
     for(const link of links)if(link.type==='bridge') {
       // One bridge production per link, regardless of its two actors.
       const identity=[link.bridgeProductionId,link.bridgeMediaType,link.bridgeYear]
-        .map(x=>String(x||'').trim()).join('|');
+        .map(x=>String(x||'').trim()).filter(Boolean).join('|');
       recordUse(link.bridgeTitle,'bridge',String(link.id||''),identity);
     }
     for(const item of usesByTitle.values()) {
