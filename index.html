@@ -8171,8 +8171,15 @@ function challengeResultAcknowledgment(current,id){
   return String(current.id)===id ? null : undefined;
 }
 function renderNextChallengeResult(){
+  if(acknowledgingChallengeResult)return;
+  const legacyPath=`challengeResults/${remotePlayerIndex}`;
+  if(activeChallengeResultId){
+    const active=activeChallengeResultPath===legacyPath
+      ? legacyChallengeResult : queuedChallengeResults[activeChallengeResultId];
+    if(active?.id && String(active.id)===activeChallengeResultId)return;
+  }
   let notice=legacyChallengeResult;
-  let path=`challengeResults/${remotePlayerIndex}`;
+  let path=legacyPath;
   if(!notice?.id){
     const next=Object.entries(queuedChallengeResults || {})
       .filter(([key,value])=>value?.id===key)
@@ -8209,32 +8216,34 @@ document.getElementById("challengeResultOK")?.addEventListener("click", async ()
   if(!id || !path || !room || acknowledgingChallengeResult)return;
   acknowledgingChallengeResult=true;
   if(button)button.disabled=true;
-    try {
-      await room.child(path).transaction(
-        current => challengeResultAcknowledgment(current,id),
-        undefined, false
-      );
-      if(session!==challengeResultSession)return;
-      // A listener may already have advanced to the next result. Never delete
-      // or hide that newer result when an older acknowledgment finishes.
-      if(path.startsWith("challengeResults/")){
-        if(String(legacyChallengeResult?.id)===id)legacyChallengeResult=null;
-      }else{
-        delete queuedChallengeResults[id];
-      }
-      renderNextChallengeResult();
-    }catch(err){
-      console.error("Challenge result acknowledgement failed",err);
-      if(session===challengeResultSession){
-        renderNextChallengeResult();
-        setStatus("Could not acknowledge the challenge result. Please press OK to retry.");
-      }
-    }finally{
-      if(session===challengeResultSession){
-        acknowledgingChallengeResult=false;
-        if(button)button.disabled=false;
-      }
+  try {
+    const outcome=await room.child(path).transaction(
+      current => challengeResultAcknowledgment(current,id),
+      undefined, false
+    );
+    if(session!==challengeResultSession)return;
+    const remaining=outcome.snapshot.val();
+    if(!outcome.committed && String(remaining?.id)===id){
+      setStatus("Could not acknowledge the challenge result. Please press OK to retry.");
+      return;
     }
+    if(path.startsWith("challengeResults/")){
+      if(String(legacyChallengeResult?.id)===id)legacyChallengeResult=remaining;
+    }else if(String(queuedChallengeResults[id]?.id)===id){
+      delete queuedChallengeResults[id];
+    }
+  }catch(err){
+    console.error("Challenge result acknowledgement failed",err);
+    if(session===challengeResultSession){
+      setStatus("Could not acknowledge the challenge result. Please press OK to retry.");
+    }
+  }finally{
+    if(session===challengeResultSession){
+      acknowledgingChallengeResult=false;
+      if(button)button.disabled=false;
+      renderNextChallengeResult();
+    }
+  }
 });
 function detachChallengeResultListeners(){
   challengeResultSession++;
