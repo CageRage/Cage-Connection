@@ -98,6 +98,52 @@
     for (const v of appearances.values())if(v.links.size>1){
       repeated.push(v);addIssue('Actor reused from one production',v.actor+' appears in '+v.production+' on '+v.links.size+' connections.',[...v.links].flatMap(id=>endpointsByLink.get(id)||[]));
     }
+    // Cage-film reuse is prohibited; non-Cage production reuse is etiquette only.
+    // Count a board node once even when several connections meet there.
+    const cageTitles=new Set((typeof BUILT_IN_TITLES!=='undefined'?BUILT_IN_TITLES:[])
+      .concat(typeof extraKnownMovieTitles!=='undefined'?extraKnownMovieTitles:[])
+      .map(norm));
+    const boardTitles=new Set(movies.map(n=>norm(n.name)).filter(Boolean));
+    const usesByTitle=new Map();
+    function recordUse(title,kind,connectionId,productionId) {
+      const key=norm(title);
+      if(!key)return;
+      if(!usesByTitle.has(key))usesByTitle.set(key,{title,uses:[]});
+      usesByTitle.get(key).uses.push({kind,connectionId,productionId:productionId||''});
+    }
+    for(const movie of movies)recordUse(movie.name,'board',String(movie.id),'');
+    for(const link of links)if(link.type==='bridge') {
+      // One bridge production per link, regardless of its two actors.
+      const identity=[link.bridgeProductionId,link.bridgeMediaType,link.bridgeYear]
+        .map(x=>String(x||'').trim()).join('|');
+      recordUse(link.bridgeTitle,'bridge',String(link.id||''),identity);
+    }
+    for(const item of usesByTitle.values()) {
+      const total=item.uses.length;
+      if(total<2)continue;
+      const bridges=item.uses.filter(x=>x.kind==='bridge');
+      const boards=item.uses.filter(x=>x.kind==='board');
+      const cageFilm=cageTitles.has(norm(item.title))||boardTitles.has(norm(item.title));
+      // Titles alone are not enough to distinguish, for example, the
+      // Entourage television series from the 2015 theatrical film.
+      const distinctIds=new Set(item.uses.map(x=>x.productionId).filter(Boolean));
+      const ambiguous=distinctIds.size>1 || (distinctIds.size>0&&item.uses.some(x=>!x.productionId));
+      if(ambiguous) {
+        warnings.push({title:'Production identity needs review',detail:item.title+
+          ' appears '+total+' times under a shared title, but production identifiers differ or are missing. Confirm whether these refer to the same film or television program.',targets:[item.title]});
+        continue;
+      }
+      if(cageFilm) {
+        addIssue('Prohibited Cage movie reuse',item.title+' appears '+total+
+          ' times as a board movie or bridge. A Nicolas Cage movie may be used only once.',[item.title]);
+      } else if(bridges.length>1) {
+        warnings.push({title:'Questionable Etiquette — repeated production',
+          detail:item.title+' has been used '+bridges.length+
+          ' times. Perfectly legal, of course. One does wonder whether you have seen any other films.'+
+          (!distinctIds.size?' Confirm that these refer to the same production, not different works sharing a title.':''),
+          targets:[item.title]});
+      }
+    }
     const groups=new Map();
     for (const v of appearances.values()){
       const p=norm(v.production);if(!groups.has(p))groups.set(p,[]);
