@@ -12050,20 +12050,27 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         .concat(typeof extraKnownMovieTitles!=="undefined"?extraKnownMovieTitles:[])
         .map(normProduction));
       for (const node of nodes) cageTitles.add(normProduction(node.name));
+      // Match Board QC: group by title, then require non-conflicting identity
+      // evidence before labeling all uses as the same production.
       const buckets = new Map();
       for (const connection of connections) {
         if (connection.type!=="bridge" || !connection.bridgeTitle) continue;
         const title = normProduction(connection.bridgeTitle);
         if (!title || cageTitles.has(title)) continue;
-        const type = normProduction(connection.bridgeMediaType);
-        const year = String(connection.bridgeYear||"").trim();
-        const id = String(connection.bridgeProductionId||"").trim();
-        const key = id ? "id:"+id : "title:"+title+(type||year?"|"+type+"|"+year:"");
-        if (!buckets.has(key)) buckets.set(key,[]);
-        buckets.get(key).push(connection.id);
+        const identity = [connection.bridgeProductionId,connection.bridgeMediaType,connection.bridgeYear]
+          .map(value=>String(value||"").trim()).filter(Boolean).join("|");
+        if (!buckets.has(title)) buckets.set(title,[]);
+        buckets.get(title).push({id:connection.id,identity});
       }
       const repeated=new Set();
-      for (const ids of buckets.values()) if(ids.length>1)ids.forEach(id=>repeated.add(id));
+      for (const uses of buckets.values()) {
+        if (uses.length<2) continue;
+        const distinctIds = new Set(uses.map(use=>use.identity).filter(Boolean));
+        const ambiguous = distinctIds.size>1 ||
+          (distinctIds.size>0 && uses.some(use=>!use.identity));
+        // QC reports ambiguous same-title works for review, not definite repeats.
+        if (!ambiguous) uses.forEach(use=>repeated.add(use.id));
+      }
       return repeated;
     }
 
