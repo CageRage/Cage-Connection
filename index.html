@@ -11416,15 +11416,11 @@ function clearFocus() {
   connectedComponents.sort((a, b) => b.size - a.size);
   looseMovies.sort((a, b) => a.name.localeCompare(b.name));
 
-  let currentRow = 0;
+  let currentY = startY;
 
   connectedComponents.forEach(componentIds => {
-    const rowsUsed = layoutBranchComponent(
-      componentIds,
-      startX,
-      startY + (currentRow * yGap)
-    );
-    currentRow += Math.max(1, typeof rowsUsed === "number" ? rowsUsed : rowsUsed.rows);
+    const layout = layoutBranchComponent(componentIds, startX, currentY);
+    currentY += layout.rows * layout.rowHeight;
   });
 
   // All unconnected movies go back into one common pool/grid.
@@ -11432,7 +11428,7 @@ function clearFocus() {
     const col = index % singleCols;
     const row = Math.floor(index / singleCols);
     node.x = startX + (col * xGap);
-    node.y = startY + ((currentRow + row) * yGap);
+    node.y = currentY + row * yGap;
     node.el.style.left = node.x + "px";
     node.el.style.top = node.y + "px";
   });
@@ -12702,13 +12698,27 @@ function makeDraggable(obj) {
       const cardH = Math.max(compactSquare ? 80 : 130, ...componentNodes.map(n => n.el.offsetHeight || (compactSquare ? 80 : 130)));
       const xGap = cardW + (compactSquare ? 48 : 85); // allow room for connection labels
       const yGap = cardH + (compactSquare ? 18 : 20);
-      const spine = chooseMainSpine(componentIds);
-      // V62: Snake unbranched movie chains after 10 cards per row. Keeping
-      // adjacent movies next to each other (including the vertical turn) lets
-      // the existing SVG draw an unbroken, clickable connection at each step.
-      // Branched graphs retain the earlier layout to avoid overlapping branches.
+      // Walk a closed loop in connection order. Its longest shortest path
+      // covers only part of the loop, which would put the rest below that row.
+      const isLoop = componentNodes.length > 2 &&
+        componentNodes.every(node => getNeighbors(node.id).length === 2);
+      let spine = chooseMainSpine(componentIds);
+      if (isLoop) {
+        const first = componentNodes.reduce((leftmost,node) =>
+          node.y < leftmost.y || (node.y === leftmost.y && node.x < leftmost.x) ? node : leftmost);
+        const ordered = [];
+        const seen = new Set();
+        for (let node = first; node && !seen.has(node.id);) {
+          ordered.push(node);
+          seen.add(node.id);
+          node = getNeighbors(node.id).find(neighbor => !seen.has(neighbor.id));
+        }
+        if (ordered.length === componentNodes.length) spine = ordered;
+      }
+      // Snake a complete path or loop after ten cards. The copy renderer
+      // handles the extra connection between the last and first loop cards.
       const isSimpleChain = componentNodes.length > 10 &&
-        componentNodes.every(n => getNeighbors(n.id).filter(other => componentIds.has(other.id)).length <= 2) &&
+        componentNodes.every(node => getNeighbors(node.id).length <= 2) &&
         spine.length === componentNodes.length;
       if (isSimpleChain) {
         const perRow = 10;
