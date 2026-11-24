@@ -6,7 +6,7 @@
   const btn = document.createElement('button');
   btn.id = 'ccBoardQcOpen';
   btn.type = 'button';
-  btn.textContent = '✓ Board QC (read only)';
+  btn.textContent = '✓ Board QC';
   const separator = menu.querySelector('.tools-submenu-divider');
   if (separator) menu.insertBefore(btn, separator);
   else menu.prepend(btn);
@@ -28,6 +28,10 @@
     '#ccBoardQcDialog .ccqc-issue{background:#1c150f;border:1px solid #695236;border-radius:6px;padding:10px;margin:7px 0}',
     '#ccBoardQcDialog .ccqc-issue button{font-size:12px;margin:6px 5px 0 0}',
     '#ccBoardQcDialog .ccqc-muted{font-size:12px;color:#c7b596}',
+    '#ccBoardQcDialog .ccqc-credit{border-top:1px solid #695236;margin-top:8px;padding-top:8px;overflow-wrap:anywhere}',
+    '#ccBoardQcDialog .ccqc-credit a{color:#ffe5a8}',
+    '#ccBoardQcDialog .ccqc-credit summary{cursor:pointer}',
+    '#ccBoardQcDialog .ccqc-credit input{box-sizing:border-box;display:block;width:100%;max-width:28rem;margin:4px 0;padding:6px}',
     '#ccBoardQcDialog .ccqc-ok{color:#a9dc9e}',
     '#ccBoardQcDialog .ccqc-warning{color:#f3ce7e}',
     '@media(max-width:600px){#ccBoardQcDialog{padding:13px}#ccBoardQcDialog h2{font-size:19px}}'
@@ -200,6 +204,23 @@
   // Cast checks use the same in-game combined cast lookup as Cage Check.
   // Missing records are UNVERIFIED; absent actors in a list are REVIEW, not
   // conclusive proof of an invalid play (credits can be incomplete).
+  const confirmationStorageKey='cage-connection-qc-credit-confirmations-v1';
+  function readConfirmations() {
+    try {
+      return new Map(JSON.parse(localStorage.getItem(confirmationStorageKey)||'[]'));
+    } catch {
+      return new Map();
+    }
+  }
+  function creditSource(value) {
+    try {
+      const url=new URL(value);
+      if(['https:','http:'].includes(url.protocol)&&!url.username&&!url.password)return url.href;
+    } catch {
+      // The form describes the accepted URL formats.
+    }
+    return '';
+  }
   function verifyConnections() {
     const board=typeof getBoardData==='function' ? getBoardData() : {nodes:[],connections:[]};
     const movies=Array.isArray(board.nodes)?board.nodes:[];
@@ -207,6 +228,7 @@
     const byId=new Map(movies.map(n=>[String(n.id),n]));
     const castLookup=typeof getCombinedCast==='function' ? getCombinedCast : null;
     const results=[];
+    const confirmations=readConfirmations();
     function appearance(movie,actor) {
       if(!String(movie||'').trim()||!String(actor||'').trim())
         return {status:'unverified',detail:'Missing production title or actor'};
@@ -226,16 +248,29 @@
         [{production:a,actor:c.sharedActor},{production:b,actor:c.sharedActor}]:
         [{production:a,actor:c.leftActor},{production:c.bridgeTitle,actor:c.leftActor},
          {production:c.bridgeTitle,actor:c.rightActor},{production:b,actor:c.rightActor}];
-      const inspected=checks.map(x=>({...x,...appearance(x.production,x.actor)}));
+      const inspected=checks.map((x,slot)=>{
+        const isBridgeCredit=c.type!=='shared'&&(slot===1||slot===2);
+        const qualifiers=isBridgeCredit?[c.bridgeMediaType,c.bridgeYear].filter(Boolean):[];
+        const result={...x,qualifiers,...appearance(x.production,x.actor)};
+        if(!c.id||!norm(x.production)||!norm(x.actor)||norm(x.actor)==='nicolas cage')return result;
+        // Legacy links can lack a year or media type. Keep each attestation tied
+        // to its exact saved appearance so ambiguous titles cannot share one.
+        const key=JSON.stringify([c.id,c.aId,c.bId,a,b,c.type,c.editVersion??0,slot,
+          x.production,x.actor,c.bridgeProductionId??null,c.bridgeMediaType??null,c.bridgeYear??null]);
+        const source=creditSource(confirmations.get(key));
+        return source ? {...result,key,source,status:'confirmed',detail:'Manually confirmed'} : {...result,key};
+      });
       if(inspected.some(x=>norm(x.actor)==='nicolas cage'))
         inspected.push({production:'Game rule',actor:'Nicolas Cage',status:'review',detail:'Cage cannot be used as the connector actor'});
       const status=inspected.some(x=>x.status==='review')?'review':
-        inspected.some(x=>x.status==='unverified')?'unverified':'matched';
+        inspected.some(x=>x.status==='unverified')?'unverified':
+        inspected.some(x=>x.status==='confirmed')?'confirmed':'matched';
       results.push({id:c.id||String(index),label,status,checks:inspected,targets:[a,b].filter(Boolean)});
     });
     return {
       results,
       matched:results.filter(x=>x.status==='matched').length,
+      confirmed:results.filter(x=>x.status==='confirmed').length,
       review:results.filter(x=>x.status==='review').length,
       unverified:results.filter(x=>x.status==='unverified').length
     };
@@ -250,9 +285,40 @@
             endpoints.map(t=>'<button type="button" data-qc-find="'+esc(t)+'">Find '+esc(t)+'</button>').join('')+'</div>';
         }).join('')
       : [...new Set(issue.targets||[])].filter(Boolean).slice(0,5).map(t=>'<button type="button" data-qc-find="'+esc(t)+'">Find '+esc(t)+'</button>').join('');
-    return '<div class="ccqc-issue"><strong class="'+(level==='warn'?'ccqc-warning':'')+'">'+esc(issue.title)+'</strong><p>'+esc(issue.detail)+'</p>'+chainRows+'</div>';
+    return '<div class="ccqc-issue"><strong class="'+(level==='warn'?'ccqc-warning':'')+'">'+esc(issue.title)+'</strong><p>'+esc(issue.detail)+'</p>'+chainRows+(issue.credits||'')+'</div>';
   }
-  function show(){
+  function creditHtml(check) {
+    const qualifiers=check.qualifiers?.length?' ('+check.qualifiers.map(esc).join(', ')+')':'';
+    const label=esc(check.production||'(missing title)')+qualifiers+' / '+esc(check.actor||'(missing actor)');
+    const detail='<p>'+label+' — '+esc(check.detail)+'</p>';
+    if(check.status==='confirmed')return '<div class="ccqc-credit">'+detail+
+      '<a href="'+esc(check.source)+'" target="_blank" rel="noopener noreferrer">Source</a> '+
+      '<button type="button" data-qc-unconfirm="'+esc(check.key)+'">Remove confirmation</button>'+
+      '<p role="status"></p></div>';
+    if(!check.key)return '<div class="ccqc-credit">'+detail+'</div>';
+    return '<div class="ccqc-credit">'+detail+
+      '<details><summary>Confirm credit</summary><form data-qc-confirm="'+esc(check.key)+'">'+
+      '<label>Source URL<input type="url" name="source" required maxlength="2048" placeholder="https://"></label>'+
+      '<button type="submit">Save confirmation</button><p role="status"></p></form></details></div>';
+  }
+  function saveConfirmation(key,source,status) {
+    const check=verifyConnections().results.flatMap(link=>link.checks).find(credit=>credit.key===key);
+    if(!check||(source ? !['review','unverified'].includes(check.status) : check.status!=='confirmed')) {
+      status.textContent='This credit changed. Reopen Board QC and try again.';
+      return;
+    }
+    const confirmations=readConfirmations();
+    if(source)confirmations.set(key,source);
+    else confirmations.delete(key);
+    try {
+      localStorage.setItem(confirmationStorageKey,JSON.stringify([...confirmations]));
+    } catch {
+      status.textContent='This browser could not save the confirmation.';
+      return;
+    }
+    show(overlay.querySelector('#ccBoardQcDialog').scrollTop);
+  }
+  function show(scrollTop=0){
     const r=scan();
     const v=verifyConnections();
     if(overlay)overlay.remove();
@@ -260,18 +326,22 @@
     overlay.innerHTML='<section id="ccBoardQcDialog" role="dialog" aria-modal="true" aria-label="Board quality check">'+
     '<div class="ccqc-top"><h2>✓ BOARD QUALITY CHECK</h2><button type="button" data-qc-close>Close</button></div>'+
     '<div class="ccqc-stats">'+[['Connections',r.links.length],['Board movies',r.movies.length],['Chains / components',r.components.length],['Endpoints',r.ends.length]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+a[0]+'</div>').join('')+'</div>'+
-    '<p class="ccqc-muted">Read-only scan of the current board. No connections, turns, scores, or cast records are changed.</p>'+
+    '<p class="ccqc-muted">Confirmations are saved in this browser. Board QC leaves the game board, turns, scores and cast records unchanged.</p>'+
     '<h3>Cast verification (game cast records)</h3>'+
-    '<p class="ccqc-muted">Checks each saved actor against both relevant productions (four cast appearances for bridge connections). This is an in-game cast-data check, not independent external research. Missing/incomplete credits require human review.</p>'+
-    '<div class="ccqc-stats">'+[['Cast data matches',v.matched],['Needs review',v.review],['Unverified',v.unverified]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+esc(a[0])+'</div>').join('')+'</div>'+
-    (v.results.length?v.results.filter(x=>x.status!=='matched').map(x=>issueHtml({title:(x.status==='review'?'Review cast: ':'Unverified cast: ')+x.label,detail:x.checks.filter(c=>c.status!=='matched').map(c=>c.production+' / '+c.actor+': '+c.detail).join('; '),targets:x.targets},x.status==='unverified'?'warn':'issue')).join('') || '<p class="ccqc-ok">All saved actor appearances match available cast records.</p>':'<p>No saved connections to check.</p>')+
+    '<p class="ccqc-muted">Checks each saved actor against both relevant productions (four cast appearances for bridge connections). For credits that need review, save a source link after you verify the specific movie or show.</p>'+
+    '<div class="ccqc-stats">'+[['Cast data matches',v.matched],['Manually confirmed',v.confirmed],['Needs review',v.review],['Unverified',v.unverified]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+esc(a[0])+'</div>').join('')+'</div>'+
+    (v.results.length?v.results.filter(x=>x.status!=='matched').map(x=>issueHtml({
+      title:({review:'Review cast',unverified:'Unverified cast',confirmed:'Manually confirmed'})[x.status]+': '+x.label,
+      detail:'',targets:x.targets,credits:x.checks.filter(c=>c.status!=='matched').map(creditHtml).join('')
+    },x.status==='unverified'?'warn':'issue')).join('') || '<p class="ccqc-ok">All saved actor appearances match available cast records.</p>':'<p>No saved connections to check.</p>')+
     '<div class="ccqc-issue"><strong>Independent online cast lookup</strong><p>When the local cast list is missing a credit, check the public Wikipedia cast section. A positive match includes a source link; absent names remain unverified and are never treated as proof of a false connection.</p><button type="button" id="ccQcInternetButton">Check unresolved credits online</button><div id="ccQcInternetResults" aria-live="polite"></div></div>'+
     '<h3>Findings ('+r.issues.length+')</h3>'+(r.issues.length?r.issues.map(x=>issueHtml(x,'issue')).join(''):'<p class="ccqc-ok">✓ No structural or exact-actor reuse problems detected.</p>')+
     '<h3>Review warnings ('+r.warnings.length+')</h3>'+(r.warnings.length?r.warnings.map(x=>issueHtml(x,'warn')).join(''):'<p class="ccqc-ok">✓ No additional review warnings.</p>')+
     '<p class="ccqc-muted">Actor reuse is checked against stored text, including bridge productions. Similar spellings are flagged only when plausible. Cast verification uses the existing game cast records. The optional online check queries public Wikipedia cast sections for missing or questionable credits; it cannot certify every film credit. No connection is changed. Multiple chains or a loop can be legitimate; they are reported for awareness.</p>'+
     '<div style="text-align:right;margin-top:12px"><button type="button" data-qc-close>Close QC Review</button></div></section>';
     document.body.appendChild(overlay);
-    overlay.querySelector('[data-qc-close]').focus();
+    overlay.querySelector('[data-qc-close]').focus({preventScroll:true});
+    overlay.querySelector('#ccBoardQcDialog').scrollTop=scrollTop;
   }
   function findTitle(title){
     if(!title)return;
@@ -283,9 +353,23 @@
     if(typeof setStatus==='function')setStatus('QC found: '+n.name);
   }
   btn.addEventListener('click',()=>{menu.closest('details.tools-menu')?.removeAttribute('open');show();});
+  document.addEventListener('submit',e=>{
+    const form=e.target.closest('[data-qc-confirm]');
+    if(!overlay?.contains(form))return;
+    e.preventDefault();
+    const status=form.querySelector('[role="status"]');
+    const source=creditSource(new FormData(form).get('source'));
+    if(!source){status.textContent='Enter an HTTP or HTTPS source URL.';return;}
+    saveConfirmation(form.dataset.qcConfirm,source,status);
+  });
   document.addEventListener('click',e=>{
     if(!overlay)return;
     const x=e.target.closest('[data-qc-close]'),f=e.target.closest('[data-qc-find]');
+    const remove=e.target.closest('[data-qc-unconfirm]');
+    if(remove){
+      saveConfirmation(remove.dataset.qcUnconfirm,'',remove.parentElement.querySelector('[role="status"]'));
+      return;
+    }
     if(x||e.target===overlay){overlay.remove();overlay=null;return;}
     if(f){const title=f.getAttribute('data-qc-find');overlay.remove();overlay=null;findTitle(title);}
   });
