@@ -4662,6 +4662,8 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 let cageLastRemoteSkipNotice = undefined;
 let cageLastObservedRemoteTurn = undefined;
 let cageLastRemoteRoomKey = null;
+// Room score state must exist even if a later startup step fails.
+const remoteBoardPenalties = {cast:0,shared:0,bridge:0};
 // Initialize the authentication promise before any startup code can reference it.
 let remoteAuthReady = null;
 const REMOTE_SESSION_KEY="cage-connection-production-v5";
@@ -5121,7 +5123,6 @@ if (board) {
       updateScoreDisplay();
     }
 
-const remoteBoardPenalties = {cast:0,shared:0,bridge:0};
 
 function calculateScore() {
   const connectionScore = connections.reduce((total, c) => {
