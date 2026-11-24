@@ -4658,6 +4658,10 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-functions-compat.js"></script>
 <script>
+// Initialize room-switch tracking before any resume callback can run.
+let cageLastRemoteSkipNotice = undefined;
+let cageLastObservedRemoteTurn = undefined;
+let cageLastRemoteRoomKey = null;
 // Initialize the authentication promise before any startup code can reference it.
 let remoteAuthReady = null;
 const REMOTE_SESSION_KEY="cage-connection-production-v5";
@@ -13377,9 +13381,6 @@ function applyRemoteMembers(members){
   refreshOnlinePanel();
   if(remoteRoomRef && !v5CanPlay())setOnlineMessage("Game unavailable: your player seat is not active.");
 }
-let cageLastRemoteSkipNotice = undefined;
-let cageLastObservedRemoteTurn = undefined;
-let cageLastRemoteRoomKey = null;
 function showCageBeeAnnouncement(notice){
   if(!notice || !notice.id)return;
   const msg=document.getElementById('cageBeeAnnouncementText');
