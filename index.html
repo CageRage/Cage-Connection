@@ -5362,6 +5362,9 @@ queueMicrotask(() => loadPosterCatalog());
               a,
               b,
               bridgeTitle: c.bridgeTitle || "",
+              ...(c.bridgeProductionId != null ? {bridgeProductionId: c.bridgeProductionId} : {}),
+              ...(c.bridgeMediaType != null ? {bridgeMediaType: c.bridgeMediaType} : {}),
+              ...(c.bridgeYear != null ? {bridgeYear: c.bridgeYear} : {}),
               leftActor: c.leftActor || "",
               rightActor: c.rightActor || "",
               sharedActor: c.sharedActor || "",
@@ -5415,6 +5418,9 @@ function getBoardData() {
       aId: c.a.id,
       bId: c.b.id,
       bridgeTitle: c.bridgeTitle || "",
+      ...(c.bridgeProductionId != null ? {bridgeProductionId: c.bridgeProductionId} : {}),
+      ...(c.bridgeMediaType != null ? {bridgeMediaType: c.bridgeMediaType} : {}),
+      ...(c.bridgeYear != null ? {bridgeYear: c.bridgeYear} : {}),
       leftActor: c.leftActor || "",
       rightActor: c.rightActor || "",
       sharedActor: c.sharedActor || "",
@@ -11592,6 +11598,11 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
     try{await commitCheatOperation('edit',context,{connectionId,expectedVersion,connection:{type:draft.type,bridgeTitle:draft.bridgeTitle||"",leftActor:draft.leftActor||"",rightActor:draft.rightActor||"",sharedActor:draft.sharedActor||""}});setStatus("Connection updated.");}
     catch(error){await refreshConnectionState(context);if(error.reason==='actor-movie-reused'&&wholeCageContextCurrent(context)){showActorMovieReuseWarning();}else{setStatus("Connection edit not saved: "+error.message);}}
     return;
+  }
+  if (c.bridgeTitle !== draft.bridgeTitle || c.type !== draft.type) {
+    delete c.bridgeProductionId;
+    delete c.bridgeMediaType;
+    delete c.bridgeYear;
   }
   Object.assign(c,draft);
   draw();

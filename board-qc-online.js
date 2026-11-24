@@ -70,7 +70,7 @@
     const holder=document.getElementById('ccQcInternetResults');
     if(!holder)return;
     const checks=window.ccBoardQcVerifyConnections().results
-      .flatMap(r=>r.checks.filter(x=>x.status!=='matched'&&x.production!=='Game rule')
+      .flatMap(r=>r.checks.filter(x=>['review','unverified'].includes(x.status)&&x.production!=='Game rule')
         .map(x=>({connection:r.label,production:x.production,actor:x.actor})));
     const unique=[...new Map(checks.map(x=>[norm(x.production)+'|'+norm(x.actor),x])).values()];
     if(!unique.length){holder.textContent='No unresolved cast appearances need online research.';return;}
