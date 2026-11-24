@@ -221,6 +221,42 @@
     }
     return '';
   }
+  function confirmationRoom() {
+    if(typeof remoteRoomRef==='undefined'||!remoteRoomRef||typeof firebase==='undefined')return null;
+    const uid=firebase.auth().currentUser?.uid;
+    return uid ? {ref:remoteRoomRef,uid} : null;
+  }
+  let sharedRoom=null,sharedCredits=new Map(),openRequest=0,sharedStatus='';
+  function sharedFor(key) {
+    const room=confirmationRoom();
+    return room?.ref===sharedRoom?.ref ? sharedCredits.get(key) : null;
+  }
+  async function loadSharedCredits(room) {
+    const snapshot=await withFirebaseTimeout(room.ref.child('qcCreditConfirmations').once('value'));
+    const credits=new Map();
+    for(const [uid,records] of Object.entries(snapshot.val()||{})){
+      for(const [entryId,record] of Object.entries(records||{})){
+        const source=creditSource(record?.source);
+        if(typeof record?.key!=='string'||!source)continue;
+        const own=uid===room.uid;
+        if(own||!credits.has(record.key))credits.set(record.key,{source,entryId,own});
+      }
+    }
+    return credits;
+  }
+  async function openQc() {
+    const request=++openRequest,room=confirmationRoom();
+    let credits=new Map(),status='';
+    if(room){
+      try { credits=await loadSharedCredits(room); }
+      catch { status='Room confirmations could not be loaded. Reopen Board QC to try again.'; }
+    }
+    if(request!==openRequest||(room?.ref!==confirmationRoom()?.ref))return;
+    sharedRoom=room;
+    sharedCredits=credits;
+    sharedStatus=status;
+    show();
+  }
   function verifyConnections() {
     const board=typeof getBoardData==='function' ? getBoardData() : {nodes:[],connections:[]};
     const movies=Array.isArray(board.nodes)?board.nodes:[];
@@ -257,8 +293,10 @@
         // to its exact saved appearance so ambiguous titles cannot share one.
         const key=JSON.stringify([c.id,c.aId,c.bId,a,b,c.type,c.editVersion??0,slot,
           x.production,x.actor,c.bridgeProductionId??null,c.bridgeMediaType??null,c.bridgeYear??null]);
-        const source=creditSource(confirmations.get(key));
-        return source ? {...result,key,source,status:'confirmed',detail:'Manually confirmed'} : {...result,key};
+        const shared=sharedFor(key);
+        const source=shared?.source||creditSource(confirmations.get(key));
+        return source ? {...result,key,source,shared,status:'confirmed',
+          detail:shared?'Manually confirmed · Shared in this room':'Manually confirmed · This browser'} : {...result,key};
       });
       if(inspected.some(x=>norm(x.actor)==='nicolas cage'))
         inspected.push({production:'Game rule',actor:'Nicolas Cage',status:'review',detail:'Cage cannot be used as the connector actor'});
@@ -293,18 +331,57 @@
     const detail='<p>'+label+' — '+esc(check.detail)+'</p>';
     if(check.status==='confirmed')return '<div class="ccqc-credit">'+detail+
       '<a href="'+esc(check.source)+'" target="_blank" rel="noopener noreferrer">Source</a> '+
-      '<button type="button" data-qc-unconfirm="'+esc(check.key)+'">Remove confirmation</button>'+
+      (check.shared&&!check.shared.own?'':'<button type="button" data-qc-unconfirm="'+esc(check.key)+'">Remove confirmation</button>')+
+      (!check.shared&&confirmationRoom()?'<button type="button" data-qc-share="'+esc(check.key)+'">Share with room</button>':'')+
       '<p role="status"></p></div>';
     if(!check.key)return '<div class="ccqc-credit">'+detail+'</div>';
     return '<div class="ccqc-credit">'+detail+
       '<details><summary>Confirm credit</summary><form data-qc-confirm="'+esc(check.key)+'">'+
       '<label>Source URL<input type="url" name="source" required maxlength="2048" placeholder="https://"></label>'+
-      '<button type="submit">Save confirmation</button><p role="status"></p></form></details></div>';
+      '<button type="submit">'+(confirmationRoom()?'Save to room':'Save confirmation')+'</button><p role="status"></p></form></details></div>';
   }
-  function saveConfirmation(key,source,status) {
+  async function changeSharedCredit(room,key,source,entryId,status,button){
+    button.disabled=true;
+    status.textContent=source?'Saving to room…':'Removing from room…';
+    try {
+      if(!entryId){
+        const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(key));
+        entryId=Array.from(new Uint8Array(hash),byte=>byte.toString(16).padStart(2,'0')).join('');
+      }
+      if(confirmationRoom()?.ref!==room.ref)throw Error('Room changed');
+      const ref=room.ref.child('qcCreditConfirmations').child(room.uid).child(entryId);
+      await withFirebaseTimeout(ref.set(source?{key,source}:null));
+    }catch{
+      status.textContent='The room did not confirm the change. Reopen Board QC to check.';
+      button.disabled=false;
+      return;
+    }
+    if(!overlay?.contains(status)||confirmationRoom()?.ref!==room.ref)return;
+    let credits;
+    try { credits=await loadSharedCredits(room); }
+    catch {
+      status.textContent='Change saved. Reopen Board QC to reload the room confirmations.';
+      return;
+    }
+    if(!overlay?.contains(status)||confirmationRoom()?.ref!==room.ref)return;
+    sharedCredits=credits;
+    sharedStatus='';
+    show(overlay.querySelector('#ccBoardQcDialog').scrollTop);
+  }
+  function saveConfirmation(key,source,status,button,shareLocal=false) {
     const check=verifyConnections().results.flatMap(link=>link.checks).find(credit=>credit.key===key);
-    if(!check||(source ? !['review','unverified'].includes(check.status) : check.status!=='confirmed')) {
+    const room=confirmationRoom();
+    const canShareLocal=shareLocal&&room&&check?.status==='confirmed'&&!check.shared;
+    if(!check||(!canShareLocal&&(source ? !['review','unverified'].includes(check.status) : check.status!=='confirmed'))) {
       status.textContent='This credit changed. Reopen Board QC and try again.';
+      return;
+    }
+    if(room&&(source||canShareLocal||check.shared)){
+      if(room.ref!==sharedRoom?.ref||(!source&&!canShareLocal&&!check.shared?.own)){
+        status.textContent='Reopen Board QC to refresh room confirmations.';
+        return;
+      }
+      changeSharedCredit(room,key,canShareLocal?check.source:source,check.shared?.entryId,status,button);
       return;
     }
     const confirmations=readConfirmations();
@@ -326,7 +403,8 @@
     overlay.innerHTML='<section id="ccBoardQcDialog" role="dialog" aria-modal="true" aria-label="Board quality check">'+
     '<div class="ccqc-top"><h2>✓ BOARD QUALITY CHECK</h2><button type="button" data-qc-close>Close</button></div>'+
     '<div class="ccqc-stats">'+[['Connections',r.links.length],['Board movies',r.movies.length],['Chains / components',r.components.length],['Endpoints',r.ends.length]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+a[0]+'</div>').join('')+'</div>'+
-    '<p class="ccqc-muted">Confirmations are saved in this browser. Board QC leaves the game board, turns, scores and cast records unchanged.</p>'+
+    '<p class="ccqc-muted">'+(confirmationRoom()?'New confirmations are shared with players in this room. Only the player who shared a confirmation can remove it.':'Confirmations are saved in this browser.')+'</p>'+
+    (sharedStatus?'<p role="status">'+esc(sharedStatus)+'</p>':'')+
     '<h3>Cast verification (game cast records)</h3>'+
     '<p class="ccqc-muted">Checks each saved actor against both relevant productions (four cast appearances for bridge connections). For credits that need review, save a source link after you verify the specific movie or show.</p>'+
     '<div class="ccqc-stats">'+[['Cast data matches',v.matched],['Manually confirmed',v.confirmed],['Needs review',v.review],['Unverified',v.unverified]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+esc(a[0])+'</div>').join('')+'</div>'+
@@ -352,7 +430,7 @@
     if(typeof centerOnNode==='function')centerOnNode(n);
     if(typeof setStatus==='function')setStatus('QC found: '+n.name);
   }
-  btn.addEventListener('click',()=>{menu.closest('details.tools-menu')?.removeAttribute('open');show();});
+  btn.addEventListener('click',()=>{menu.closest('details.tools-menu')?.removeAttribute('open');void openQc();});
   document.addEventListener('submit',e=>{
     const form=e.target.closest('[data-qc-confirm]');
     if(!overlay?.contains(form))return;
@@ -360,14 +438,17 @@
     const status=form.querySelector('[role="status"]');
     const source=creditSource(new FormData(form).get('source'));
     if(!source){status.textContent='Enter an HTTP or HTTPS source URL.';return;}
-    saveConfirmation(form.dataset.qcConfirm,source,status);
+    saveConfirmation(form.dataset.qcConfirm,source,status,form.querySelector('[type="submit"]'));
   });
   document.addEventListener('click',e=>{
     if(!overlay)return;
     const x=e.target.closest('[data-qc-close]'),f=e.target.closest('[data-qc-find]');
     const remove=e.target.closest('[data-qc-unconfirm]');
-    if(remove){
-      saveConfirmation(remove.dataset.qcUnconfirm,'',remove.parentElement.querySelector('[role="status"]'));
+    const share=e.target.closest('[data-qc-share]');
+    if(remove||share){
+      const button=remove||share;
+      saveConfirmation(remove?remove.dataset.qcUnconfirm:share.dataset.qcShare,'',
+        button.parentElement.querySelector('[role="status"]'),button,Boolean(share));
       return;
     }
     if(x||e.target===overlay){overlay.remove();overlay=null;return;}
