@@ -5080,12 +5080,6 @@ let wholeCagePassBindings={};
 let wholeCageUnlocked=[],wholeCageDecisions={},wholeCageLocalReceipts={},pendingCheatIntents={};
 let wholeCageGameId=`local-${crypto.randomUUID()}`;
 let wholeCageOfferContext=null,wholeCageLookupContext=null,wholeCageCastPending=false,wholeCageResetContext=null;
-  loadTwoPlayerState();
-loadCardSize();
-queueMicrotask(() => loadBoard());
-loadBoardViewMode();
-setStatus("Ready.");
-updateScoreDisplay();
 
 // Keep the prominent left and top scrollbars synchronized with the board.
 if (board) {
@@ -14107,6 +14101,15 @@ switchTurnAfterConnection = function(chainMergeBonus = 0) {
 
 function guardTurnFunction(name){const original=window[name];if(typeof original!=="function")return;window[name]=function(...args){if(!remoteTurnAllowed())return;return original.apply(this,args)}}
 ["connectMode","openBonusRound","startRemoveMovie"].forEach(guardTurnFunction);
+
+// Restore the saved UI after the main script has initialized its catalog and game state.
+loadTwoPlayerState();
+loadCardSize();
+queueMicrotask(() => loadBoard());
+loadBoardViewMode();
+setStatus("Ready.");
+updateScoreDisplay();
+
 refreshOnlinePanel();
 updateDockFromStatus(statusText ? statusText.textContent : "Ready.");
 // Resume only rooms explicitly opened in this test build. Wait for Firebase Auth and
