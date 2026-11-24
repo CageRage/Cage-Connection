@@ -28,7 +28,7 @@ code{color:#ffda8c}
   <h2>2. Run Board QC and optional online cast research</h2>
   <p><button id="runQcDirect" type="button" style="font-size:17px;font-weight:700;background:#68411b;border:2px solid #f2c879">Run Board QC</button></p>
   <p class="muted">Use the button above directly. You do not need to open Tools &amp; Rules.</p>
-  <details class="toolbar-menu tools-menu" open><summary>Tools &amp; Rules (alternative)</summary><div class="toolbar-menu-panel"></div></details>
+  <details class="toolbar-menu tools-menu" open><summary>Tools &amp; Rules (alternative)</summary><div class="toolbar-menu-panel tools-menu-panel"></div></details>
   <p class="muted">This is the latest Board QC from our combined draft PR #22. It can check your saved connections and optionally look up unresolved cast credits on Wikipedia; it cannot write to your game.</p>
 </div>
 <div class="panel"><h2>Board movie locator</h2><p class="muted">Find buttons in the QC results will scroll to and highlight these movie titles. This tests navigation within this page, not the live game's map.</p><div id="movies"></div></div>
@@ -278,7 +278,19 @@ document.getElementById('sample').addEventListener('click',()=>{
     if(cyclic.length)addIssue('Circular connection(s)',cyclic.length+' component(s) contain a loop. This is a layout warning, not necessarily an invalid play.',cyclic.flatMap(part=>part.slice(0,2).map(id=>byId.get(id)?.name)));
     if(isolated.length)warnings.push({title:'Unconnected movies',detail:isolated.length+' board movie(s) have no links.',targets:isolated.slice(0,10).map(n=>n.name)});
     const connectedParts=components.filter(part=>part.some(id=>(degrees.get(id)||0)>0));
-    if(connectedParts.length>1)warnings.push({title:'Separate movie chains',detail:connectedParts.length+' independent connected chains are present. This is informational, not an error.',targets:connectedParts.map(part=>byId.get(part[0])?.name)});
+    if(connectedParts.length>1){
+      const chains=connectedParts.map((part,index)=>{
+        const endpoints=part.filter(id=>degrees.get(id)===1)
+          .map(id=>byId.get(id)?.name).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+        return {number:index+1,size:part.length,endpoints};
+      });
+      warnings.push({
+        title:'Separate movie chains',
+        detail:connectedParts.length+' independent connected chains are present. The movies listed below are actual endpoints (not arbitrary representatives). This is informational, not an error.',
+        chains,
+        targets:chains.flatMap(chain=>chain.endpoints)
+      });
+    }
     const ends=movies.filter(n=>degrees.get(String(n.id))===1);
     return {movies,links,components,ends,issues,warnings,repeated};
   }
@@ -327,8 +339,15 @@ document.getElementById('sample').addEventListener('click',()=>{
   }
   let overlay=null;
   function issueHtml(issue,level){
-    return '<div class="ccqc-issue"><strong class="'+(level==='warn'?'ccqc-warning':'')+'">'+esc(issue.title)+'</strong><p>'+esc(issue.detail)+'</p>'+
-      [...new Set(issue.targets||[])].filter(Boolean).slice(0,5).map(t=>'<button type="button" data-qc-find="'+esc(t)+'">Find '+esc(t)+'</button>').join('')+'</div>';
+    const chainRows=Array.isArray(issue.chains)
+      ? issue.chains.map(chain=>{
+          const endpoints=chain.endpoints||[];
+          const label=endpoints.length ? endpoints.map(esc).join(' ↔ ') : 'No endpoints (loop)';
+          return '<div class="ccqc-chain"><strong>Chain '+chain.number+' — '+chain.size+' movies</strong><p>'+label+'</p>'+
+            endpoints.map(t=>'<button type="button" data-qc-find="'+esc(t)+'">Find '+esc(t)+'</button>').join('')+'</div>';
+        }).join('')
+      : [...new Set(issue.targets||[])].filter(Boolean).slice(0,5).map(t=>'<button type="button" data-qc-find="'+esc(t)+'">Find '+esc(t)+'</button>').join('');
+    return '<div class="ccqc-issue"><strong class="'+(level==='warn'?'ccqc-warning':'')+'">'+esc(issue.title)+'</strong><p>'+esc(issue.detail)+'</p>'+chainRows+'</div>';
   }
   function show(){
     const r=scan();
