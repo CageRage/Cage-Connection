@@ -4016,6 +4016,7 @@ body[data-card-size="compact"] #surface .node::before {
 .cc-board-row-arrow { fill:none; stroke:#b99668; stroke-width:2; pointer-events:none; }
 #surface .cc-movie-alias { position:absolute; z-index:3; box-sizing:border-box; display:grid; place-content:center; gap:4px; padding:5px; border:1px dashed #98a8c0; border-radius:8px; background:#202d40; color:#fff; text-align:center; overflow-wrap:anywhere; cursor:pointer; touch-action:manipulation; }
 #surface .cc-movie-alias small { color:#c5d4e8; }
+#surface .cc-movie-alias strong { min-width:0; overflow-wrap:anywhere; }
 #surface .cc-movie-alias:focus-visible { outline:2px solid #ffd54a; outline-offset:2px; }
 #ccConnectionDetails { position:fixed; z-index:999998; width:420px; box-sizing:border-box; overflow-wrap:anywhere; overscroll-behavior:contain; }
 #ccConnectionDetails[hidden] { display:none !important; }
@@ -4895,7 +4896,10 @@ const FIREBASE_CONFIG={apiKey:"AIzaSyCW9X7o1xr-hmB1Xf1vp6J77BP8FZDaanM",authDoma
       document.body.dataset.boardView = next;
       localStorage.setItem(BOARD_VIEW_MODE_KEY, next);
       renderBoardListMode();
-      if (next === "board" && window.ccPhoneFitBoard) requestAnimationFrame(() => window.ccPhoneFitBoard());
+      if (next === "board") {
+        draw();
+        if (window.ccPhoneFitBoard) requestAnimationFrame(() => window.ccPhoneFitBoard());
+      }
       setStatus(next === "list" ? "List View." : "Board View.");
     }
 
@@ -11970,25 +11974,26 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         if (Math.abs(dx)<8 && rowGap>=48 && rowGap<=135) continue;
         if (Math.hypot(dx, dy) <= maxDistance &&
             ![...movies.values()].some(rect=>rect!==a && rect!==b && crossesMovie(a,b,rect))) continue;
-        for (const [horizontal,direction] of [[true,1],[true,-1],[false,1],[false,-1]]) {
-          for (const [anchor, original, replaceStart] of [[a,b,false],[b,a,true]]) {
-            const gap = horizontal ? 64 : 76, w = original.w, h = original.h;
-            const [cx,cy] = center(anchor);
-            const tile = horizontal
-              ? {x:direction===1 ? anchor.x+anchor.w+gap : anchor.x-gap-w,y:cy-h/2,w,h}
-              : {x:cx-w/2,y:direction===1 ? anchor.y+anchor.h+gap : anchor.y-gap-h,w,h};
-            const edge = horizontal
-              ? (direction===1 ? anchor.x+anchor.w : anchor.x)
-              : (direction===1 ? anchor.y+anchor.h : anchor.y);
-            const clearance = Math.max(w,152)+8;
-            const space = horizontal
-              ? {x:Math.min(tile.x,edge)-4,y:cy-Math.max(h,92)/2-4,w:gap+w+8,h:Math.max(h,92)+8}
-              : {x:cx-clearance/2,y:Math.min(tile.y,edge)-4,w:clearance,h:gap+h+8};
-            if (space.x<0 || tile.y<0 || space.x+space.w>width || space.y+space.h>height ||
-                occupied.some(rect=>rect!==anchor && overlaps(space,rect))) continue;
-            occupied.push(space);
-            aliases.set(link.id,{tile,originalId:replaceStart?link.a.id:link.b.id,replaceStart});
-            break;
+        // Prefer full-size copies and use compact inline copies when a row is tight.
+        // A copy above or below its anchor breaks the horizontal reading order.
+        for (const [gap,maxWidth] of [[64,Infinity],[48,Infinity],[40,96]]) {
+          for (const direction of [1,-1]) {
+            for (const [anchor,original,replaceStart] of [[a,b,false],[b,a,true]]) {
+              const w = Math.min(original.w,maxWidth), h = original.h;
+              const [,cy] = center(anchor);
+              const edge = direction===1 ? anchor.x+anchor.w : anchor.x;
+              const tile = {x:direction===1 ? edge+gap : edge-gap-w,y:cy-h/2,w,h};
+              const space = {
+                x:Math.min(tile.x,edge)-4,y:cy-Math.max(h,92)/2-4,
+                w:gap+w+8,h:Math.max(h,92)+8
+              };
+              if (space.x<0 || space.y<0 || space.x+space.w>width || space.y+space.h>height ||
+                  occupied.some(rect=>rect!==anchor && overlaps(space,rect))) continue;
+              occupied.push(space);
+              aliases.set(link.id,{tile,originalId:replaceStart?link.a.id:link.b.id,replaceStart});
+              break;
+            }
+            if (aliases.has(link.id)) break;
           }
           if (aliases.has(link.id)) break;
         }
