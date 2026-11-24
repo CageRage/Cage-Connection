@@ -4078,6 +4078,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 <button onclick="this.closest('details').removeAttribute('open'); startCastLookup()">Cast Lookup (-2)</button>
 <button onclick="this.closest('details').removeAttribute('open'); openPathFinder()">Find Path</button>
 <button onclick="this.closest('details').removeAttribute('open'); showIndex()">Show Index</button>
+        <button onclick="this.closest('details').removeAttribute('open'); showUsedBridgeTitles()">Used Bridge Titles</button>
 </div>
 </details>
 <details class="tools-submenu">
@@ -12495,6 +12496,54 @@ function makeDraggable(obj) {
 
       indexContent.innerHTML = html;
       modalOverlay.classList.remove("hidden");
+    }
+
+    function showUsedBridgeTitles() {
+      modalOverlay.querySelector(".modal-header h2").textContent = "Used Bridge Titles";
+      const groups = new Map();
+      for (const connection of connections) {
+        const title = String(connection.bridgeTitle || "").trim().replace(/\s+/g, " ");
+        if (connection.type === "shared" || !title) continue;
+        const key = title.toLowerCase();
+        if (!groups.has(key)) groups.set(key, {title, links: []});
+        groups.get(key).links.push(connection);
+      }
+      const titles = [...groups.values()].sort((a, b) => a.title.localeCompare(b.title));
+
+      indexContent.innerHTML = `
+        <div class="index-section">
+          <label for="usedBridgeSearch">Search used bridge titles</label>
+          <input id="usedBridgeSearch" type="search" autocomplete="off"
+            placeholder="Enter a movie or show title"
+            style="box-sizing:border-box;display:block;width:100%;margin:8px 0;padding:8px">
+          <p id="usedBridgeStatus" role="status"></p>
+          <div id="usedBridgeResults"></div>
+        </div>`;
+      const search = indexContent.querySelector("#usedBridgeSearch");
+      const status = indexContent.querySelector("#usedBridgeStatus");
+      const results = indexContent.querySelector("#usedBridgeResults");
+      const normalize = value => value.normalize("NFKD").replace(/\p{M}/gu, "")
+        .toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+      function render() {
+        const query = normalize(search.value);
+        const matches = titles.filter(({title}) => normalize(title).includes(query));
+        status.textContent = matches.length
+          ? `${matches.length} used bridge title${matches.length === 1 ? "" : "s"}`
+          : titles.length ? "No used bridge titles match your search." : "No bridge titles have been used yet.";
+        results.innerHTML = matches.map(({title, links}) => `
+          <div class="index-box">
+            <div class="actor-name">${escapeHtml(title)} · ${links.length} ${links.length === 1 ? "use" : "uses"}</div>
+            ${links.map(link => {
+              const qualifiers = [link.bridgeMediaType, link.bridgeYear].filter(Boolean).join(", ");
+              const endpoints = `${link.a?.name || "[missing movie]"} ↔ ${link.b?.name || "[missing movie]"}`;
+              return `<div class="index-line">${escapeHtml(endpoints)}${qualifiers ? ` (${escapeHtml(qualifiers)})` : ""}</div>`;
+            }).join("")}
+          </div>`).join("");
+      }
+      search.addEventListener("input", render);
+      render();
+      modalOverlay.classList.remove("hidden");
+      search.focus({preventScroll:true});
     }
 
     function closeIndex(event) {
