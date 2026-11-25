@@ -9718,6 +9718,7 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
   const scoringPositions=nodes.map(n=>({id:n.id,x:n.x,y:n.y}));
   const chainMergeBaseline=getDynamicChainMergeBaseline(first,obj);
   const scoreBeforeConnection = Number(players[currentPlayerIndex].score || 0);
+  const wasOpenMovieChain = cageHasOpenMovieChain();
 
   if (result.type === "SHARED") {
     const validation = validateSharedActor(first.name, obj.name, result.sharedActor);
@@ -9814,6 +9815,9 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
       applyRemoteState(outcome.snapshot.val());
       clearSelection();
       setStatus("Connection, points, and next turn saved together.");
+      if (!wasOpenMovieChain && connections.some(link => link.id === proposedConnection.id) && cageHasOpenMovieChain()) {
+        showOpenMovieChainCelebration();
+      }
       return;
     } catch (err) {
       console.error("Atomic connection save failed", err);
@@ -9851,6 +9855,7 @@ function calculateDynamicChainMergeBonus(baselineSpineIds, mergedStartNodeId) {
     }
   }
   switchTurnAfterConnection(chainMergeBonus);
+  if (!wasOpenMovieChain && cageHasOpenMovieChain()) showOpenMovieChainCelebration();
 }
 
 function showConnectionDialog(first, second, draft=null, draftMessage="") {
@@ -11633,6 +11638,18 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       return visited;
     }
 
+    function cageHasOpenMovieChain(degrees = nodes.map(node => getDegree(node.id)), singleGroup) {
+      if (nodes.length < 3 || connections.length !== nodes.length - 1) return false;
+      const connected = singleGroup ?? getConnectedNodeIds(nodes[0].id).size === nodes.length;
+      return connected && degrees.filter(degree => degree === 1).length === 2 &&
+        degrees.every(degree => degree === 1 || degree === 2);
+    }
+
+    function showOpenMovieChainCelebration() {
+      const dialog = document.getElementById("openMovieChainCelebration");
+      if (!dialog.open) dialog.showModal();
+    }
+
     // V68: independent, reversible milestones. Board data is read-only here.
     const cageMilestoneNames = [
       'All Matched!',
@@ -11704,8 +11721,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       const degrees = nodes.map(n => getDegree(n.id));
       const allMatched = nodes.length >= 2 && degrees.every(d => d >= 1);
       const singleGroup = nodes.length >= 2 && getConnectedNodeIds(nodes[0].id).size === nodes.length;
-      const inRow = nodes.length >= 3 && singleGroup && connections.length === nodes.length - 1 &&
-        degrees.filter(d => d === 1).length === 2 && degrees.every(d => d === 1 || d === 2);
+      const inRow = cageHasOpenMovieChain(degrees, singleGroup);
       const doubleConnected = singleGroup && degrees.every(d => d >= 2);
       const usedActors = [];
       const usedBridges = [];
@@ -14948,6 +14964,40 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
   }
 })();
 </script>
+
+<dialog id="openMovieChainCelebration" aria-labelledby="openMovieChainTitle" aria-describedby="openMovieChainNote">
+  <div class="open-chain-star">
+    <h2 id="openMovieChainTitle">You have connected all movies in a row!</h2>
+  </div>
+  <div id="openMovieChainGif"><img src="reactions/correct/bonus_correct_01.gif" alt="Nicolas Cage reaction" loading="lazy"></div>
+  <p id="openMovieChainNote">*You still need to connect those final two, but take the win.</p>
+  <form method="dialog"><button type="submit" autofocus>Close</button></form>
+</dialog>
+<style>
+#openMovieChainCelebration {
+  box-sizing:border-box; width:min(92vw,440px); max-height:92dvh; padding:16px 20px 20px;
+  border:1px solid #d7ac57; border-radius:14px; background:#21150f; color:#fff4db; text-align:center;
+}
+#openMovieChainCelebration::backdrop { background:rgba(0,0,0,.76); }
+.open-chain-star {
+  display:grid; place-items:center; width:min(100%,320px,52dvh); aspect-ratio:1; margin:auto;
+  position:relative; isolation:isolate;
+}
+.open-chain-star::before {
+  content:""; position:absolute; inset:0; z-index:-1;
+  clip-path:polygon(50% 0%, 64% 32%, 100% 36%, 74% 60%, 81% 96%, 50% 79%, 19% 96%, 26% 60%, 0% 36%, 36% 32%);
+  background:linear-gradient(155deg,#fff6c4,#f5c650 56%,#b8761c);
+}
+.open-chain-star h2 {
+  max-width:52%; margin:0; padding-top:10%; color:#2e180c;
+  font:700 clamp(14px,4vw,23px)/1.12 Georgia,serif;
+}
+#openMovieChainGif img { display:block; max-width:100%; max-height:28dvh; margin:0 auto; object-fit:contain; }
+#openMovieChainNote { margin:10px 0 16px; font-size:14px; }
+#openMovieChainCelebration button {
+  background:#3b2618; border-color:#d7ac57; color:#fff4db; min-height:40px;
+}
+</style>
 
 <style id="ccPopupTheme">
 /* Shared theme for the game's custom popup surfaces. */
