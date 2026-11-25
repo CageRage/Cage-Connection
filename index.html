@@ -11668,6 +11668,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
     let cageMilestoneQueue = [];
     let cageMilestoneShowing = false;
     let cageMilestoneInitialized = false;
+    let cageClosedLoopAchieved = false;
     function cageMilestoneScope() {
       const room = (typeof remoteRoomCode !== 'undefined' && remoteRoomCode) || 'local';
       return `cage-milestone-v68:${room}`;
@@ -11712,6 +11713,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       }
       // Board resets may reuse a game scope. An empty board clears earlier achievements.
       if (!nodes.length) {
+        cageClosedLoopAchieved = false;
         cageMilestoneStates = [false,false,false,false];
         cageMilestoneQueue = [];
         cageMilestoneInitialized = true;
@@ -11735,6 +11737,13 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       // Require all movies to participate before granting the no-replication award.
       const noRepeats = allMatched && distinct(usedActors) && distinct(usedBridges);
       const achieved = [allMatched, inRow, doubleConnected, noRepeats];
+      const closedLoop = nodes.length >= 3 && singleGroup && degrees.every(degree => degree === 2);
+      const justClosedLoop = cageMilestoneInitialized && closedLoop && !cageClosedLoopAchieved;
+      cageClosedLoopAchieved = closedLoop;
+      if (justClosedLoop) {
+        const dialog = document.getElementById('fullCageWinCelebration');
+        if (dialog && !dialog.open) dialog.showModal();
+      }
       if (!cageMilestoneInitialized) {
         // Existing rooms can have a full board at first render. Do not announce historical events.
         cageMilestoneStates = achieved;
@@ -14965,6 +14974,13 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
 })();
 </script>
 
+<dialog id="fullCageWinCelebration" aria-labelledby="fullCageWinTitle" aria-describedby="fullCageWinMessage fullCageWinNote">
+  <h2 id="fullCageWinTitle">YOU CONNECTED THE WHOLE CAGE!</h2>
+  <p id="fullCageWinMessage">Every movie. Every actor. Every last glorious connection. You're not just a winner. You're a <strong>NATIONAL TREASURE!</strong></p>
+  <p id="fullCageWinNote">Nicolas Cage would be proud. Nicolas Cage would also like to know how you did that.</p>
+  <form method="dialog"><button type="submit" autofocus>Close</button></form>
+</dialog>
+
 <dialog id="openMovieChainCelebration" aria-labelledby="openMovieChainTitle" aria-describedby="openMovieChainNote">
   <div class="open-chain-star">
     <h2 id="openMovieChainTitle">You have connected all movies in a row!</h2>
@@ -14974,11 +14990,11 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
   <form method="dialog"><button type="submit" autofocus>Close</button></form>
 </dialog>
 <style>
-#openMovieChainCelebration {
+:is(#openMovieChainCelebration, #fullCageWinCelebration) {
   box-sizing:border-box; width:min(92vw,440px); max-height:92dvh; padding:16px 20px 20px;
   border:1px solid #d7ac57; border-radius:14px; background:#21150f; color:#fff4db; text-align:center;
 }
-#openMovieChainCelebration::backdrop { background:rgba(0,0,0,.76); }
+:is(#openMovieChainCelebration, #fullCageWinCelebration)::backdrop { background:rgba(0,0,0,.76); }
 .open-chain-star {
   display:grid; place-items:center; width:min(100%,320px,52dvh); aspect-ratio:1; margin:auto;
   position:relative; isolation:isolate;
@@ -14994,7 +15010,10 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") dismiss
 }
 #openMovieChainGif img { display:block; max-width:100%; max-height:28dvh; margin:0 auto; object-fit:contain; }
 #openMovieChainNote { margin:10px 0 16px; font-size:14px; }
-#openMovieChainCelebration button {
+#fullCageWinTitle { color:#f5c650; font:700 clamp(24px,6vw,36px)/1.08 Georgia,serif; margin:8px 0 16px; }
+#fullCageWinMessage { font-size:18px; line-height:1.45; }
+#fullCageWinNote { font-size:14px; line-height:1.45; margin:12px 0 20px; }
+:is(#openMovieChainCelebration, #fullCageWinCelebration) button {
   background:#3b2618; border-color:#d7ac57; color:#fff4db; min-height:40px;
 }
 </style>
