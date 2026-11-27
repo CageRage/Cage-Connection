@@ -407,6 +407,7 @@
     '<div class="ccqc-stats">'+[['Connections',r.links.length],['Board movies',r.movies.length],['Chains / components',r.components.length],['Endpoints',r.ends.length]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+a[0]+'</div>').join('')+'</div>'+
     '<p class="ccqc-muted">'+(confirmationRoom()?'New confirmations are shared with players in this room. Only the player who shared a confirmation can remove it.':'Confirmations are saved in this browser.')+'</p>'+
     (sharedStatus?'<p role="status">'+esc(sharedStatus)+'</p>':'')+
+    '<div class="ccqc-issue"><strong>Online cast lookup</strong><div id="ccQcInternetResults" aria-live="polite"></div><button type="button" id="ccQcInternetButton">Check unresolved credits online</button></div>'+
     '<h3>Cast verification (game cast records)</h3>'+
     '<p class="ccqc-muted">Checks each saved actor against both relevant productions (four cast appearances for bridge connections). For credits that need review, save a source link after you verify the specific movie or show.</p>'+
     '<div class="ccqc-stats">'+[['Cast data matches',v.matched],['Manually confirmed',v.confirmed],['Needs review',v.review],['Unverified',v.unverified]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+esc(a[0])+'</div>').join('')+'</div>'+
@@ -414,7 +415,6 @@
       title:({review:'Review cast',unverified:'Unverified cast',confirmed:'Manually confirmed'})[x.status]+': '+x.label,
       detail:'',targets:x.targets,credits:x.checks.filter(c=>c.status!=='matched').map(creditHtml).join('')
     },x.status==='unverified'?'warn':'issue')).join('') || '<p class="ccqc-ok">All saved actor appearances match available cast records.</p>':'<p>No saved connections to check.</p>')+
-    '<div class="ccqc-issue"><strong>Independent online cast lookup</strong><p>When the local cast list is missing a credit, check the public Wikipedia cast section. A positive match includes a source link; absent names remain unverified and are never treated as proof of a false connection.</p><button type="button" id="ccQcInternetButton">Check unresolved credits online</button><div id="ccQcInternetResults" aria-live="polite"></div></div>'+
     '<h3>Findings ('+r.issues.length+')</h3>'+(r.issues.length?r.issues.map(x=>issueHtml(x,'issue')).join(''):'<p class="ccqc-ok">✓ No structural or exact-actor reuse problems detected.</p>')+
     '<h3>Review warnings ('+r.warnings.length+')</h3>'+(r.warnings.length?r.warnings.map(x=>issueHtml(x,'warn')).join(''):'<p class="ccqc-ok">✓ No additional review warnings.</p>')+
     '<p class="ccqc-muted">Actor reuse is checked against stored text, including bridge productions. Similar spellings are flagged only when plausible. Cast verification uses the existing game cast records. The automatic online check queries public Wikipedia cast sections for missing or questionable credits; it cannot certify every film credit. No connection is changed. Multiple chains or a loop can be legitimate; they are reported for awareness.</p>'+
