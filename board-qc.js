@@ -6,7 +6,7 @@
   const btn = document.createElement('button');
   btn.id = 'ccBoardQcOpen';
   btn.type = 'button';
-  btn.textContent = '✓ Verify Board';
+  btn.textContent = 'Verify the Entire Board';
   const separator = menu.querySelector('.tools-submenu-divider');
   if (separator) menu.insertBefore(btn, separator);
   else menu.prepend(btn);
@@ -249,7 +249,7 @@
     let credits=new Map(),status='';
     if(room){
       try { credits=await loadSharedCredits(room); }
-      catch { status='Room confirmations could not be loaded. Reopen Board QC to try again.'; }
+      catch { status='Room confirmations could not be loaded. Reopen Verify the Entire Board to try again.'; }
     }
     if(request!==openRequest||(room?.ref!==confirmationRoom()?.ref))return;
     sharedRoom=room;
@@ -354,7 +354,7 @@
       const ref=room.ref.child('qcCreditConfirmations').child(room.uid).child(entryId);
       await withFirebaseTimeout(ref.set(source?{key,source}:null));
     }catch{
-      status.textContent='The room did not confirm the change. Reopen Board QC to check.';
+      status.textContent='The room did not confirm the change. Reopen Verify the Entire Board to check.';
       button.disabled=false;
       return;
     }
@@ -362,7 +362,7 @@
     let credits;
     try { credits=await loadSharedCredits(room); }
     catch {
-      status.textContent='Change saved. Reopen Board QC to reload the room confirmations.';
+      status.textContent='Change saved. Reopen Verify the Entire Board to reload the room confirmations.';
       return;
     }
     if(!overlay?.contains(status)||confirmationRoom()?.ref!==room.ref)return;
@@ -375,12 +375,12 @@
     const room=confirmationRoom();
     const canShareLocal=shareLocal&&room&&check?.status==='confirmed'&&!check.shared;
     if(!check||(!canShareLocal&&(source ? !['review','unverified'].includes(check.status) : check.status!=='confirmed'))) {
-      status.textContent='This credit changed. Reopen Board QC and try again.';
+      status.textContent='This credit changed. Reopen Verify the Entire Board and try again.';
       return;
     }
     if(room&&(source||canShareLocal||check.shared)){
       if(room.ref!==sharedRoom?.ref||(!source&&!canShareLocal&&!check.shared?.own)){
-        status.textContent='Reopen Board QC to refresh room confirmations.';
+        status.textContent='Reopen Verify the Entire Board to refresh room confirmations.';
         return;
       }
       changeSharedCredit(room,key,canShareLocal?check.source:source,check.shared?.entryId,status,button);
@@ -402,8 +402,8 @@
     const v=verifyConnections();
     if(overlay)overlay.remove();
     overlay=document.createElement('div');overlay.id='ccBoardQcOverlay';
-    overlay.innerHTML='<section id="ccBoardQcDialog" role="dialog" aria-modal="true" aria-label="Board quality check">'+
-    '<div class="ccqc-top"><h2>✓ VERIFY BOARD</h2><button type="button" data-qc-close>Close</button></div>'+
+    overlay.innerHTML='<section id="ccBoardQcDialog" role="dialog" aria-modal="true" aria-label="Verify the Entire Board">'+
+    '<div class="ccqc-top"><h2>VERIFY THE ENTIRE BOARD</h2><button type="button" data-qc-close>Close</button></div>'+
     '<div class="ccqc-stats">'+[['Connections',r.links.length],['Board movies',r.movies.length],['Chains / components',r.components.length],['Endpoints',r.ends.length]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+a[0]+'</div>').join('')+'</div>'+
     '<p class="ccqc-muted">'+(confirmationRoom()?'New confirmations are shared with players in this room. Only the player who shared a confirmation can remove it.':'Confirmations are saved in this browser.')+'</p>'+
     (sharedStatus?'<p role="status">'+esc(sharedStatus)+'</p>':'')+
