@@ -6,7 +6,7 @@
   const btn = document.createElement('button');
   btn.id = 'ccBoardQcOpen';
   btn.type = 'button';
-  btn.textContent = '✓ Board QC';
+  btn.textContent = '✓ Verify Board';
   const separator = menu.querySelector('.tools-submenu-divider');
   if (separator) menu.insertBefore(btn, separator);
   else menu.prepend(btn);
@@ -256,6 +256,8 @@
     sharedCredits=credits;
     sharedStatus=status;
     show();
+    const onlineButton = document.getElementById('ccQcInternetButton');
+    if (onlineButton && !onlineButton.disabled) onlineButton.click();
   }
   function verifyConnections() {
     const board=typeof getBoardData==='function' ? getBoardData() : {nodes:[],connections:[]};
@@ -401,7 +403,7 @@
     if(overlay)overlay.remove();
     overlay=document.createElement('div');overlay.id='ccBoardQcOverlay';
     overlay.innerHTML='<section id="ccBoardQcDialog" role="dialog" aria-modal="true" aria-label="Board quality check">'+
-    '<div class="ccqc-top"><h2>✓ BOARD QUALITY CHECK</h2><button type="button" data-qc-close>Close</button></div>'+
+    '<div class="ccqc-top"><h2>✓ VERIFY BOARD</h2><button type="button" data-qc-close>Close</button></div>'+
     '<div class="ccqc-stats">'+[['Connections',r.links.length],['Board movies',r.movies.length],['Chains / components',r.components.length],['Endpoints',r.ends.length]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+a[0]+'</div>').join('')+'</div>'+
     '<p class="ccqc-muted">'+(confirmationRoom()?'New confirmations are shared with players in this room. Only the player who shared a confirmation can remove it.':'Confirmations are saved in this browser.')+'</p>'+
     (sharedStatus?'<p role="status">'+esc(sharedStatus)+'</p>':'')+
@@ -415,7 +417,7 @@
     '<div class="ccqc-issue"><strong>Independent online cast lookup</strong><p>When the local cast list is missing a credit, check the public Wikipedia cast section. A positive match includes a source link; absent names remain unverified and are never treated as proof of a false connection.</p><button type="button" id="ccQcInternetButton">Check unresolved credits online</button><div id="ccQcInternetResults" aria-live="polite"></div></div>'+
     '<h3>Findings ('+r.issues.length+')</h3>'+(r.issues.length?r.issues.map(x=>issueHtml(x,'issue')).join(''):'<p class="ccqc-ok">✓ No structural or exact-actor reuse problems detected.</p>')+
     '<h3>Review warnings ('+r.warnings.length+')</h3>'+(r.warnings.length?r.warnings.map(x=>issueHtml(x,'warn')).join(''):'<p class="ccqc-ok">✓ No additional review warnings.</p>')+
-    '<p class="ccqc-muted">Actor reuse is checked against stored text, including bridge productions. Similar spellings are flagged only when plausible. Cast verification uses the existing game cast records. The optional online check queries public Wikipedia cast sections for missing or questionable credits; it cannot certify every film credit. No connection is changed. Multiple chains or a loop can be legitimate; they are reported for awareness.</p>'+
+    '<p class="ccqc-muted">Actor reuse is checked against stored text, including bridge productions. Similar spellings are flagged only when plausible. Cast verification uses the existing game cast records. The automatic online check queries public Wikipedia cast sections for missing or questionable credits; it cannot certify every film credit. No connection is changed. Multiple chains or a loop can be legitimate; they are reported for awareness.</p>'+
     '<div style="text-align:right;margin-top:12px"><button type="button" data-qc-close>Close QC Review</button></div></section>';
     document.body.appendChild(overlay);
     overlay.querySelector('[data-qc-close]').focus({preventScroll:true});
