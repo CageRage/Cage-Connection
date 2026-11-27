@@ -11831,9 +11831,14 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       const status = document.getElementById("boardConnectionStatus");
       const remaining = new Set(nodes.map(movie => movie.id));
       let groupCount = 0;
+      let hasClosedGroup = false;
       for (const id of remaining) {
         groupCount++;
-        for (const connectedId of getConnectedNodeIds(id)) remaining.delete(connectedId);
+        const group = getConnectedNodeIds(id);
+        for (const connectedId of group) remaining.delete(connectedId);
+        if (group.size >= 3 && [...group].every(movieId => getDegree(movieId) === 2)) {
+          hasClosedGroup = true;
+        }
       }
 
       const movie = nodes.find(node => node.id === focusedNodeId);
@@ -11845,7 +11850,9 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         : "";
       status.toggleAttribute("data-incomplete", groupCount > 1);
       status.hidden = nodes.length < 2;
-      const message = status.hidden ? "" : summary + detail;
+      const blockedByLoop = groupCount > 1 && hasClosedGroup;
+      const loopWarning = "This circular connection will never allow the completion of Cage Connection. Continue as-is if you’re Fast and Furious. Otherwise, break the connection and try again.";
+      const message = status.hidden ? "" : blockedByLoop ? loopWarning : summary + detail;
       if (status.textContent !== message) status.textContent = message;
     }
 
