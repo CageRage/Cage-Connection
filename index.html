@@ -11995,11 +11995,12 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         if (Math.abs(dx)<8 && rowGap>=48 && rowGap<=135) continue;
         if (Math.hypot(dx, dy) <= maxDistance &&
             ![...movies.values()].some(rect=>rect!==a && rect!==b && crossesMovie(a,b,rect))) continue;
-        // Prefer full-size copies and use compact inline copies when a row is tight.
-        // A copy above or below its anchor breaks the horizontal reading order.
-        for (const [gap,maxWidth] of [[64,Infinity],[48,Infinity],[40,96]]) {
-          for (const direction of [1,-1]) {
-            for (const [anchor,original,replaceStart] of [[a,b,false],[b,a,true]]) {
+        // Show the same saved connection at both ends of a split row.
+        const copies = [];
+        for (const [anchor, original, replaceStart] of [[a,b,false],[b,a,true]]) {
+          let copy;
+          for (const [gap,maxWidth] of [[64,Infinity],[48,Infinity],[40,96],[36,64]]) {
+            for (const direction of [1,-1]) {
               const w = Math.min(original.w,maxWidth), h = original.h;
               const [,cy] = center(anchor);
               const edge = direction===1 ? anchor.x+anchor.w : anchor.x;
@@ -12010,14 +12011,15 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
               };
               if (space.x<0 || space.y<0 || space.x+space.w>width || space.y+space.h>height ||
                   occupied.some(rect=>rect!==anchor && overlaps(space,rect))) continue;
+              copy = {tile,originalId:replaceStart?link.a.id:link.b.id,replaceStart};
               occupied.push(space);
-              aliases.set(link.id,{tile,originalId:replaceStart?link.a.id:link.b.id,replaceStart});
               break;
             }
-            if (aliases.has(link.id)) break;
+            if (copy) break;
           }
-          if (aliases.has(link.id)) break;
+          if (copy) copies.push(copy);
         }
+        if (copies.length) aliases.set(link.id,copies);
       }
       return aliases;
     }
@@ -12122,112 +12124,115 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       const etiquetteDuplicates = ccRepeatedNonCageBridges();
 
       for (const c of connections) {
-        const alias = aliases.get(c.id);
-        if (alias) ccRenderMovieAlias(alias,c);
-        const a = alias?.replaceStart ? alias.tile : measured.get(c.a.id);
-        const b = alias && !alias.replaceStart ? alias.tile : measured.get(c.b.id);
-        const {w:aWidth,h:aHeight}=a, {w:bWidth,h:bHeight}=b;
-        let x1=a.x+aWidth/2, y1=a.y+aHeight/2;
-        let x2=b.x+bWidth/2, y2=b.y+bHeight/2;
-
-        // Close cards can conceal the center-to-center line.
-        const cardsOverlapOrTouch =
-          a.x <= b.x + bWidth + 8 && b.x <= a.x + aWidth + 8 &&
-          a.y <= b.y + bHeight + 8 && b.y <= a.y + aHeight + 8;
-        if (cardsOverlapOrTouch) {
-          const labelY = Math.max(22, Math.min(a.y, b.y) - 18);
-          y1 = labelY;
-          y2 = labelY;
-        }
-
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", x1);
-        line.setAttribute("y1", y1);
-        line.setAttribute("x2", x2);
-        line.setAttribute("y2", y2);
-        line.setAttribute("class", "connection-line"+(etiquetteDuplicates.has(c.id)?" cc-etiquette-repeat":""));
-        if (etiquetteDuplicates.has(c.id)) line.setAttribute("aria-label", "Questionable Etiquette: repeated "+c.bridgeTitle+" bridge production");
-        svg.appendChild(line);
-
-        // Mark the downward turn between aligned cards at neighboring row ends.
-        const upper = a.y < b.y ? a : b;
-        const lower = upper === a ? b : a;
-        const rowGap = lower.y - (upper.y + upper.h);
-        if (!alias && Math.abs(x1 - x2) < 8 && rowGap >= 48 && rowGap <= 135) {
-          const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          const x = (x1 + x2) / 2;
-          const y = (y1 + y2) / 2 + 18;
-          arrow.setAttribute("d", `M ${x - 6} ${y} l 6 6 l 6 -6`);
-          arrow.setAttribute("class", "cc-board-row-arrow");
-          svg.appendChild(arrow);
-        }
-
-        const hitbox = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        hitbox.setAttribute("x1", x1);
-        hitbox.setAttribute("y1", y1);
-        hitbox.setAttribute("x2", x2);
-        hitbox.setAttribute("y2", y2);
-        hitbox.setAttribute("class", "connection-hitbox");
-        hitbox.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (ccConnectionDetailsClick(e, c)) return;
-if (breakConnectionMode) {
-  breakConnectionFromBoard(c.id);
-} else if (challengeMode) {
-  challengeConnection(c.id);
-} else {
-  editConnection(c.id);
-}        });
-        svg.appendChild(hitbox);
-
-        const midX = (x1 + x2) / 2;
-        const midY = (y1 + y2) / 2;
-
-        const horizontalGap = Math.max(b.x - (a.x + aWidth), a.x - (b.x + bWidth));
-        const sameRow = Math.abs(y1 - y2) < 8 && !cardsOverlapOrTouch;
-        const labelWidth = sameRow ? Math.max(34, Math.min(152, horizontalGap - 6)) : 152;
-        const label = c.type === "shared" ? c.sharedActor : c.bridgeTitle;
-        const lines = ccWrapConnectorLabel(label, labelWidth - 8, labelMeasure);
-        const labelHeight = Math.max(24, lines.length * 13 + 8);
-
-        const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        bg.setAttribute("x", midX - labelWidth / 2);
-        bg.setAttribute("y", midY - labelHeight / 2);
-        bg.setAttribute("width", labelWidth);
-        bg.setAttribute("height", labelHeight);
-        bg.setAttribute("rx", 3);
-        bg.setAttribute("class", "connection-label-bg"+(etiquetteDuplicates.has(c.id)?" cc-etiquette-repeat":""));
-
-        const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        title.setAttribute("class", "connection-title");
-        lines.forEach((part, index) => {
-          const span = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-          span.setAttribute("x", midX);
-          span.setAttribute("y", midY + 4 + (index - (lines.length - 1) / 2) * 13);
-          if (labelMeasure.measureText(part).width > labelWidth - 8) {
-            span.setAttribute("textLength", labelWidth - 8);
-            span.setAttribute("lengthAdjust", "spacingAndGlyphs");
-          }
-          span.textContent = part + (index < lines.length - 1 ? " " : "");
-          title.appendChild(span);
-        });
-
-        for (const el of [bg, title]) {
-          el.addEventListener("click", event => {
-            event.stopPropagation();
-            if (ccConnectionDetailsClick(event, c)) return;
-            if (breakConnectionMode) breakConnectionFromBoard(c.id);
-            else if (challengeMode) challengeConnection(c.id);
-            else editConnection(c.id);
-          });
-          svg.appendChild(el);
-          ccBindConnectionDetails(el, c, c.type === "bridge");
-        }
-        ccBindConnectionDetails(hitbox, c);
+        const copies = aliases.get(c.id) || [];
+        // Keep the original route visible if either endpoint has no room for a copy.
+        const routes = copies.length === 2 ? copies : [null, ...copies];
+        for (const alias of routes) drawConnectionRoute(c, alias, measured, etiquetteDuplicates.has(c.id));
       }
 
       applyFocusStyles();
       updateScoreDisplay();
+    }
+
+    function drawConnectionRoute(c, alias, measured, repeatedBridge) {
+      if (alias) ccRenderMovieAlias(alias,c);
+      const a = alias?.replaceStart ? alias.tile : measured.get(c.a.id);
+      const b = alias && !alias.replaceStart ? alias.tile : measured.get(c.b.id);
+      const {w:aWidth,h:aHeight}=a, {w:bWidth,h:bHeight}=b;
+      let x1=a.x+aWidth/2, y1=a.y+aHeight/2;
+      let x2=b.x+bWidth/2, y2=b.y+bHeight/2;
+
+      // Close cards can conceal the center-to-center line.
+      const cardsOverlapOrTouch =
+        a.x <= b.x + bWidth + 8 && b.x <= a.x + aWidth + 8 &&
+        a.y <= b.y + bHeight + 8 && b.y <= a.y + aHeight + 8;
+      if (cardsOverlapOrTouch) {
+        const labelY = Math.max(22, Math.min(a.y, b.y) - 18);
+        y1 = labelY;
+        y2 = labelY;
+      }
+
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", x1);
+      line.setAttribute("y1", y1);
+      line.setAttribute("x2", x2);
+      line.setAttribute("y2", y2);
+      line.setAttribute("class", "connection-line"+(repeatedBridge?" cc-etiquette-repeat":""));
+      if (repeatedBridge) line.setAttribute("aria-label", "Questionable Etiquette: repeated "+c.bridgeTitle+" bridge production");
+      svg.appendChild(line);
+
+      // Mark the downward turn between aligned cards at neighboring row ends.
+      const upper = a.y < b.y ? a : b;
+      const lower = upper === a ? b : a;
+      const rowGap = lower.y - (upper.y + upper.h);
+      if (!alias && Math.abs(x1 - x2) < 8 && rowGap >= 48 && rowGap <= 135) {
+        const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const x = (x1 + x2) / 2;
+        const y = (y1 + y2) / 2 + 18;
+        arrow.setAttribute("d", `M ${x - 6} ${y} l 6 6 l 6 -6`);
+        arrow.setAttribute("class", "cc-board-row-arrow");
+        svg.appendChild(arrow);
+      }
+
+      const hitbox = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      hitbox.setAttribute("x1", x1);
+      hitbox.setAttribute("y1", y1);
+      hitbox.setAttribute("x2", x2);
+      hitbox.setAttribute("y2", y2);
+      hitbox.setAttribute("class", "connection-hitbox");
+      hitbox.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (ccConnectionDetailsClick(e, c)) return;
+        if (breakConnectionMode) breakConnectionFromBoard(c.id);
+        else if (challengeMode) challengeConnection(c.id);
+        else editConnection(c.id);
+      });
+      svg.appendChild(hitbox);
+
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+
+      const horizontalGap = Math.max(b.x - (a.x + aWidth), a.x - (b.x + bWidth));
+      const sameRow = Math.abs(y1 - y2) < 8 && !cardsOverlapOrTouch;
+      const labelWidth = sameRow ? Math.max(34, Math.min(152, horizontalGap - 6)) : 152;
+      const label = c.type === "shared" ? c.sharedActor : c.bridgeTitle;
+      const lines = ccWrapConnectorLabel(label, labelWidth - 8, labelMeasure);
+      const labelHeight = Math.max(24, lines.length * 13 + 8);
+
+      const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      bg.setAttribute("x", midX - labelWidth / 2);
+      bg.setAttribute("y", midY - labelHeight / 2);
+      bg.setAttribute("width", labelWidth);
+      bg.setAttribute("height", labelHeight);
+      bg.setAttribute("rx", 3);
+      bg.setAttribute("class", "connection-label-bg"+(repeatedBridge?" cc-etiquette-repeat":""));
+
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      title.setAttribute("class", "connection-title");
+      lines.forEach((part, index) => {
+        const span = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        span.setAttribute("x", midX);
+        span.setAttribute("y", midY + 4 + (index - (lines.length - 1) / 2) * 13);
+        if (labelMeasure.measureText(part).width > labelWidth - 8) {
+          span.setAttribute("textLength", labelWidth - 8);
+          span.setAttribute("lengthAdjust", "spacingAndGlyphs");
+        }
+        span.textContent = part + (index < lines.length - 1 ? " " : "");
+        title.appendChild(span);
+      });
+
+      for (const el of [bg, title]) {
+        el.addEventListener("click", event => {
+          event.stopPropagation();
+          if (ccConnectionDetailsClick(event, c)) return;
+          if (breakConnectionMode) breakConnectionFromBoard(c.id);
+          else if (challengeMode) challengeConnection(c.id);
+          else editConnection(c.id);
+        });
+        svg.appendChild(el);
+        ccBindConnectionDetails(el, c, c.type === "bridge");
+      }
+      ccBindConnectionDetails(hitbox, c);
     }
 
     function snapToGrid(value, gridSize) {
