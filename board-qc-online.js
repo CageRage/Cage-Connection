@@ -7,7 +7,7 @@
   const pageLink=title=>'https://en.wikipedia.org/wiki/'+encodeURIComponent(title.replace(/ /g,'_'));
   async function request(params){
     const q=new URLSearchParams({action:'parse',format:'json',formatversion:'2',origin:'*',...params});
-    const response=await fetch(api+'?'+q.toString(),{credentials:'omit'});
+    const response=await fetch(api+'?'+q.toString(),{credentials:'omit',signal:AbortSignal.timeout(15000)});
     if(!response.ok)throw Error('Wikipedia HTTP '+response.status);
     const result=await response.json();
     if(result.error)throw Error(result.error.info||result.error.code);
@@ -15,7 +15,7 @@
   }
   async function searchPages(movie) {
     const q=new URLSearchParams({action:'query',list:'search',srsearch:'intitle:"'+movie+'" film',srlimit:'6',format:'json',origin:'*'});
-    const response=await fetch(api+'?'+q.toString(),{credentials:'omit'});
+    const response=await fetch(api+'?'+q.toString(),{credentials:'omit',signal:AbortSignal.timeout(15000)});
     if(!response.ok)throw Error('Wikipedia HTTP '+response.status);
     const result=await response.json();
     return result.query?.search?.map(x=>x.title)||[];
@@ -64,17 +64,17 @@
       return norm(credited)===name;
     });
   }
-  let running=false;
+  let activeHolder=null;
   async function runOnline(button){
-    if(running||typeof window.ccBoardQcVerifyConnections!=='function')return;
+    if(typeof window.ccBoardQcVerifyConnections!=='function')return;
     const holder=document.getElementById('ccQcInternetResults');
-    if(!holder)return;
+    if(!holder||activeHolder===holder)return;
     const checks=window.ccBoardQcVerifyConnections().results
       .flatMap(r=>r.checks.filter(x=>['review','unverified'].includes(x.status)&&x.production!=='Game rule')
         .map(x=>({connection:r.label,production:x.production,actor:x.actor})));
     const unique=[...new Map(checks.map(x=>[norm(x.production)+'|'+norm(x.actor),x])).values()];
     if(!unique.length){holder.textContent='No unresolved cast appearances need online research.';return;}
-    running=true;button.disabled=true;
+    activeHolder=holder;button.disabled=true;
     let verified=0,open=0;
     // Small batches protect the public API from bursts and avoid hitting rate limits.
     const batches=[];
@@ -85,9 +85,10 @@
     try{
       for(let bi=0;bi<batches.length;bi++){
         for(const item of batches[bi]){
-          if(!document.getElementById('ccQcInternetResults'))return;
+          if(!holder.isConnected||activeHolder!==holder)return;
           summary.textContent='Checking Wikipedia cast sections: '+(verified+open)+' of '+unique.length+' completed…';
           const source=await sourceFor(item.production);
+          if(!holder.isConnected||activeHolder!==holder)return;
           const positive=source.status==='source'&&hasCastCredit(source.cast,item.actor);
           const entry=document.createElement('p');
           const marker=document.createElement('strong');
@@ -107,14 +108,14 @@
         if(bi<batches.length-1)await new Promise(resolve=>setTimeout(resolve,550));
       }
       summary.textContent='Online research complete: '+verified+' source matches, '+open+' still requiring review. These are individual actor appearances, not verified entire connections.';
-    }finally{running=false;button.disabled=false;}
+    }finally{if(activeHolder===holder)activeHolder=null;button.disabled=false;}
   }
   document.addEventListener('click',e=>{
     const button=e.target.closest?.('#ccQcInternetButton');
     if(button)runOnline(button).catch(err=>{
       const target=document.getElementById('ccQcInternetResults');
-      if(target)target.textContent='Online lookup stopped: '+(err.message||err)+'. Try again.';
-      running=false;button.disabled=false;
+      if(target&&button.isConnected)target.textContent='Online lookup stopped: '+(err.message||err)+'. Try again.';
+      button.disabled=false;
     });
   });
 })();
