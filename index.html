@@ -4015,6 +4015,9 @@ body[data-card-size="compact"] #surface .node::before {
 <style id="ccConnectionDetailsStyles">
 .cc-board-row-arrow { fill:none; stroke:#b99668; stroke-width:2; pointer-events:none; }
 #surface .cc-movie-alias { position:absolute; z-index:3; box-sizing:border-box; display:grid; place-content:center; gap:4px; padding:5px; border:1px dashed #98a8c0; border-radius:8px; background:#202d40; color:#fff; text-align:center; overflow-wrap:anywhere; cursor:pointer; touch-action:manipulation; }
+#boardConnectionStatus { margin: 6px 0; color: inherit; font-size: .875rem; }
+#boardConnectionStatus[data-incomplete] { padding: 8px 12px; border-left: 3px solid #ffd54a; background: #302813; color: #fff0bd; }
+#surface .cc-movie-alias.dimmed { opacity: .35; }
 #surface .cc-movie-alias small { color:#c5d4e8; }
 #surface .cc-movie-alias strong { min-width:0; overflow-wrap:anywhere; }
 #surface .cc-movie-alias:focus-visible { outline:2px solid #ffd54a; outline-offset:2px; }
@@ -4182,6 +4185,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 
       <input id="importFile" type="file" accept="application/json,.json,.txt" style="display:none" onchange="importBoardFromFile(event)" />
 
+  <p id="boardConnectionStatus" role="status" aria-atomic="true" hidden></p>
   <div id="topBoardScroll" aria-label="Board horizontal scrollbar" title="Scroll the movie board left and right">
     <div id="topBoardScrollSpacer"></div>
   </div>
@@ -11809,36 +11813,41 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
         else n.el.classList.add("dimmed");
       });
 
-      const lineEls = svg.querySelectorAll(".connection-line");
-      const bgEls = svg.querySelectorAll(".connection-label-bg");
-      const titleEls = svg.querySelectorAll(".connection-title");
-
-      connections.forEach((c, index) => {
-        const active = !focusedNodeId || (activeNodeIds.has(c.a.id) && activeNodeIds.has(c.b.id));
-
-        const line = lineEls[index];
-        const bg = bgEls[index];
-        const title = titleEls[index];
-
-        if (!line || !bg || !title) return;
-
-        line.classList.remove("active", "dimmed");
-        bg.classList.remove("active", "dimmed");
-        title.classList.remove("label-dimmed");
-
-        if (!focusedNodeId) return;
-
-        if (active) {
-          line.classList.add("active");
-          bg.classList.add("active");
-        } else {
-          line.classList.add("dimmed");
-          bg.classList.add("dimmed");
-          title.classList.add("label-dimmed");
-        }
+      const activeLinks = new Set(connections
+        .filter(c => activeNodeIds.has(c.a.id) && activeNodeIds.has(c.b.id))
+        .map(c => String(c.id)));
+      surface.querySelectorAll("[data-board-connection-id]").forEach(el => {
+        const active = !!focusedNodeId && activeLinks.has(el.dataset.boardConnectionId);
+        const dimmed = !!focusedNodeId && !active;
+        el.classList.toggle("active", active);
+        el.classList.toggle(el.classList.contains("connection-title") ? "label-dimmed" : "dimmed", dimmed);
       });
+
+      updateBoardConnectionStatus(activeNodeIds);
     }
 
+
+    function updateBoardConnectionStatus(activeNodeIds) {
+      const status = document.getElementById("boardConnectionStatus");
+      const remaining = new Set(nodes.map(movie => movie.id));
+      let groupCount = 0;
+      for (const id of remaining) {
+        groupCount++;
+        for (const connectedId of getConnectedNodeIds(id)) remaining.delete(connectedId);
+      }
+
+      const movie = nodes.find(node => node.id === focusedNodeId);
+      const summary = groupCount > 1
+        ? `The board can't be completed yet. ${groupCount} separate movie groups remain. Connect the groups to finish.`
+        : "All movies are in one connected group.";
+      const detail = movie && groupCount > 1
+        ? ` ${movie.name} is in a group of ${activeNodeIds.size} of ${nodes.length} movies.`
+        : "";
+      status.toggleAttribute("data-incomplete", groupCount > 1);
+      status.hidden = nodes.length < 2;
+      const message = status.hidden ? "" : summary + detail;
+      if (status.textContent !== message) status.textContent = message;
+    }
 
     // Read-only connection inspection. Saved links remain the sole source of details.
     var ccConnectionDetailsState;
@@ -12030,6 +12039,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       button.type = "button";
       button.className = "cc-movie-alias";
       button.dataset.movieId = alias.originalId;
+      button.dataset.boardConnectionId = connection.id;
       Object.assign(button.style,{left:alias.tile.x+"px",top:alias.tile.y+"px",
         width:alias.tile.w+"px",height:alias.tile.h+"px",zIndex:String(Number(getComputedStyle(svg).zIndex)+1||3)});
       const label = document.createElement("small");
@@ -12159,6 +12169,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       line.setAttribute("y2", y2);
       line.setAttribute("class", "connection-line"+(repeatedBridge?" cc-etiquette-repeat":""));
       if (repeatedBridge) line.setAttribute("aria-label", "Questionable Etiquette: repeated "+c.bridgeTitle+" bridge production");
+      line.dataset.boardConnectionId = c.id;
       svg.appendChild(line);
 
       // Mark the downward turn between aligned cards at neighboring row ends.
@@ -12222,6 +12233,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       });
 
       for (const el of [bg, title]) {
+        el.dataset.boardConnectionId = c.id;
         el.addEventListener("click", event => {
           event.stopPropagation();
           if (ccConnectionDetailsClick(event, c)) return;
