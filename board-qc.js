@@ -25,7 +25,7 @@
     '#ccBoardQcDialog .ccqc-stats{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}',
     '#ccBoardQcDialog .ccqc-stat{flex:1 1 100px;border:1px solid #795d38;border-radius:7px;text-align:center;padding:8px}',
     '#ccBoardQcDialog .ccqc-stat strong{display:block;color:#f0c776;font-size:24px}',
-    '#ccBoardQcDialog .ccqc-issue{background:#1c150f;border:1px solid #695236;border-radius:6px;padding:10px;margin:7px 0}',
+    '#ccBoardQcDialog .ccqc-issue{font-size:18px;background:#1c150f;border:1px solid #695236;border-radius:6px;padding:10px;margin:7px 0}',
     '#ccBoardQcDialog .ccqc-issue button{font-size:12px;margin:6px 5px 0 0}',
     '#ccBoardQcDialog .ccqc-muted{font-size:12px;color:#c7b596}',
     '#ccBoardQcDialog .ccqc-credit{border-top:1px solid #695236;margin-top:8px;padding-top:8px;overflow-wrap:anywhere}',
@@ -34,6 +34,7 @@
     '#ccBoardQcDialog .ccqc-credit input{box-sizing:border-box;display:block;width:100%;max-width:28rem;margin:4px 0;padding:6px}',
     '#ccBoardQcDialog .ccqc-ok{color:#a9dc9e}',
     '#ccBoardQcDialog .ccqc-warning{color:#f3ce7e}',
+    '#ccBoardQcDialog .ccqc-verdict{font-size:18px}',
     '@media(max-width:600px){#ccBoardQcDialog{padding:13px}#ccBoardQcDialog h2{font-size:19px}}'
   ].join('\n');
   document.head.appendChild(css);
@@ -530,7 +531,7 @@
     '<div class="ccqc-top"><h2>VERIFY THE ENTIRE BOARD</h2><button type="button" data-qc-export>Export for Independent Verification</button><button type="button" data-qc-close>Close</button></div>'+
     '<div class="ccqc-stats">'+[['Connections',r.links.length],['Board movies',r.movies.length],['Chains / components',r.components.length],['Endpoints',r.ends.length]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+a[0]+'</div>').join('')+'</div>'+
     '<p class="ccqc-muted">'+(confirmationRoom()?'New confirmations are shared with players in this room. Only the player who shared a confirmation can remove it.':'Confirmations are saved in this browser.')+'</p>'+
-    '<p role="status"><strong>'+esc(boardVerdict(r,v))+'</strong></p>'+
+    '<p class="ccqc-verdict" role="status"><strong>'+esc(boardVerdict(r,v))+'</strong></p>'+
     (sharedStatus?'<p role="status">'+esc(sharedStatus)+'</p>':'')+
     '<div class="ccqc-issue"><strong>Online cast lookup</strong><div id="ccQcInternetResults" aria-live="polite"></div><button type="button" id="ccQcInternetButton">Start extended Wikipedia lookup</button></div>'+
     '<h3>Cast verification (game cast records)</h3>'+
