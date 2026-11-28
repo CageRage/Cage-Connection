@@ -11777,6 +11777,7 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
       renderBoardListMode();
       redrawNodes();
       cageEvaluateBoardMilestones();
+      window.ccRefereeObserveBoard?.();
 
       if (!nodes.length) {
         if (!connectModeActive) setStatus("Ready.");
@@ -15204,7 +15205,8 @@ body.break-connect-mode #surface > svg .connection-label-bg {
 
 
 <!-- Read-only board diagnostics: loaded after the existing game logic. -->
-<script src="board-qc.js?v=published-cast-evidence-1" defer></script>
+<script src="board-qc.js?v=referee-trial-1" defer></script>
 <script src="board-qc-online.js?v=deep-verdict-1" defer></script>
+<script src="board-referee-trial.js?v=1" defer></script>
 </body>
 </html> 
