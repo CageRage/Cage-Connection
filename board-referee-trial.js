@@ -50,23 +50,57 @@
     module.exports = {inspectConnection, createObserver};
     return;
   }
-  const trialRequested = new URLSearchParams(location.search).get('referee') === 'trial';
-  if (!trialRequested || typeof getBoardData !== 'function') return;
+  if (typeof getBoardData !== 'function') return;
+  const menu = document.querySelector('.tools-menu-panel');
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  const setting = 'cage-connection-referee-trial';
+  const linkedTrial = new URLSearchParams(location.search).get('referee') === 'trial';
+  let enabled = linkedTrial;
+  try {
+    enabled ||= localStorage.getItem(setting) === 'on';
+  } catch {}
 
-  const observe = createObserver({
-    check: (board,link) => inspectConnection(board,link,window.ccPublishedCreditSource),
-    defer: work => setTimeout(work,0),
-    notify: (board,link,verdict) => {
-      const name = id => board.nodes.find(movie => movie.id === id)?.name || 'Unknown movie';
-      const notice = document.createElement('p');
-      notice.setAttribute('role','status');
-      notice.textContent = 'Referee trial: '+name(link.aId)+' to '+name(link.bId)+'. '+verdict.reason;
-      document.getElementById('boardConnectionStatus')?.insertAdjacentElement('afterend',notice);
-    }
-  });
-  window.ccRefereeObserveBoard = () => {
+  let observe;
+  function observeBoard() {
     const room = typeof remoteRoomCode === 'string' ? remoteRoomCode : '';
     observe(room || 'local',getBoardData());
-  };
-  window.ccRefereeObserveBoard();
+  }
+
+  function updateTrial() {
+    toggle.textContent = 'Automatic Referee Trial: '+(enabled?'On':'Off');
+    toggle.setAttribute('aria-pressed',String(enabled));
+    if (!enabled) {
+      delete window.ccRefereeObserveBoard;
+      observe = undefined;
+      return;
+    }
+    const observer = createObserver({
+      check: (board,link) => inspectConnection(board,link,window.ccPublishedCreditSource),
+      defer: work => setTimeout(() => { if (observe === observer) work(); },0),
+      notify: (board,link,verdict) => {
+        const name = id => board.nodes.find(movie => movie.id === id)?.name || 'Unknown movie';
+        const notice = document.createElement('p');
+        notice.setAttribute('role','status');
+        notice.textContent = 'Referee trial: '+name(link.aId)+' to '+name(link.bId)+'. '+verdict.reason;
+        document.getElementById('boardConnectionStatus')?.insertAdjacentElement('afterend',notice);
+      }
+    });
+    observe = observer;
+    window.ccRefereeObserveBoard = observeBoard;
+    observeBoard();
+  }
+
+  toggle.addEventListener('click',() => {
+    enabled = !enabled;
+    try { localStorage.setItem(setting,enabled?'on':'off'); } catch {}
+    const url = new URL(location.href);
+    if (!enabled && url.searchParams.has('referee')) {
+      url.searchParams.delete('referee');
+      history.replaceState(history.state,'',url);
+    }
+    updateTrial();
+  });
+  menu?.appendChild(toggle);
+  updateTrial();
 })();
