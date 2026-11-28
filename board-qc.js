@@ -256,8 +256,6 @@
     sharedCredits=credits;
     sharedStatus=status;
     show();
-    const onlineButton = document.getElementById('ccQcInternetButton');
-    if (onlineButton && !onlineButton.disabled) onlineButton.click();
   }
   function verifyConnections() {
     const board=typeof getBoardData==='function' ? getBoardData() : {nodes:[],connections:[]};
@@ -428,6 +426,20 @@
     setTimeout(() => URL.revokeObjectURL(url),1000);
   }
 
+  function boardVerdict(structure, cast) {
+    const count = structure.movies.length;
+    if (!count) return 'No board to verify.';
+    const fullLoop = count >= 3 && structure.components.length === 1 &&
+      structure.ends.length === 0 && structure.links.length === count &&
+      !structure.issues.some(issue => issue.title === 'Branching movies');
+    if (!fullLoop) return 'Win conditions not met: the board is not one complete loop.';
+    const otherIssues = structure.issues.filter(issue => issue.title !== 'Circular connection(s)');
+    const badConnector = cast.results.some(link => link.checks.some(check => check.production === 'Game rule'));
+    if (otherIssues.length || badConnector) return 'Full loop found. Resolve the rule findings before claiming a win.';
+    if (cast.review || cast.unverified) return 'Full loop found. Win unverified: cast credits still need review.';
+    return 'Full loop found. All saved links pass the available cast and rule checks.';
+  }
+
   function show(scrollTop=0){
     const r=scan();
     const v=verifyConnections();
@@ -437,8 +449,9 @@
     '<div class="ccqc-top"><h2>VERIFY THE ENTIRE BOARD</h2><button type="button" data-qc-export>Export for Independent Verification</button><button type="button" data-qc-close>Close</button></div>'+
     '<div class="ccqc-stats">'+[['Connections',r.links.length],['Board movies',r.movies.length],['Chains / components',r.components.length],['Endpoints',r.ends.length]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+a[0]+'</div>').join('')+'</div>'+
     '<p class="ccqc-muted">'+(confirmationRoom()?'New confirmations are shared with players in this room. Only the player who shared a confirmation can remove it.':'Confirmations are saved in this browser.')+'</p>'+
+    '<p role="status"><strong>'+esc(boardVerdict(r,v))+'</strong></p>'+
     (sharedStatus?'<p role="status">'+esc(sharedStatus)+'</p>':'')+
-    '<div class="ccqc-issue"><strong>Online cast lookup</strong><div id="ccQcInternetResults" aria-live="polite"></div><button type="button" id="ccQcInternetButton">Check unresolved credits online</button></div>'+
+    '<div class="ccqc-issue"><strong>Online cast lookup</strong><div id="ccQcInternetResults" aria-live="polite"></div><button type="button" id="ccQcInternetButton">Start extended Wikipedia lookup</button></div>'+
     '<h3>Cast verification (game cast records)</h3>'+
     '<p class="ccqc-muted">Checks each saved actor against both relevant productions (four cast appearances for bridge connections). For credits that need review, save a source link after you verify the specific movie or show.</p>'+
     '<div class="ccqc-stats">'+[['Cast data matches',v.matched],['Manually confirmed',v.confirmed],['Needs review',v.review],['Unverified',v.unverified]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+esc(a[0])+'</div>').join('')+'</div>'+
@@ -448,7 +461,7 @@
     },x.status==='unverified'?'warn':'issue')).join('') || '<p class="ccqc-ok">All saved actor appearances match available cast records.</p>':'<p>No saved connections to check.</p>')+
     '<h3>Findings ('+r.issues.length+')</h3>'+(r.issues.length?r.issues.map(x=>issueHtml(x,'issue')).join(''):'<p class="ccqc-ok">✓ No structural or exact-actor reuse problems detected.</p>')+
     '<h3>Review warnings ('+r.warnings.length+')</h3>'+(r.warnings.length?r.warnings.map(x=>issueHtml(x,'warn')).join(''):'<p class="ccqc-ok">✓ No additional review warnings.</p>')+
-    '<p class="ccqc-muted">Actor reuse is checked against stored text, including bridge productions. Similar spellings are flagged only when plausible. Cast verification uses the existing game cast records. The automatic online check queries public Wikipedia cast sections for missing or questionable credits; it cannot certify every film credit. No connection is changed. Multiple chains or a loop can be legitimate; they are reported for awareness.</p>'+
+    '<p class="ccqc-muted">Actor reuse is checked against stored text, including bridge productions. Similar spellings are flagged only when plausible. Cast verification uses the existing game cast records. The optional extended lookup queries public Wikipedia cast sections for missing or questionable credits; it cannot certify every film credit. No connection is changed. Multiple chains or a loop can be legitimate; they are reported for awareness.</p>'+
     '<div style="text-align:right;margin-top:12px"><button type="button" data-qc-close>Close QC Review</button></div></section>';
     document.body.appendChild(overlay);
     overlay.querySelector('[data-qc-close]').focus({preventScroll:true});
