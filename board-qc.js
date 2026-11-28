@@ -296,8 +296,17 @@
       source:'https://www.eyefilm.nl/en/whats-on/caravaggio/1468204' },
     { title:'Titanic', year:1997, actor:'Suzanne Somers', alias:'Suzanne Sommers', counterpart:'Kate Winslet',
       status:'review', detail:'The full Titanic (1997) cast listing does not identify Suzanne Somers. An acting appearance still needs evidence.',
-      source:'https://www.imdb.com/title/tt0120338/fullcredits/cast' }
+      source:'https://www.imdb.com/title/tt0120338/fullcredits/cast' },
+    { title:'The Truman Show', year:1998, actor:'Chris Cooper', counterpart:'Matthew Modine',
+      affectedActors:['Chris Cooper','Matthew Modine'], status:'incorrect',
+      detail:'The full cast credits for The Truman Show (1998) list neither Chris Cooper nor Matthew Modine.',
+      source:'https://www.imdb.com/title/tt0120382/fullcredits/cast' }
   ];
+
+  function matchesDocumentedActor(finding, actor) {
+    return (finding.affectedActors || [finding.actor,finding.alias])
+      .some(name => name && norm(name) === norm(actor));
+  }
 
   function documentedBridgeFinding(link) {
     if (link.type !== 'bridge' || (link.bridgeMediaType &&
@@ -306,7 +315,7 @@
     return documentedBridgeFindings.find(finding =>
       norm(finding.title) === norm(link.bridgeTitle) &&
       (link.bridgeYear ? Number(link.bridgeYear) === finding.year : actors.includes(norm(finding.counterpart))) &&
-      actors.some(actor => actor === norm(finding.actor) || (finding.alias && actor === norm(finding.alias)))) || null;
+      actors.some(actor => matchesDocumentedActor(finding,actor))) || null;
   }
   window.ccDocumentedBridgeFinding = documentedBridgeFinding;
 
@@ -342,8 +351,7 @@
         const isBridgeCredit=c.type!=='shared'&&(slot===1||slot===2);
         const qualifiers=isBridgeCredit?[c.bridgeMediaType,c.bridgeYear].filter(Boolean):[];
         const result={...x,qualifiers,...appearance(x.production,x.actor)};
-        if (isBridgeCredit && documented && (norm(x.actor) === norm(documented.actor) ||
-            (documented.alias && norm(x.actor) === norm(documented.alias)))) {
+        if (isBridgeCredit && documented && matchesDocumentedActor(documented,x.actor)) {
           return {...result,status:'review',source:documented.source,detail:documented.detail,documented:true};
         }
         if(!c.id||!norm(x.production)||!norm(x.actor)||norm(x.actor)==='nicolas cage')return result;
