@@ -440,7 +440,7 @@
 #actorReuseOverlay.hidden { display:none; }
 #actorReuseDialog { width:min(500px,92vw); background:#111826; color:#fff; border:1px solid #c79a40; border-radius:14px; padding:20px; box-shadow:0 18px 50px rgba(0,0,0,.6); }
 #actorReuseDialog h2 { margin:0 0 10px; color:#ffd54a; font-size:22px; }
-#actorReuseDialog p { line-height:1.5; }
+#actorReuseDialog p { font-size:20px; line-height:1.5; }
 #actorReuseActions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
 #actorReuseActions button { flex:1; min-width:175px; }
 #actorReuseBreak:disabled { opacity:.45; cursor:not-allowed; }
@@ -454,7 +454,7 @@
 #connectionDialog label { display:block; font-size:12px; font-weight:700; color:#ffd54a; margin-bottom:5px; }
 #connectionDialog input, #connectionDialog select { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #3a4f6f; background:#182234; color:white; font-size:15px; }
 #connectionDialog .conn-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
-#connectionDialog .conn-error { min-height:18px; color:#ff9b9b; font-size:13px; margin-top:6px; }
+#connectionDialog .conn-error { min-height:18px; color:#ff9b9b; font-size:17px; margin-top:6px; }
 #connectionDialog .conn-error:has(.conn-referee-title) {
   display:grid;
   gap:4px;
@@ -470,7 +470,7 @@
 #connectionDialog .conn-referee-title {
   color:#f0ce79;
   font-family:Georgia,serif;
-  font-size:15px;
+  font-size:19px;
   font-weight:700;
 }
 @media (max-width:700px){ #connectionDialog .conn-row{grid-template-columns:1fr;} }
@@ -710,8 +710,8 @@
   padding:22px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.62);
 }
 #cageCheckCard h2 { margin:0 0 10px; color:#f0ce79; letter-spacing:.8px; }
-#cageCheckReason { font-size:16px; line-height:1.45; margin:10px 0 8px; color:#f3eadc; }
-#cageCheckPenalty { font-weight:800; color:#ff9b9b; margin:8px 0 14px; }
+#cageCheckReason { font-size:20px; line-height:1.45; margin:10px 0 8px; color:#f3eadc; }
+#cageCheckPenalty { font-size:20px; font-weight:800; color:#ff9b9b; margin:8px 0 14px; }
 #cageCheckGif { display:block; width:min(420px,86vw); max-height:300px; object-fit:contain; margin:0 auto 16px; border:1px solid #5b4a37; background:#0b0f14; }
 
 .bonus-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap; }
@@ -2802,7 +2802,7 @@ svg:has(.connection-line) {
     #resetConfirmDialog {width:min(460px,100%);background:#111827;border:1px solid #ad8749;border-radius:9px;padding:24px;color:#f3f4f6;box-shadow:0 14px 44px #000;}
     #resetConfirmTitle {margin:0 0 14px;color:#ffd54a;font-size:23px;}
     #resetConfirmDialog p {line-height:1.5;}
-    #resetConfirmError {color:#ffb5b5;}
+    #resetConfirmError {color:#ffb5b5;font-size:20px;}
     .reset-confirm-actions {display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap;}
     #resetConfirmBtn {border-color:#e0ad54;color:#ffd54a;}
 
@@ -4034,7 +4034,8 @@ body[data-card-size="compact"] #surface .node::before {
 .cc-board-row-arrow { fill:none; stroke:#b99668; stroke-width:2; pointer-events:none; }
 #surface .cc-movie-alias { position:absolute; z-index:3; box-sizing:border-box; display:grid; place-content:center; gap:4px; padding:5px; border:1px dashed #98a8c0; border-radius:8px; background:#202d40; color:#fff; text-align:center; overflow-wrap:anywhere; cursor:pointer; touch-action:manipulation; }
 #boardConnectionStatus { margin: 6px 0; color: inherit; font-size: .875rem; }
-#boardConnectionStatus[data-incomplete] { padding: 8px 12px; border-left: 3px solid #ffd54a; background: #302813; color: #fff0bd; }
+.cc-referee-warning { font-size:1.25rem; line-height:1.45; }
+#boardConnectionStatus[data-incomplete] { font-size:1.125rem; padding: 8px 12px; border-left: 3px solid #ffd54a; background: #302813; color: #fff0bd; }
 #surface .cc-movie-alias.dimmed { opacity: .35; }
 #surface .cc-movie-alias small { color:#c5d4e8; }
 #surface .cc-movie-alias strong { min-width:0; overflow-wrap:anywhere; }
@@ -4525,7 +4526,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
     <h2 id="actorReuseTitle">Actor Already Used!</h2>
     <p id="actorReuseText"></p>
     <p id="actorReuseWitty" style="color:#ffd54a">That actor has already made this connection.</p>
-    <p id="actorReuseOwnership" style="font-size:13px"></p>
+    <p id="actorReuseOwnership" style="font-size:17px"></p>
     <div id="actorReuseActions">
       <button type="button" id="actorReuseBreak">Break Existing Connection</button>
       <button type="button" id="actorReuseChange">Change New Connection</button>
@@ -4602,7 +4603,7 @@ body[data-card-size] #surface .node.cc-search-match.cc-search-pulse { animation:
 <div id="challengeResultOverlay" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:27000;padding:20px">
   <div class="cc-popup-themed" role="dialog" aria-modal="true" aria-labelledby="challengeResultTitle" style="width:min(520px,92vw);background:#171717;border:2px solid #b78a24;border-radius:14px;padding:26px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.55)">
     <h2 id="challengeResultTitle">Challenge Result</h2>
-    <p id="challengeResultText" style="font-size:18px;line-height:1.5"></p>
+    <p id="challengeResultText" style="font-size:22px;line-height:1.5"></p>
     <button type="button" id="challengeResultOK">OK</button>
   </div>
 </div>
@@ -14813,7 +14814,7 @@ body > .cc-expanded-history #dockRecent .dock-recent-line:nth-last-child(n+3){di
 #cageNotYourTurnOverlay { position:fixed; inset:0; z-index:50000; background:rgba(0,0,0,.78); display:flex; align-items:center; justify-content:center; padding:18px; box-sizing:border-box; }
 #cageNotYourTurnOverlay.hidden { display:none !important; }
 #cageNotYourTurnDialog { width:min(430px,100%); box-sizing:border-box; background:linear-gradient(180deg,#211814,#120f0d); border:1px solid #7b5e38; border-top:4px solid #9e2d28; padding:22px; text-align:center; color:#f3eadc; box-shadow:0 18px 45px rgba(0,0,0,.65); }
-#cageNotYourTurnDialog p { font-size:18px; line-height:1.45; margin:4px 0 18px; }
+#cageNotYourTurnDialog p { font-size:22px; line-height:1.45; margin:4px 0 18px; }
 #cageNotYourTurnOkay { min-width:110px; min-height:40px; color:#f0ce79 !important; border:1px solid #8a6a2b !important; font-weight:700; }
 </style>
 <div id="cageNotYourTurnOverlay" class="hidden" role="presentation">
@@ -15266,8 +15267,8 @@ body.break-connect-mode #surface > svg .connection-label-bg {
 
 
 <!-- Read-only board diagnostics: loaded after the existing game logic. -->
-<script src="board-qc.js?v=referee-save-check-1" defer></script>
+<script src="board-qc.js?v=larger-warning-text-1" defer></script>
 <script src="board-qc-online.js?v=referee-live-lookup-1" defer></script>
-<script src="board-referee-trial.js?v=5" defer></script>
+<script src="board-referee-trial.js?v=6" defer></script>
 </body>
 </html> 

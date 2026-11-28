@@ -133,6 +133,7 @@
         const name = id => board.nodes.find(movie => movie.id === id)?.name || 'Unknown movie';
         const notice = document.createElement('p');
         notice.setAttribute('role','status');
+        notice.className = 'cc-referee-warning';
         notice.textContent = 'Referee trial: '+name(link.aId)+' to '+name(link.bId)+'. '+verdict.reason;
         if (verdict.source) {
           const source = document.createElement('a');
