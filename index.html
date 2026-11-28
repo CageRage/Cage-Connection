@@ -7603,6 +7603,35 @@ function movieHasActor(movieTitle, actorName) {
   return cast.some(actor => normalizeActorName(actor) === target);
 }
 
+// Source-backed exceptions to cast matching. Review entries are not definitive exclusions.
+const cageAppearanceFindings = [
+  {movie:"Heartburn", year:1986, actor:"Tony Shalhoub", blocked:true, detail:"Tony Shalhoub said his filmed role was cut.", source:"https://www.avclub.com/tony-shalhoub-on-braindead-monk-and-acting-stoned-in-1798249101"},
+  {movie:"Loaded Weapon 1", aliases:["National Lampoon's Loaded Weapon 1"], year:1993, actor:"Christopher Lambert", blocked:true, detail:"Christopher Lambert's cameo is listed as a deleted scene in the standard film.", source:"https://en.wikipedia.org/wiki/Loaded_Weapon_1#Cast"},
+  {movie:"American Gigolo", year:1980, actor:"Paul Schrader", detail:"Paul Schrader is credited as writer and director; an acting appearance has not been substantiated.", source:"https://www.rottentomatoes.com/m/american_gigolo/cast-and-crew"},
+  {movie:"Suicide Squad", year:2016, actor:"Alain Moussi", detail:"Alain Moussi is credited for stunt doubling; check whether that qualifies under the game rules.", source:"https://www.imdb.com/title/tt1386697/fullcredits/"},
+  {movie:"Spider-Man: Beyond the Spider-Verse", actor:"Andy Samberg", detail:"Andy Samberg's return has not been confirmed; verify a current cast source before relying on this credit."}
+];
+function cageAppearanceFinding(movie, actor, year, medium) {
+  const normalize = value => String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const title = String(movie || "").trim();
+  const suffix = title.match(/\s*\((\d{4})(?:\s+film)?\)\s*$/i);
+  const titleYear = year || suffix?.[1];
+  const base = normalize(title.replace(/\s*\((?:\d{4}(?:\s+film)?|film)\)\s*$/i,""));
+  if (medium && !["film","movie"].includes(String(medium).toLowerCase())) return null;
+  return cageAppearanceFindings.find(finding =>
+    (!titleYear || !finding.year || Number(titleYear) === finding.year) &&
+    [finding.movie,...(finding.aliases || [])].some(name => normalize(name) === base) &&
+    normalize(finding.actor) === normalize(actor)) || null;
+}
+function cageConnectionAppearanceFinding(first, second, draft) {
+  const checks = String(draft.type).toLowerCase() === "shared" ?
+    [[first,draft.sharedActor],[second,draft.sharedActor]] :
+    [[first,draft.leftActor],[draft.bridgeTitle,draft.leftActor,draft.bridgeYear,draft.bridgeMediaType],
+     [draft.bridgeTitle,draft.rightActor,draft.bridgeYear,draft.bridgeMediaType],[second,draft.rightActor]];
+  const findings = checks.map(args => cageAppearanceFinding(...args)).filter(Boolean);
+  return findings.find(finding => finding.blocked) || findings[0] || null;
+}
+
 function validateSharedActor(movieA, movieB, actorName) {
   const actor = actorName.trim();
 
@@ -9945,6 +9974,9 @@ function showConnectionDialog(first, second, draft=null, draftMessage="") {
           connectionDialogError.textContent = "Enter the actor who appears in both movies.";
           return;
         }
+        const finding=cageConnectionAppearanceFinding(first.name,second.name,{type:"shared",sharedActor});
+        if(finding?.blocked){connectionDialogError.textContent=finding.detail;return;}
+        if(finding&&!confirm(finding.detail+" Continue with this unverified credit?"))return;
         const conflict=findReusedActorMoviePair({type:"shared",a:first,b:second,sharedActor});
         if(conflict){
           await resolveDraftConflict(conflict,sharedActorInput);
@@ -9960,6 +9992,9 @@ function showConnectionDialog(first, second, draft=null, draftMessage="") {
           connectionDialogError.textContent = "Complete the other movie and both actor names.";
           return;
         }
+        const finding=cageConnectionAppearanceFinding(first.name,second.name,{type:"bridge",bridgeTitle,leftActor,rightActor});
+        if(finding?.blocked){connectionDialogError.textContent=finding.detail;return;}
+        if(finding&&!confirm(finding.detail+" Continue with this unverified credit?"))return;
         const conflict=findReusedActorMoviePair({type:"bridge",a:first,b:second,bridgeTitle,leftActor,rightActor});
         if(conflict){
           await resolveDraftConflict(conflict,leftActorInput);
@@ -11597,6 +11632,9 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
     return;
   }
 
+  const editFinding=cageConnectionAppearanceFinding(c.a.name,c.b.name,c.bridgeTitle!==draft.bridgeTitle?{...draft,bridgeYear:null,bridgeMediaType:null}:draft);
+  if(editFinding?.blocked){setStatus(editFinding.detail);alert(editFinding.detail);return;}
+  if(editFinding&&!confirm(editFinding.detail+" Continue with this unverified credit?"))return;
   const editConflict=findReusedActorMoviePair(draft,connectionId);
   if(editConflict){
     const action=await handleActorReuseConflict(editConflict);
@@ -15204,7 +15242,7 @@ body.break-connect-mode #surface > svg .connection-label-bg {
 
 
 <!-- Read-only board diagnostics: loaded after the existing game logic. -->
-<script src="board-qc.js?v=verification-deadline-1" defer></script>
+<script src="board-qc.js?v=appearance-findings-1" defer></script>
 <script src="board-qc-online.js?v=verification-deadline-1" defer></script>
 </body>
 </html> 
