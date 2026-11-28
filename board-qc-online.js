@@ -5,17 +5,17 @@
   const api='https://en.wikipedia.org/w/api.php';
   const norm=s=>String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const pageLink=title=>'https://en.wikipedia.org/wiki/'+encodeURIComponent(title.replace(/ /g,'_'));
-  async function request(params, signal){
+  async function request(params){
     const q=new URLSearchParams({action:'parse',format:'json',formatversion:'2',origin:'*',...params});
-    const response=await fetch(api+'?'+q.toString(),{credentials:'omit',signal});
+    const response=await fetch(api+'?'+q.toString(),{credentials:'omit',signal:AbortSignal.timeout(10000)});
     if(!response.ok)throw Error('Wikipedia HTTP '+response.status);
     const result=await response.json();
     if(result.error)throw Error(result.error.info||result.error.code);
     return result.parse;
   }
-  async function searchPages(movie, signal) {
+  async function searchPages(movie) {
     const q=new URLSearchParams({action:'query',list:'search',srsearch:'intitle:"'+movie+'" film',srlimit:'6',format:'json',origin:'*'});
-    const response=await fetch(api+'?'+q.toString(),{credentials:'omit',signal});
+    const response=await fetch(api+'?'+q.toString(),{credentials:'omit',signal:AbortSignal.timeout(10000)});
     if(!response.ok)throw Error('Wikipedia HTTP '+response.status);
     const result=await response.json();
     return result.query?.search?.map(x=>x.title)||[];
@@ -26,7 +26,7 @@
     const p=norm(title).replace(/^(the|a|an) /,'');
     return m===p;
   }
-  async function sourceFor(movie, signal, cached) {
+  async function sourceFor(movie, cached) {
     const key=norm(movie);
     if(cached.has(key))return cached.get(key);
     const work=(async()=>{
@@ -34,15 +34,15 @@
       const knownTitle=url&&/^https:\/\/en\.wikipedia\.org\/wiki\//.test(url)
         ? decodeURIComponent(new URL(url).pathname.split('/wiki/')[1]).replace(/_/g,' ')
         :null;
-      const matching=knownTitle?[knownTitle]:[...new Set(await searchPages(movie, signal))].filter(t=>titleMatches(movie,t));
+      const matching=knownTitle?[knownTitle]:[...new Set(await searchPages(movie))].filter(t=>titleMatches(movie,t));
       // Never silently choose between distinct similarly named films.
       if(matching.length!==1)return {status:'unverified',reason:matching.length?'Ambiguous movie title':'No confidently matching Wikipedia film article'};
-      const title=matching[0], meta=await request({page:title,prop:'sections'}, signal);
+      const title=matching[0], meta=await request({page:title,prop:'sections'});
       const sections=(meta?.sections||[]).filter(s=>/^(cast|voice cast|cast and characters|cast members)$/i.test(String(s.line||'').replace(/<[^>]+>/g,'').trim()));
       if(!sections.length)return {status:'unverified',reason:'No dedicated cast section on the page',title,url:pageLink(title)};
       let portions=[];
       for(const section of sections.slice(0,2)){
-        const data=await request({page:title,prop:'wikitext',section:String(section.index)}, signal);
+        const data=await request({page:title,prop:'wikitext',section:String(section.index)});
         const w=typeof data?.wikitext==='string'?data.wikitext:(data?.wikitext?.['*']||'');
         if(w)portions.push(w);
       }
@@ -74,7 +74,6 @@
     const unique=[...new Map(checks.map(x=>[norm(x.production)+'|'+norm(x.actor),x])).values()];
     if(!unique.length){holder.textContent='No unresolved cast appearances need online research.';return;}
     activeHolder=holder;button.disabled=true;
-    const signal=AbortSignal.timeout(20000);
     const cached=new Map();
     let verified=0,open=0;
     // Small batches protect the public API from bursts and avoid hitting rate limits.
@@ -84,13 +83,11 @@
     const summary=document.createElement('p');holder.appendChild(summary);
     const results=document.createElement('div');holder.appendChild(results);
     try{
-      lookup: for(let bi=0;bi<batches.length;bi++){
+      for(let bi=0;bi<batches.length;bi++){
         for(const item of batches[bi]){
           if(!holder.isConnected||activeHolder!==holder)return;
           summary.textContent='Checking Wikipedia cast sections: '+(verified+open)+' of '+unique.length+' completed…';
-          if(signal.aborted)break lookup;
-          const source=await sourceFor(item.production, signal, cached);
-          if(signal.aborted)break lookup;
+          const source=await sourceFor(item.production, cached);
           if(!holder.isConnected||activeHolder!==holder)return;
           const positive=source.status==='source'&&hasCastCredit(source.cast,item.actor);
           const entry=document.createElement('p');
@@ -111,7 +108,7 @@
         if(bi<batches.length-1)await new Promise(resolve=>setTimeout(resolve,550));
       }
       const remaining=unique.length-verified;
-      summary.textContent=(signal.aborted?'Online check reached its 20-second limit. ':'Online check finished. ')+verified+' cast credits matched. '+remaining+' still need review.'+(remaining?' A win is not confirmed by this lookup.':' Review the board findings for structural or rule issues.');
+      summary.textContent='Online check finished. '+verified+' cast credits matched. '+remaining+' still need review.'+(remaining?' A win is not confirmed by this lookup.':' Review the board findings for structural or rule issues.');
     }finally{if(activeHolder===holder)activeHolder=null;button.disabled=false;}
   }
   document.addEventListener('click',e=>{
