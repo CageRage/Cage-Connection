@@ -257,6 +257,37 @@
     sharedStatus=status;
     show();
   }
+  // Title-specific evidence from distributors and film archives.
+  const publishedCastEvidence = [
+    { title:'The Catcher Was a Spy', year:2018, actors:['Giancarlo Giannini','Guy Pearce'],
+      source:'https://www.paramount.com/movies/the-catcher-was-a-spy' },
+    { title:'Little Bone Lodge', year:2023, actors:['Sadie Soverall','Joely Richardson'],
+      source:'https://scfilmsinternational.com/current-films-live-action-titles/little-bone-lodge/' },
+    { title:'Longlegs', year:2024, actors:['Maika Monroe'],
+      source:'https://www.neonrated.com/film/longlegs' },
+    { title:'Between Worlds', year:2018, actors:['Penelope Mitchell','Franka Potente'],
+      source:'https://watch.afi.com/movie/between-worlds-1' },
+    { title:'R.I.P.D. 2: Rise of the Damned', year:2022, actors:['Penelope Mitchell','Richard Brake'],
+      source:'https://www.universalpicturesathome.com/movies/ripd-2-rise-of-the-damned' },
+    { title:'Never on Tuesday', year:1989, actors:['Emilio Estevez','Charlie Sheen','Judd Nelson'],
+      source:'https://fest.afi.com/1989/u-s-independent-cinema-1989/never-on-tuesday/' },
+    { title:'Wild at Heart', year:1990, actors:['Laura Dern','Sherilyn Fenn','Willem Dafoe','J. E. Freeman'],
+      source:'https://www.criterion.com/films/35257-wild-at-heart' },
+    { title:'Windtalkers', year:2002, actors:['Mark Ruffalo'],
+      source:'https://catalog.afi.com/Film/62640-WINDTALKERS' },
+    { title:'Brawl in Cell Block 99', year:2017, actors:['Jennifer Carpenter','Marc Blucas'],
+      source:'https://www.netflix.com/title/80208328' },
+    { title:'Avatar: The Way of Water', year:2022, actors:['Kate Winslet'],
+      source:'https://www.avatar.com/movies/avatar-the-way-of-water' }
+  ];
+
+  function publishedCreditSource(title, actor, year, mediaType) {
+    if (mediaType && !['film','movie'].includes(String(mediaType).toLowerCase())) return null;
+    const production = publishedCastEvidence.find(item => norm(item.title) === norm(title));
+    if (!production || (year && Number(year) !== production.year)) return null;
+    return production.actors.some(name => norm(name) === norm(actor)) ? production.source : null;
+  }
+
   function verifyConnections() {
     const board=typeof getBoardData==='function' ? getBoardData() : {nodes:[],connections:[]};
     const movies=Array.isArray(board.nodes)?board.nodes:[];
@@ -293,6 +324,11 @@
         // to its exact saved appearance so ambiguous titles cannot share one.
         const key=JSON.stringify([c.id,c.aId,c.bId,a,b,c.type,c.editVersion??0,slot,
           x.production,x.actor,c.bridgeProductionId??null,c.bridgeMediaType??null,c.bridgeYear??null]);
+        const publishedSource = publishedCreditSource(x.production,x.actor,
+          isBridgeCredit ? c.bridgeYear : byId.get(String(slot === 0 ? c.aId : c.bId))?.year,
+          isBridgeCredit ? c.bridgeMediaType : null);
+        if (publishedSource) return {...result,status:'confirmed',source:publishedSource,
+          published:true,detail:'Confirmed by a published cast source'};
         const shared=sharedFor(key);
         const source=shared?.source||creditSource(confirmations.get(key));
         return source ? {...result,key,source,shared,status:'confirmed',
@@ -329,6 +365,8 @@
     const qualifiers=check.qualifiers?.length?' ('+check.qualifiers.map(esc).join(', ')+')':'';
     const label=esc(check.production||'(missing title)')+qualifiers+' / '+esc(check.actor||'(missing actor)');
     const detail='<p>'+label+' — '+esc(check.detail)+'</p>';
+    if(check.published)return '<div class="ccqc-credit">'+detail+
+      '<a href="'+esc(check.source)+'" target="_blank" rel="noopener noreferrer">Published cast source</a></div>';
     if(check.status==='confirmed')return '<div class="ccqc-credit">'+detail+
       '<a href="'+esc(check.source)+'" target="_blank" rel="noopener noreferrer">Source</a> '+
       (check.shared&&!check.shared.own?'':'<button type="button" data-qc-unconfirm="'+esc(check.key)+'">Remove confirmation</button>')+
@@ -454,9 +492,9 @@
     '<div class="ccqc-issue"><strong>Online cast lookup</strong><div id="ccQcInternetResults" aria-live="polite"></div><button type="button" id="ccQcInternetButton">Start extended Wikipedia lookup</button></div>'+
     '<h3>Cast verification (game cast records)</h3>'+
     '<p class="ccqc-muted">Checks each saved actor against both relevant productions (four cast appearances for bridge connections). For credits that need review, save a source link after you verify the specific movie or show.</p>'+
-    '<div class="ccqc-stats">'+[['Cast data matches',v.matched],['Manually confirmed',v.confirmed],['Needs review',v.review],['Unverified',v.unverified]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+esc(a[0])+'</div>').join('')+'</div>'+
+    '<div class="ccqc-stats">'+[['Cast data matches',v.matched],['Source-confirmed links',v.confirmed],['Needs review',v.review],['Unverified',v.unverified]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+esc(a[0])+'</div>').join('')+'</div>'+
     (v.results.length?v.results.filter(x=>x.status!=='matched').map(x=>issueHtml({
-      title:({review:'Review cast',unverified:'Unverified cast',confirmed:'Manually confirmed'})[x.status]+': '+x.label,
+      title:({review:'Review cast',unverified:'Unverified cast',confirmed:'Source-confirmed'})[x.status]+': '+x.label,
       detail:'',targets:x.targets,credits:x.checks.filter(c=>c.status!=='matched').map(creditHtml).join('')
     },x.status==='unverified'?'warn':'issue')).join('') || '<p class="ccqc-ok">All saved actor appearances match available cast records.</p>':'<p>No saved connections to check.</p>')+
     '<h3>Findings ('+r.issues.length+')</h3>'+(r.issues.length?r.issues.map(x=>issueHtml(x,'issue')).join(''):'<p class="ccqc-ok">✓ No structural or exact-actor reuse problems detected.</p>')+
