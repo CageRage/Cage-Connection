@@ -289,7 +289,15 @@
       const inspected=checks.map((x,slot)=>{
         const isBridgeCredit=c.type!=='shared'&&(slot===1||slot===2);
         const qualifiers=isBridgeCredit?[c.bridgeMediaType,c.bridgeYear].filter(Boolean):[];
+        const finding=typeof cageAppearanceFinding==='function' ?
+          cageAppearanceFinding(x.production,x.actor,isBridgeCredit?c.bridgeYear:null,isBridgeCredit?c.bridgeMediaType:null):null;
         const result={...x,qualifiers,...appearance(x.production,x.actor)};
+        if(finding){
+          result.status='review';
+          result.detail=finding.detail;
+          result.findingSource=finding.source;
+          if(finding.blocked)return result;
+        }
         if(!c.id||!norm(x.production)||!norm(x.actor)||norm(x.actor)==='nicolas cage')return result;
         // Legacy links can lack a year or media type. Keep each attestation tied
         // to its exact saved appearance so ambiguous titles cannot share one.
@@ -330,7 +338,7 @@
   function creditHtml(check) {
     const qualifiers=check.qualifiers?.length?' ('+check.qualifiers.map(esc).join(', ')+')':'';
     const label=esc(check.production||'(missing title)')+qualifiers+' / '+esc(check.actor||'(missing actor)');
-    const detail='<p>'+label+' — '+esc(check.detail)+'</p>';
+    const detail='<p>'+label+' — '+esc(check.detail)+'</p>'+(check.findingSource?'<p><a href="'+esc(check.findingSource)+'" target="_blank" rel="noopener noreferrer">Finding source</a></p>':'');
     if(check.status==='confirmed')return '<div class="ccqc-credit">'+detail+
       '<a href="'+esc(check.source)+'" target="_blank" rel="noopener noreferrer">Source</a> '+
       (check.shared&&!check.shared.own?'':'<button type="button" data-qc-unconfirm="'+esc(check.key)+'">Remove confirmation</button>')+
