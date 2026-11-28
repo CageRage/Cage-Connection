@@ -288,6 +288,8 @@
     return production.actors.some(name => norm(name) === norm(actor)) ? production.source : null;
   }
 
+  window.ccPublishedCreditSource = publishedCreditSource;
+
   function verifyConnections() {
     const board=typeof getBoardData==='function' ? getBoardData() : {nodes:[],connections:[]};
     const movies=Array.isArray(board.nodes)?board.nodes:[];
