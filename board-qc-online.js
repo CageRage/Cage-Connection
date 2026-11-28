@@ -63,6 +63,20 @@
       return norm(credited)===name;
     });
   }
+  const liveSources = new Map();
+  window.ccLookupLiveCastCredit = async ({title,actor,year,type}) => {
+    if (!title || !actor || (type && !['film','movie'].includes(String(type).toLowerCase()))) return null;
+    const page = await sourceFor(title,liveSources);
+    if (liveSources.size > 128) liveSources.delete(liveSources.keys().next().value);
+    if (page.status !== 'source') {
+      liveSources.delete(norm(title));
+      return null;
+    }
+    // Saved years require a matching dated article. Leave uncertain identity open.
+    if (year && !new RegExp('\\('+Number(year)+'(?: |\\))').test(page.title)) return null;
+    return hasCastCredit(page.cast,actor) ? page.url : null;
+  };
+
   let activeHolder=null;
   async function runOnline(button){
     if(typeof window.ccBoardQcVerifyConnections!=='function')return;
