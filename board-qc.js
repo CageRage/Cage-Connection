@@ -290,6 +290,26 @@
 
   window.ccPublishedCreditSource = publishedCreditSource;
 
+  const documentedBridgeFindings = [
+    { title:'The Godfather', year:1972, actor:'Tilda Swinton', counterpart:'James Caan',
+      status:'incorrect', detail:'Tilda Swinton’s first film role was in Caravaggio (1986), fourteen years after The Godfather.',
+      source:'https://www.eyefilm.nl/en/whats-on/caravaggio/1468204' },
+    { title:'Titanic', year:1997, actor:'Suzanne Somers', alias:'Suzanne Sommers', counterpart:'Kate Winslet',
+      status:'review', detail:'The full Titanic (1997) cast listing does not identify Suzanne Somers. An acting appearance still needs evidence.',
+      source:'https://www.imdb.com/title/tt0120338/fullcredits/cast' }
+  ];
+
+  function documentedBridgeFinding(link) {
+    if (link.type !== 'bridge' || (link.bridgeMediaType &&
+        !['film','movie'].includes(String(link.bridgeMediaType).toLowerCase()))) return null;
+    const actors = [norm(link.leftActor),norm(link.rightActor)];
+    return documentedBridgeFindings.find(finding =>
+      norm(finding.title) === norm(link.bridgeTitle) &&
+      (link.bridgeYear ? Number(link.bridgeYear) === finding.year : actors.includes(norm(finding.counterpart))) &&
+      actors.some(actor => actor === norm(finding.actor) || (finding.alias && actor === norm(finding.alias)))) || null;
+  }
+  window.ccDocumentedBridgeFinding = documentedBridgeFinding;
+
   function verifyConnections() {
     const board=typeof getBoardData==='function' ? getBoardData() : {nodes:[],connections:[]};
     const movies=Array.isArray(board.nodes)?board.nodes:[];
@@ -317,10 +337,15 @@
         [{production:a,actor:c.sharedActor},{production:b,actor:c.sharedActor}]:
         [{production:a,actor:c.leftActor},{production:c.bridgeTitle,actor:c.leftActor},
          {production:c.bridgeTitle,actor:c.rightActor},{production:b,actor:c.rightActor}];
+      const documented = documentedBridgeFinding(c);
       const inspected=checks.map((x,slot)=>{
         const isBridgeCredit=c.type!=='shared'&&(slot===1||slot===2);
         const qualifiers=isBridgeCredit?[c.bridgeMediaType,c.bridgeYear].filter(Boolean):[];
         const result={...x,qualifiers,...appearance(x.production,x.actor)};
+        if (isBridgeCredit && documented && (norm(x.actor) === norm(documented.actor) ||
+            (documented.alias && norm(x.actor) === norm(documented.alias)))) {
+          return {...result,status:'review',source:documented.source,detail:documented.detail,documented:true};
+        }
         if(!c.id||!norm(x.production)||!norm(x.actor)||norm(x.actor)==='nicolas cage')return result;
         // Legacy links can lack a year or media type. Keep each attestation tied
         // to its exact saved appearance so ambiguous titles cannot share one.
@@ -367,6 +392,8 @@
     const qualifiers=check.qualifiers?.length?' ('+check.qualifiers.map(esc).join(', ')+')':'';
     const label=esc(check.production||'(missing title)')+qualifiers+' / '+esc(check.actor||'(missing actor)');
     const detail='<p>'+label+' — '+esc(check.detail)+'</p>';
+    if(check.documented)return '<div class="ccqc-credit">'+detail+
+      '<a href="'+esc(check.source)+'" target="_blank" rel="noopener noreferrer">Cast evidence</a></div>';
     if(check.published)return '<div class="ccqc-credit">'+detail+
       '<a href="'+esc(check.source)+'" target="_blank" rel="noopener noreferrer">Published cast source</a></div>';
     if(check.status==='confirmed')return '<div class="ccqc-credit">'+detail+

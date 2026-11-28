@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  function inspectConnection(board, link, sourceFor) {
+  function inspectConnection(board, link, sourceFor, documentedFinding) {
     const movie = id => board.nodes.find(node => node.id === id)?.name;
     const a = movie(link.aId), b = movie(link.bId);
     const credits = link.type === 'shared'
@@ -13,6 +13,10 @@
          {title:b, actor:link.rightActor}];
     if (credits.some(credit => String(credit.actor || '').trim().toLowerCase() === 'nicolas cage')) {
       return {status:'incorrect', reason:'Nicolas Cage cannot be the connecting actor.'};
+    }
+    const finding = documentedFinding?.(link);
+    if (finding?.status === 'incorrect') {
+      return {status:'incorrect',reason:finding.detail,source:finding.source};
     }
     const verified = credits.every(credit => credit.title && credit.actor &&
       sourceFor?.(credit.title,credit.actor,credit.year,credit.type));
@@ -76,13 +80,21 @@
       return;
     }
     const observer = createObserver({
-      check: (board,link) => inspectConnection(board,link,window.ccPublishedCreditSource),
+      check: (board,link) => inspectConnection(board,link,window.ccPublishedCreditSource,window.ccDocumentedBridgeFinding),
       defer: work => setTimeout(() => { if (observe === observer) work(); },0),
       notify: (board,link,verdict) => {
         const name = id => board.nodes.find(movie => movie.id === id)?.name || 'Unknown movie';
         const notice = document.createElement('p');
         notice.setAttribute('role','status');
         notice.textContent = 'Referee trial: '+name(link.aId)+' to '+name(link.bId)+'. '+verdict.reason;
+        if (verdict.source) {
+          const source = document.createElement('a');
+          source.href = verdict.source;
+          source.target = '_blank';
+          source.rel = 'noopener noreferrer';
+          source.textContent = 'Cast evidence';
+          notice.append(' ',source);
+        }
         document.getElementById('boardConnectionStatus')?.insertAdjacentElement('afterend',notice);
       }
     });
