@@ -455,6 +455,24 @@
 #connectionDialog input, #connectionDialog select { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #3a4f6f; background:#182234; color:white; font-size:15px; }
 #connectionDialog .conn-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
 #connectionDialog .conn-error { min-height:18px; color:#ff9b9b; font-size:13px; margin-top:6px; }
+#connectionDialog .conn-error:has(.conn-referee-title) {
+  display:grid;
+  gap:4px;
+  margin-top:12px;
+  padding:12px 14px;
+  border:1px solid #826137;
+  border-left:4px solid #d6a457;
+  border-radius:4px;
+  background:linear-gradient(180deg,#362617,#211711);
+  color:#faeacb;
+  line-height:1.45;
+}
+#connectionDialog .conn-referee-title {
+  color:#f0ce79;
+  font-family:Georgia,serif;
+  font-size:15px;
+  font-weight:700;
+}
 @media (max-width:700px){ #connectionDialog .conn-row{grid-template-columns:1fr;} }
 
 
@@ -9941,11 +9959,20 @@ function showConnectionDialog(first, second, draft=null, draftMessage="") {
     const approvedByReferee = async draft => {
       if (!window.ccRefereeCheckBeforeSave) return true;
       refereeControls.forEach(control => control.disabled = true);
-      connectionDialogError.textContent = "Referee is checking the cast credits…";
+      const showRefereeMessage = (title,message) => {
+        const heading = document.createElement("strong");
+        heading.className = "conn-referee-title";
+        heading.textContent = title;
+        const detail = document.createElement("span");
+        detail.textContent = message;
+        connectionDialogError.replaceChildren(heading,detail);
+      };
+      showRefereeMessage("Automatic Referee","Checking the cast credits…");
       try {
         const reason = await window.ccRefereeCheckBeforeSave(first,second,draft);
         if (closed) return false;
-        connectionDialogError.textContent = reason ? "Referee: "+reason : "";
+        if (reason) showRefereeMessage("Connection not saved",reason.replace(/^Connection not saved\. /,""));
+        else connectionDialogError.textContent = "";
         return !reason;
       } finally {
         if (!closed) refereeControls.forEach(control => control.disabled = false);
