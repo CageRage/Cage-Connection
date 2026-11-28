@@ -23,6 +23,23 @@
     return {status:verified?'confirmed':'inconclusive',credits};
   }
 
+  async function checkBeforeSave(board,link,published,documented,lookUp) {
+    const verdict = inspectConnection(board,link,published,documented);
+    if (verdict.status === 'incorrect') return verdict.reason;
+    if (verdict.status === 'confirmed') return '';
+    const checks = await Promise.all(verdict.credits.map(async credit => {
+      try {
+        return published?.(credit.title,credit.actor,credit.year,credit.type) ||
+          await lookUp?.(credit);
+      } catch {
+        return null;
+      }
+    }));
+    const missing = verdict.credits.filter((_,index) => !checks[index])
+      .map(credit => credit.actor+' in '+credit.title);
+    return missing.length ? 'Connection not saved. Could not verify '+[...new Set(missing)].join('; ')+'.' : '';
+  }
+
   function createObserver({check, notify, defer, research, record}) {
     let researchQueue = Promise.resolve();
     let scope, current = new Map(), generation = 0;
@@ -59,7 +76,7 @@
   }
 
   if (typeof module === 'object' && module.exports) {
-    module.exports = {inspectConnection, createObserver};
+    module.exports = {inspectConnection, createObserver, checkBeforeSave};
     return;
   }
   if (typeof getBoardData !== 'function') return;
@@ -90,6 +107,7 @@
     toggle.setAttribute('aria-pressed',String(enabled));
     if (!enabled) {
       delete window.ccRefereeObserveBoard;
+      delete window.ccRefereeCheckBeforeSave;
       observe = undefined;
       return;
     }
@@ -129,6 +147,10 @@
     });
     observe = observer;
     window.ccRefereeObserveBoard = observeBoard;
+    window.ccRefereeCheckBeforeSave = (a,b,draft) => checkBeforeSave(
+      {nodes:[a,b]}, {...draft,aId:a.id,bId:b.id},
+      window.ccPublishedCreditSource,window.ccDocumentedBridgeFinding,window.ccLookupLiveCastCredit
+    );
     observeBoard();
   }
 

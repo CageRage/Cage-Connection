@@ -9896,7 +9896,12 @@ function showConnectionDialog(first, second, draft=null, draftMessage="") {
       }, 0);
     };
 
+    const refereeControls = [connectionSaveBtn,connectionBridgeBtn,connectionSharedBtn,
+      sharedActorInput,bridgeTitleInput,leftActorInput,rightActorInput];
+    let closed = false;
     const cleanup = () => {
+      closed = true;
+      refereeControls.forEach(control => control.disabled = false);
       connectionBridgeBtn.removeEventListener("click", chooseBridge);
       connectionSharedBtn.removeEventListener("click", chooseShared);
       connectionSaveBtn.removeEventListener("click", save);
@@ -9933,6 +9938,20 @@ function showConnectionDialog(first, second, draft=null, draftMessage="") {
       }
     };
 
+    const approvedByReferee = async draft => {
+      if (!window.ccRefereeCheckBeforeSave) return true;
+      refereeControls.forEach(control => control.disabled = true);
+      connectionDialogError.textContent = "Referee is checking the cast credits…";
+      try {
+        const reason = await window.ccRefereeCheckBeforeSave(first,second,draft);
+        if (closed) return false;
+        connectionDialogError.textContent = reason ? "Referee: "+reason : "";
+        return !reason;
+      } finally {
+        if (!closed) refereeControls.forEach(control => control.disabled = false);
+      }
+    };
+
     const save = async () => {
       if (!connectionType.value) {
         connectionDialogError.textContent = "Choose Multi-Movie Connection or Same Actor.";
@@ -9950,6 +9969,8 @@ function showConnectionDialog(first, second, draft=null, draftMessage="") {
           await resolveDraftConflict(conflict,sharedActorInput);
           return;
         }
+        if (!(await approvedByReferee({type:"shared",sharedActor}))) return;
+        if (closed) return;
         cleanup();
         resolve({type:"SHARED", sharedActor});
       } else {
@@ -9965,6 +9986,8 @@ function showConnectionDialog(first, second, draft=null, draftMessage="") {
           await resolveDraftConflict(conflict,leftActorInput);
           return;
         }
+        if (!(await approvedByReferee({type:"bridge",bridgeTitle,leftActor,rightActor}))) return;
+        if (closed) return;
         cleanup();
         resolve({type:"BRIDGE", bridgeTitle, leftActor, rightActor});
       }
@@ -11597,6 +11620,17 @@ async function deleteConnection(connectionId, silent = false, breakMessage = "Co
     return;
   }
 
+  if (window.ccRefereeCheckBeforeSave) {
+    const verificationDraft = c.bridgeTitle === draft.bridgeTitle && c.type === draft.type
+      ? draft : {...draft,bridgeYear:undefined,bridgeMediaType:undefined};
+    setStatus("Referee is checking the edited cast credits…");
+    const reason = await window.ccRefereeCheckBeforeSave(draft.a,draft.b,verificationDraft);
+    if (reason) {setStatus("Referee: "+reason);return;}
+    if (!connections.includes(c) || (c.editVersion ?? 0) !== expectedVersion) {
+      setStatus("The connection changed while the referee was checking it. Nothing saved.");
+      return;
+    }
+  }
   const editConflict=findReusedActorMoviePair(draft,connectionId);
   if(editConflict){
     const action=await handleActorReuseConflict(editConflict);
@@ -15205,8 +15239,8 @@ body.break-connect-mode #surface > svg .connection-label-bg {
 
 
 <!-- Read-only board diagnostics: loaded after the existing game logic. -->
-<script src="board-qc.js?v=referee-live-lookup-1" defer></script>
+<script src="board-qc.js?v=referee-save-check-1" defer></script>
 <script src="board-qc-online.js?v=referee-live-lookup-1" defer></script>
-<script src="board-referee-trial.js?v=4" defer></script>
+<script src="board-referee-trial.js?v=5" defer></script>
 </body>
 </html> 
