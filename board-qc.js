@@ -397,13 +397,44 @@
     }
     show(overlay.querySelector('#ccBoardQcDialog').scrollTop);
   }
+  function exportIndependentVerification() {
+    const board = getBoardData();
+    const report = verifyConnections();
+    const payload = {
+      format: 'cage-connection-independent-verification',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      board: {
+        nodes: board.nodes.map(({id,name}) => ({id,name})),
+        connections: board.connections.map(({id,aId,bId,type,bridgeTitle,leftActor,rightActor,
+          sharedActor,bridgeProductionId,bridgeMediaType,bridgeYear,editVersion}) => ({
+          id,aId,bId,type,bridgeTitle,leftActor,rightActor,sharedActor,
+          bridgeProductionId,bridgeMediaType,bridgeYear,editVersion
+        }))
+      },
+      castReview: report.results.map(({id,label,checks}) => ({
+        id,label,checks:checks.map(({production,actor,status,source,qualifiers}) => ({
+          production,actor,status,source,qualifiers
+        }))
+      }))
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'cage-connection-independent-verification.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url),1000);
+  }
+
   function show(scrollTop=0){
     const r=scan();
     const v=verifyConnections();
     if(overlay)overlay.remove();
     overlay=document.createElement('div');overlay.id='ccBoardQcOverlay';
     overlay.innerHTML='<section id="ccBoardQcDialog" role="dialog" aria-modal="true" aria-label="Verify the Entire Board">'+
-    '<div class="ccqc-top"><h2>VERIFY THE ENTIRE BOARD</h2><button type="button" data-qc-close>Close</button></div>'+
+    '<div class="ccqc-top"><h2>VERIFY THE ENTIRE BOARD</h2><button type="button" data-qc-export>Export for Independent Verification</button><button type="button" data-qc-close>Close</button></div>'+
     '<div class="ccqc-stats">'+[['Connections',r.links.length],['Board movies',r.movies.length],['Chains / components',r.components.length],['Endpoints',r.ends.length]].map(a=>'<div class="ccqc-stat"><strong>'+a[1]+'</strong>'+a[0]+'</div>').join('')+'</div>'+
     '<p class="ccqc-muted">'+(confirmationRoom()?'New confirmations are shared with players in this room. Only the player who shared a confirmation can remove it.':'Confirmations are saved in this browser.')+'</p>'+
     (sharedStatus?'<p role="status">'+esc(sharedStatus)+'</p>':'')+
@@ -444,6 +475,7 @@
   });
   document.addEventListener('click',e=>{
     if(!overlay)return;
+    if(e.target.closest('[data-qc-export]')){exportIndependentVerification();return;}
     const x=e.target.closest('[data-qc-close]'),f=e.target.closest('[data-qc-find]');
     const remove=e.target.closest('[data-qc-unconfirm]');
     const share=e.target.closest('[data-qc-share]');
