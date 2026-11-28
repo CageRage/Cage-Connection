@@ -20,10 +20,11 @@
     }
     const verified = credits.every(credit => credit.title && credit.actor &&
       sourceFor?.(credit.title,credit.actor,credit.year,credit.type));
-    return {status:verified?'confirmed':'inconclusive'};
+    return {status:verified?'confirmed':'inconclusive',credits};
   }
 
-  function createObserver({check, notify, defer}) {
+  function createObserver({check, notify, defer, research, record}) {
+    let researchQueue = Promise.resolve();
     let scope, current = new Map(), generation = 0;
 
     return function observe(nextScope, board) {
@@ -41,10 +42,17 @@
         if (previous.has(id)) continue;
         defer(() => {
           if (generation !== activeGeneration || !current.has(id)) return;
-          const savedLink = current.get(id);
-          if ((savedLink.editVersion ?? 0) !== (link.editVersion ?? 0)) return;
+          const isCurrent = () => generation === activeGeneration && current.has(id) &&
+            (current.get(id).editVersion ?? 0) === (link.editVersion ?? 0);
+          if (!isCurrent()) return;
           const verdict = check(board,link);
           if (verdict.status === 'incorrect') notify(board,link,verdict);
+          if (verdict.status !== 'inconclusive' || !research) return;
+          researchQueue = researchQueue.then(async () => {
+            if (!isCurrent()) return;
+            const results = await research(verdict.credits,isCurrent);
+            if (isCurrent()) record?.(nextScope,link,results);
+          }).catch(() => {});
         });
       }
     };
@@ -66,9 +74,15 @@
   } catch {}
 
   let observe;
+  const liveResults = new Map();
+  const roomScope = () => (typeof remoteRoomCode === 'string' && remoteRoomCode) || 'local';
+  const resultKey = (scope,link) => JSON.stringify([scope,link.id,link.editVersion ?? 0]);
+  window.ccRefereeLiveCredit = (link,slot,title,actor) => {
+    const result = liveResults.get(resultKey(roomScope(),link))?.[slot];
+    return result?.title === title && result.actor === actor ? result : null;
+  };
   function observeBoard() {
-    const room = typeof remoteRoomCode === 'string' ? remoteRoomCode : '';
-    observe(room || 'local',getBoardData());
+    observe(roomScope(),getBoardData());
   }
 
   function updateTrial() {
@@ -82,6 +96,21 @@
     const observer = createObserver({
       check: (board,link) => inspectConnection(board,link,window.ccPublishedCreditSource,window.ccDocumentedBridgeFinding),
       defer: work => setTimeout(() => { if (observe === observer) work(); },0),
+      research: async (credits,isCurrent) => {
+        const results = [];
+        for (const credit of credits) {
+          if (observe !== observer || !isCurrent()) break;
+          const source = window.ccPublishedCreditSource?.(credit.title,credit.actor,credit.year,credit.type) ||
+            await window.ccLookupLiveCastCredit?.(credit);
+          results.push({...credit,source:source || null});
+        }
+        return results;
+      },
+      record: (scope,link,results) => {
+        if (observe !== observer) return;
+        liveResults.set(resultKey(scope,link),results);
+        if (liveResults.size > 256) liveResults.delete(liveResults.keys().next().value);
+      },
       notify: (board,link,verdict) => {
         const name = id => board.nodes.find(movie => movie.id === id)?.name || 'Unknown movie';
         const notice = document.createElement('p');

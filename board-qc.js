@@ -364,6 +364,12 @@
           isBridgeCredit ? c.bridgeMediaType : null);
         if (publishedSource) return {...result,status:'confirmed',source:publishedSource,
           published:true,detail:'Confirmed by a published cast source'};
+        const live = window.ccRefereeLiveCredit?.(c,slot,x.production,x.actor);
+        if (live?.source) return {...result,status:'confirmed',source:live.source,
+          published:true,detail:'Matched by the referee’s live cast lookup'};
+        if (live && result.status !== 'matched') {
+          result.detail += ' · The live lookup could not confirm this credit.';
+        }
         const shared=sharedFor(key);
         const source=shared?.source||creditSource(confirmations.get(key));
         return source ? {...result,key,source,shared,status:'confirmed',
